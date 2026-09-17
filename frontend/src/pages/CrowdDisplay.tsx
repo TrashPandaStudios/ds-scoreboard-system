@@ -147,10 +147,10 @@ export const CrowdDisplay: React.FC = () => {
           </div>
         ) : (
           <div className="flex-1 flex flex-col justify-center my-4">
-            {/* Split Scoreboard Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+            {/* Split Scoreboard Container */}
+            <div className="flex flex-col lg:flex-row items-center justify-center gap-6 w-full">
               {/* Left Team Card */}
-              <div className="lg:col-span-5 flex">
+              <div className="flex-1 min-w-0 w-full flex">
                 {leftTeam === 'red' ? (
                   <ScoreCard
                     team="red"
@@ -175,8 +175,8 @@ export const CrowdDisplay: React.FC = () => {
               </div>
 
               {/* Authoritative Center Clock */}
-              <div className="lg:col-span-2 flex flex-col items-center justify-center py-6 px-4 rounded-3xl bg-slate-900/60 border border-slate-800/80 backdrop-blur-md shadow-2xl">
-                <span className="text-xs font-mono font-black text-cyan-400 tracking-widest uppercase mb-1">
+              <div className="w-full lg:w-80 xl:w-96 flex-shrink-0 flex flex-col items-center justify-center py-6 px-6 rounded-3xl bg-slate-900/60 border border-slate-800/80 backdrop-blur-md shadow-2xl">
+                <span className="text-xs font-mono font-black text-cyan-400 tracking-widest uppercase mb-2">
                   MATCH CLOCK
                 </span>
                 <TabularTimer
@@ -187,7 +187,7 @@ export const CrowdDisplay: React.FC = () => {
                   size="hero"
                   showProgressBar={true}
                 />
-                <div className="mt-6 text-center">
+                <div className="mt-4 text-center">
                   <span className="text-xs font-mono text-slate-400 uppercase tracking-wider block">
                     SET {arenaState.currentSet} OF {arenaState.maxSets}
                   </span>
@@ -195,7 +195,7 @@ export const CrowdDisplay: React.FC = () => {
               </div>
 
               {/* Right Team Card */}
-              <div className="lg:col-span-5 flex">
+              <div className="flex-1 min-w-0 w-full flex">
                 {rightTeam === 'red' ? (
                   <ScoreCard
                     team="red"

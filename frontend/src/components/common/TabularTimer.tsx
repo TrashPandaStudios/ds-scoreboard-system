@@ -32,18 +32,18 @@ export const TabularTimer: React.FC<TabularTimerProps> = ({
 
   // Size configurations
   const sizeClasses = {
-    sm: 'text-3xl font-bold tracking-tight',
-    md: 'text-5xl font-extrabold tracking-tight',
-    lg: 'text-7xl font-black tracking-tighter',
-    hero: 'text-8xl md:text-9xl font-black tracking-tighter',
+    sm: 'text-2xl sm:text-3xl font-bold tracking-tight',
+    md: 'text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight',
+    lg: 'text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight',
+    hero: 'text-5xl sm:text-6xl xl:text-7xl font-black tracking-tight',
   };
 
   return (
-    <div className="flex flex-col items-center justify-center">
+    <div className="flex flex-col items-center justify-center w-full">
       {/* Time Display with Tabular Figures */}
-      <div className="relative flex items-center justify-center">
+      <div className="flex flex-col items-center justify-center">
         <span
-          className={`font-mono tabular-nums select-none transition-colors duration-150 ${sizeClasses[size]} ${
+          className={`font-mono tabular-nums leading-none select-none whitespace-nowrap transition-colors duration-150 ${sizeClasses[size]} ${
             isZero
               ? 'text-rose-500 animate-pulse glow-red'
               : isPenaltyPhase
@@ -59,7 +59,7 @@ export const TabularTimer: React.FC<TabularTimerProps> = ({
         </span>
 
         {/* Status Pill Badge */}
-        <div className="absolute -bottom-3 flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-slate-900/90 border border-slate-700 text-[11px] font-mono tracking-wider text-slate-300 backdrop-blur-sm shadow-md">
+        <div className="mt-3 flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-slate-900/90 border border-slate-700 text-[11px] font-mono tracking-wider text-slate-300 backdrop-blur-sm shadow-md">
           {timerRunning ? (
             <>
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
@@ -82,7 +82,7 @@ export const TabularTimer: React.FC<TabularTimerProps> = ({
 
       {/* Synchronized Progress Track Bar */}
       {showProgressBar && (
-        <div className="w-full max-w-md h-2 bg-slate-800/80 rounded-full mt-6 overflow-hidden border border-slate-700/60 p-0.5">
+        <div className="w-full max-w-[240px] xl:max-w-[280px] h-2 bg-slate-800/80 rounded-full mt-4 overflow-hidden border border-slate-700/60 p-0.5">
           <div
             className={`h-full rounded-full transition-all duration-100 ease-linear ${
               isPenaltyPhase

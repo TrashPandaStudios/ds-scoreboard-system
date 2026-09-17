@@ -104,10 +104,10 @@ export const SplitTeamsDisplay: React.FC = () => {
         </div>
 
         {/* Center: High-Impact Side-by-Side Dual Team Monitor */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 my-auto items-stretch">
+        <div className="flex flex-col lg:flex-row gap-6 my-auto items-stretch justify-center w-full">
           {/* Left Team Side */}
           <div
-            className={`lg:col-span-5 flex flex-col justify-between p-8 rounded-3xl border-2 transition-all ${
+            className={`flex-1 min-w-0 flex flex-col justify-between p-8 rounded-3xl border-2 transition-all ${
               leftTeam === 'red'
                 ? 'bg-gradient-to-b from-red-950/50 via-slate-900/90 to-slate-950/95 border-red-500/40 box-glow-red'
                 : 'bg-gradient-to-b from-blue-950/50 via-slate-900/90 to-slate-950/95 border-blue-500/40 box-glow-blue'
@@ -168,12 +168,12 @@ export const SplitTeamsDisplay: React.FC = () => {
           </div>
 
           {/* Center Dividing HUD: Clock & Set Tracker */}
-          <div className="lg:col-span-2 flex flex-col items-center justify-center p-6 rounded-3xl bg-slate-900/90 border-2 border-slate-800 shadow-2xl">
-            <span className="text-[10px] font-mono font-black text-cyan-400 tracking-widest uppercase mb-1">
+          <div className="w-full lg:w-80 xl:w-96 flex-shrink-0 flex flex-col items-center justify-center p-6 rounded-3xl bg-slate-900/90 border-2 border-slate-800 shadow-2xl">
+            <span className="text-[10px] font-mono font-black text-cyan-400 tracking-widest uppercase mb-2">
               MATCH CLOCK
             </span>
             <span
-              className={`font-mono font-black text-5xl lg:text-6xl tabular-nums ${
+              className={`font-mono font-black text-4xl sm:text-5xl xl:text-6xl tabular-nums leading-none whitespace-nowrap ${
                 isPenaltyPhase
                   ? 'text-amber-400 glow-amber'
                   : isLowTime
@@ -204,7 +204,7 @@ export const SplitTeamsDisplay: React.FC = () => {
 
           {/* Right Team Side */}
           <div
-            className={`lg:col-span-5 flex flex-col justify-between p-8 rounded-3xl border-2 transition-all ${
+            className={`flex-1 min-w-0 flex flex-col justify-between p-8 rounded-3xl border-2 transition-all ${
               rightTeam === 'red'
                 ? 'bg-gradient-to-b from-red-950/50 via-slate-900/90 to-slate-950/95 border-red-500/40 box-glow-red'
                 : 'bg-gradient-to-b from-blue-950/50 via-slate-900/90 to-slate-950/95 border-blue-500/40 box-glow-blue'
