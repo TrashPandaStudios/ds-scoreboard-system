@@ -44,7 +44,7 @@ Built with **Java 17 / Spring Boot 3**, **Spring WebSocket (STOMP)**, embedded *
 ### 5. Transparent OBS Broadcast Overlays (`/arena/:id/overlay/*`)
 - Dedicated zero-background (`background: transparent !important;`) endpoints:
   - `/arena/:id/overlay/lower-third` — 1920x1080 bottom esports HUD.
-  - `/arena/:id/overlay/top-bar` — 1920x200 top aerial feed ticker.
+  - `/arena/:id/overlay/top-bar` — 1920x1080 top esports HUD (mirrors lower-third layout at top of stream).
   - `/arena/:id/overlay/penalty-alert` — dynamic pop-up hazard banner during penalty shootouts.
 
 ### 6. Event Staff Master Dashboard (`/master`)

@@ -65,11 +65,11 @@ export const ObsLinksModal: React.FC<ObsLinksModalProps> = ({ isOpen, onClose, a
     },
     {
       id: 'top-bar',
-      name: 'Top Esports Ticker Bar',
+      name: 'Esports Top-Bar Broadcast Bar',
       path: `/arena/${arenaId}/overlay/top-bar`,
-      resolution: '1920 x 200',
+      resolution: '1920 x 1080 (Custom CSS: transparent)',
       icon: Tv,
-      description: 'Ultra-compact top bar overlay perfect for multi-camera aerial drone feeds.',
+      description: 'Sleek broadcast HUD positioned at the top of the stream with live scores, penalties, sets, and clock.',
     },
     {
       id: 'penalty-alert',
