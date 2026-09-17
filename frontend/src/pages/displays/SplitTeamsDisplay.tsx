@@ -153,7 +153,7 @@ export const SplitTeamsDisplay: React.FC = () => {
               </div>
             </div>
 
-            {/* Footer: Fouls & Sets Won */}
+            {/* Footer: Penalties & Sets Won */}
             <div className="flex items-center justify-between border-t border-slate-800 pt-4">
               <PenaltyPips
                 count={leftTeam === 'red' ? state.redPenalties : state.bluePenalties}
@@ -250,7 +250,7 @@ export const SplitTeamsDisplay: React.FC = () => {
               </div>
             </div>
 
-            {/* Footer: Fouls & Sets Won */}
+            {/* Footer: Penalties & Sets Won */}
             <div className="flex items-center justify-between border-t border-slate-800 pt-4">
               <PenaltyPips
                 count={rightTeam === 'red' ? state.redPenalties : state.bluePenalties}

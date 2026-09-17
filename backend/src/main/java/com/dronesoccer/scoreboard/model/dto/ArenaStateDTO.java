@@ -32,7 +32,7 @@ public class ArenaStateDTO {
     private int redSetScore;
     private int blueSetScore;
 
-    // Penalties (0 to 3)
+    // Penalties (non-negative count)
     private int redPenalties;
     private int bluePenalties;
 

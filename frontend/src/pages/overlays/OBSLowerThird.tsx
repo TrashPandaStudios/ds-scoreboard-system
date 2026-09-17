@@ -101,20 +101,20 @@ export const OBSLowerThird: React.FC = () => {
             </div>
 
             <div className="flex items-center gap-4">
-              {/* Penalty Pips */}
-              <div className="flex items-center gap-1">
-                {[0, 1, 2].map((i) => (
-                  <span
-                    key={i}
-                    className={`w-2.5 h-2.5 rounded-full ${
-                      i < (leftTeam === 'red' ? state.redPenalties : state.bluePenalties)
-                        ? leftTeam === 'red'
-                          ? 'bg-rose-500 shadow-[0_0_8px_#ef4444]'
-                          : 'bg-amber-400 shadow-[0_0_8px_#f59e0b]'
-                        : 'bg-slate-800 border border-slate-700'
-                    }`}
-                  />
-                ))}
+              {/* Penalty Counter Badge */}
+              <div
+                className={`flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg text-xs font-mono font-black border transition-all duration-300 ${
+                  (leftTeam === 'red' ? state.redPenalties : state.bluePenalties) > 0
+                    ? leftTeam === 'red'
+                      ? 'bg-rose-950/80 text-rose-300 border-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.4)]'
+                      : 'bg-amber-950/80 text-amber-300 border-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.4)]'
+                    : 'bg-slate-900/80 text-slate-500 border-slate-800'
+                }`}
+              >
+                <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">PENALTIES</span>
+                <span className="tabular-nums">
+                  {leftTeam === 'red' ? state.redPenalties : state.bluePenalties}
+                </span>
               </div>
 
               {/* Large Score */}
@@ -162,20 +162,20 @@ export const OBSLowerThird: React.FC = () => {
                 {rightTeam === 'red' ? state.redScore : state.blueScore}
               </span>
 
-              {/* Penalty Pips */}
-              <div className="flex items-center gap-1">
-                {[0, 1, 2].map((i) => (
-                  <span
-                    key={i}
-                    className={`w-2.5 h-2.5 rounded-full ${
-                      i < (rightTeam === 'red' ? state.redPenalties : state.bluePenalties)
-                        ? rightTeam === 'red'
-                          ? 'bg-rose-500 shadow-[0_0_8px_#ef4444]'
-                          : 'bg-amber-400 shadow-[0_0_8px_#f59e0b]'
-                        : 'bg-slate-800 border border-slate-700'
-                    }`}
-                  />
-                ))}
+              {/* Penalty Counter Badge */}
+              <div
+                className={`flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg text-xs font-mono font-black border transition-all duration-300 ${
+                  (rightTeam === 'red' ? state.redPenalties : state.bluePenalties) > 0
+                    ? rightTeam === 'red'
+                      ? 'bg-rose-950/80 text-rose-300 border-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.4)]'
+                      : 'bg-amber-950/80 text-amber-300 border-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.4)]'
+                    : 'bg-slate-900/80 text-slate-500 border-slate-800'
+                }`}
+              >
+                <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">PENALTIES</span>
+                <span className="tabular-nums">
+                  {rightTeam === 'red' ? state.redPenalties : state.bluePenalties}
+                </span>
               </div>
             </div>
 

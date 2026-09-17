@@ -22,7 +22,7 @@ Built with **Java 17 / Spring Boot 3**, **Spring WebSocket (STOMP)**, embedded *
 ### 3. Crowd-Facing Stadium Display (`/arena/:id/display`)
 - High-visibility scoreboard designed for stadium LED walls and arena monitors.
 - Dynamic side-swap support (Red on Left/Right).
-- Foul / Penalty counters with glowing indicator pips (`● ● ○`).
+- Dynamic penalty counter with glowing numeric badges supporting arbitrary penalty counts.
 - Animated hazard stripe banner during `PENALTY_PHASE`.
 - Synchronized high-contrast border flash on `00:00`.
 - Automated sponsor takeover carousel with upcoming match schedule during `IDLE` or `INTERMISSION`.
@@ -35,8 +35,8 @@ Built with **Java 17 / Spring Boot 3**, **Spring WebSocket (STOMP)**, embedded *
   | `Space` | Start / Pause match timer |
   | `W` / `S` | Blue Score (+1 / -1) |
   | `↑` / `↓` | Red Score (+1 / -1) |
-  | `E` / `D` | Blue Fouls (+1 / -1) |
-  | `Shift + ↑` / `Shift + ↓` | Red Fouls (+1 / -1) |
+  | `E` / `D` | Blue Penalties (+1 / -1) |
+  | `Shift + ↑` / `Shift + ↓` | Red Penalties (+1 / -1) |
   | `B` | Trigger Physical / Audio Buzzer |
 - Inline click-to-edit overrides for Team Names, Scores, Penalties, and Clock (+10s, -10s, Reset 03:00, custom time).
 - Set awarding (Red, Blue, Tie), side-swap toggle, and match persistence.

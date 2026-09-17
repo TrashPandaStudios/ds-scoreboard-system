@@ -176,11 +176,11 @@ export const MatchHistoryTable: React.FC<MatchHistoryTableProps> = ({ matches })
                                 </div>
                                 <div className="flex justify-between items-center font-bold text-sm">
                                   <span className="text-red-400">
-                                    {set.redScore} pts ({set.redPenalties} fouls)
+                                    {set.redScore} pts ({set.redPenalties} penalties)
                                   </span>
                                   <span className="text-slate-600">vs</span>
                                   <span className="text-blue-400">
-                                    {set.blueScore} pts ({set.bluePenalties} fouls)
+                                    {set.blueScore} pts ({set.bluePenalties} penalties)
                                   </span>
                                 </div>
                               </div>

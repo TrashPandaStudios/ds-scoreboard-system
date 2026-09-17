@@ -13,12 +13,12 @@ export const HotkeyLegendModal: React.FC<HotkeyLegendModalProps> = ({ isOpen, on
     { key: 'Space', desc: 'Start / Pause Match Clock', group: 'Timer' },
     { key: 'W', desc: 'Blue Score +1', group: 'Blue Team' },
     { key: 'S', desc: 'Blue Score -1', group: 'Blue Team' },
-    { key: 'E', desc: 'Blue Foul / Penalty +1', group: 'Blue Team' },
-    { key: 'D', desc: 'Blue Foul / Penalty -1', group: 'Blue Team' },
+    { key: 'E', desc: 'Blue Penalty +1', group: 'Blue Team' },
+    { key: 'D', desc: 'Blue Penalty -1', group: 'Blue Team' },
     { key: '↑ (Up Arrow)', desc: 'Red Score +1', group: 'Red Team' },
     { key: '↓ (Down Arrow)', desc: 'Red Score -1', group: 'Red Team' },
-    { key: 'Shift + ↑', desc: 'Red Foul / Penalty +1', group: 'Red Team' },
-    { key: 'Shift + ↓', desc: 'Red Foul / Penalty -1', group: 'Red Team' },
+    { key: 'Shift + ↑', desc: 'Red Penalty +1', group: 'Red Team' },
+    { key: 'Shift + ↓', desc: 'Red Penalty -1', group: 'Red Team' },
     { key: 'B', desc: 'Trigger Stadium / Hardware Buzzer', group: 'Buzzer' },
   ];
 

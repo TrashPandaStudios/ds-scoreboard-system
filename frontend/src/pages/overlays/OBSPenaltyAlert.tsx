@@ -68,11 +68,11 @@ export const OBSPenaltyAlert: React.FC = () => {
 
           <div className="flex items-center gap-6 my-2 text-xl font-bold font-mono">
             <span className="text-red-400">
-              {state.teamRed} ({state.redPenalties} fouls)
+              {state.teamRed} ({state.redPenalties} penalties)
             </span>
             <span className="text-slate-500">VS</span>
             <span className="text-blue-400">
-              {state.teamBlue} ({state.bluePenalties} fouls)
+              {state.teamBlue} ({state.bluePenalties} penalties)
             </span>
           </div>
 

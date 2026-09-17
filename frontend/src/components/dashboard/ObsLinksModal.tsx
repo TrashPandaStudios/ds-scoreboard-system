@@ -22,14 +22,14 @@ export const ObsLinksModal: React.FC<ObsLinksModalProps> = ({ isOpen, onClose, a
       name: '🔴 Red Team Pilot Box HUD',
       path: `/arena/${arenaId}/display/red`,
       tag: 'Coach & Pilot Monitor',
-      description: 'Dedicated high-contrast HUD for Red Team bench with live score, striker role, fouls, and sync clock.',
+      description: 'Dedicated high-contrast HUD for Red Team bench with live score, striker role, penalties, and sync clock.',
     },
     {
       id: 'monitor-blue',
       name: '🔵 Blue Team Pilot Box HUD',
       path: `/arena/${arenaId}/display/blue`,
       tag: 'Coach & Pilot Monitor',
-      description: 'Dedicated high-contrast HUD for Blue Team bench with live score, striker role, fouls, and sync clock.',
+      description: 'Dedicated high-contrast HUD for Blue Team bench with live score, striker role, penalties, and sync clock.',
     },
     {
       id: 'monitor-timer',

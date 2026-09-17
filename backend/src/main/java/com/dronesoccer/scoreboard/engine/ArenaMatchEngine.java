@@ -311,19 +311,19 @@ public class ArenaMatchEngine {
 
     public void addPenalty(boolean isRed, int delta) {
         if (isRed) {
-            redPenalties = Math.max(0, Math.min(3, redPenalties + delta));
-            recentEvent = "Red Penalty " + (delta > 0 ? "+1" : "-1") + " (" + redPenalties + "/3)";
+            redPenalties = Math.max(0, redPenalties + delta);
+            recentEvent = "Red Penalty " + (delta > 0 ? "+1" : "-1") + " (Total: " + redPenalties + ")";
             auditService.logEvent(arenaId, currentMatchId, "PENALTY_RED", "Red Penalties: " + redPenalties, null);
         } else {
-            bluePenalties = Math.max(0, Math.min(3, bluePenalties + delta));
-            recentEvent = "Blue Penalty " + (delta > 0 ? "+1" : "-1") + " (" + bluePenalties + "/3)";
+            bluePenalties = Math.max(0, bluePenalties + delta);
+            recentEvent = "Blue Penalty " + (delta > 0 ? "+1" : "-1") + " (Total: " + bluePenalties + ")";
             auditService.logEvent(arenaId, currentMatchId, "PENALTY_BLUE", "Blue Penalties: " + bluePenalties, null);
         }
     }
 
     public void setPenalty(boolean isRed, int count) {
-        if (isRed) redPenalties = Math.max(0, Math.min(3, count));
-        else bluePenalties = Math.max(0, Math.min(3, count));
+        if (isRed) redPenalties = Math.max(0, count);
+        else bluePenalties = Math.max(0, count);
     }
 
     public void setPhase(MatchPhase newPhase) {

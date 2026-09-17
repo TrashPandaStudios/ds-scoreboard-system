@@ -160,9 +160,9 @@ export const RedTeamDisplay: React.FC = () => {
           </div>
         </div>
 
-        {/* Bottom Bar: Foul Pips, Sets Won, and Opponent Quick Check */}
+        {/* Bottom Bar: Penalties, Sets Won, and Opponent Quick Check */}
         <div className="grid grid-cols-1 md:grid-cols-3 items-center justify-between gap-6 border-t border-red-500/30 pt-6">
-          {/* Fouls */}
+          {/* Penalties */}
           <div className="flex items-center gap-3">
             <PenaltyPips count={state.redPenalties} team="red" size="lg" />
           </div>
@@ -187,7 +187,7 @@ export const RedTeamDisplay: React.FC = () => {
                 OPPONENT ({state.teamBlue})
               </span>
               <span className="text-2xl font-display font-black text-blue-400 tabular-nums">
-                {state.blueScore} pts <span className="text-xs text-slate-500">({state.bluePenalties} fouls)</span>
+                {state.blueScore} pts <span className="text-xs text-slate-500">({state.bluePenalties} penalties)</span>
               </span>
             </div>
             <div className="w-10 h-10 rounded-xl bg-blue-600/40 border border-blue-500/40 flex items-center justify-center text-blue-400">

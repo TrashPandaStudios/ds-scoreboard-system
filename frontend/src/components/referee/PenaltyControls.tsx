@@ -29,15 +29,14 @@ export const PenaltyControls: React.FC<PenaltyControlsProps> = ({
       <div className="flex items-center gap-2">
         <button
           onClick={onAddPenalty}
-          disabled={penalties >= 3}
-          className={`px-3 py-2 rounded-xl text-xs font-mono font-bold flex items-center gap-1 transition-all active:scale-95 disabled:opacity-40 ${
+          className={`px-3 py-2 rounded-xl text-xs font-mono font-bold flex items-center gap-1 transition-all active:scale-95 ${
             isRed
               ? 'bg-rose-600 hover:bg-rose-500 text-white'
               : 'bg-amber-500 hover:bg-amber-400 text-slate-950 font-black'
           }`}
         >
           <Plus className="w-3.5 h-3.5" />
-          <span>+1 FOUL</span>
+          <span>+1 PENALTY</span>
         </button>
 
         <button

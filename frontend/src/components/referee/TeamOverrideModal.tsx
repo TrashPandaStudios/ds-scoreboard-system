@@ -112,7 +112,6 @@ export const TeamOverrideModal: React.FC<TeamOverrideModalProps> = ({
                   <input
                     type="number"
                     min="0"
-                    max="3"
                     value={formRedPen}
                     onChange={(e) => setFormRedPen(parseInt(e.target.value, 10) || 0)}
                     className="w-full px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-white font-mono text-center text-sm"
@@ -146,7 +145,6 @@ export const TeamOverrideModal: React.FC<TeamOverrideModalProps> = ({
                   <input
                     type="number"
                     min="0"
-                    max="3"
                     value={formBluePen}
                     onChange={(e) => setFormBluePen(parseInt(e.target.value, 10) || 0)}
                     className="w-full px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-white font-mono text-center text-sm"
