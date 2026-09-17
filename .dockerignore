@@ -1,0 +1,9 @@
+.git
+.gitignore
+.idea
+.vscode
+target
+node_modules
+data
+*.db
+*.log

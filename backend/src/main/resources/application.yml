@@ -1,0 +1,44 @@
+server:
+  port: ${SERVER_PORT:8080}
+  shutdown: graceful
+
+spring:
+  application:
+    name: drone-soccer-scoreboard
+  datasource:
+    url: jdbc:sqlite:${DATABASE_PATH:./data/scoreboard.db}
+    driver-class-name: org.sqlite.JDBC
+  jpa:
+    database-platform: org.hibernate.community.dialect.SQLiteDialect
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+
+# Drone Soccer Arena & Hardware Buzzer Configuration
+scoreboard:
+  serial:
+    enabled: ${SERIAL_ENABLED:true}
+    port: ${SERIAL_PORT:/dev/ttyUSB0}
+    baud-rate: ${SERIAL_BAUD_RATE:9600}
+    pulse-ms: ${SERIAL_PULSE_MS:800}
+  match:
+    default-set-duration-ms: 180000       # 3 minutes standard Drone Soccer set
+    default-timeout-duration-ms: 60000    # 1 minute referee/team timeout
+    default-intermission-duration-ms: ${DEFAULT_INTERMISSION_DURATION_MS:90000} # 90 seconds intermission between sets
+    default-penalty-duration-ms: 30000    # 30 seconds penalty phase
+    sync-interval-ms: 100                 # 10 Hz authoritative clock sync
+  arenas:
+    - id: 1
+      name: "Arena 1 - Alpha Cage"
+    - id: 2
+      name: "Arena 2 - Bravo Cage"
+    - id: 3
+      name: "Arena 3 - Charlie Cage"
+
+logging:
+  level:
+    com.dronesoccer.scoreboard: INFO
+    org.springframework.web.socket: INFO
