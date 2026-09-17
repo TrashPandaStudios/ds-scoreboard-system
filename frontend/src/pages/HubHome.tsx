@@ -22,10 +22,10 @@ export const HubHome: React.FC = () => {
   const displayedArenas =
     arenaSummaries.length > 0
       ? arenaSummaries.map((s) => ({
-          id: s.arenaId,
-          name: s.arenaName,
-          desc: `Autonomous Drone Soccer Arena #${s.arenaId}`,
-        }))
+        id: s.arenaId,
+        name: s.arenaName,
+        desc: `Drone Soccer Arena #${s.arenaId}`,
+      }))
       : defaultArenas;
 
   return (
@@ -65,7 +65,7 @@ export const HubHome: React.FC = () => {
                     </span>
                     <span className="flex items-center gap-1.5 text-[10px] font-mono text-emerald-400">
                       <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                      <span>AUTONOMOUS ENGINE</span>
+                      <span>Live</span>
                     </span>
                   </div>
 
