@@ -1,54 +1,68 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Copy, Check, ExternalLink, Layers, Tv, AlertTriangle } from 'lucide-react';
+import { ArenaSummary } from '../../types/scoreboard';
 
 interface ObsLinksModalProps {
   isOpen: boolean;
   onClose: () => void;
   arenaId: number;
+  arenas?: ArenaSummary[];
+  onSelectArena?: (id: number) => void;
 }
 
-export const ObsLinksModal: React.FC<ObsLinksModalProps> = ({ isOpen, onClose, arenaId }) => {
+export const ObsLinksModal: React.FC<ObsLinksModalProps> = ({
+  isOpen,
+  onClose,
+  arenaId,
+  arenas,
+  onSelectArena,
+}) => {
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
-
   const [activeTab, setActiveTab] = useState<'monitors' | 'obs'>('monitors');
+  const [selectedArenaId, setSelectedArenaId] = useState<number>(arenaId);
+
+  useEffect(() => {
+    setSelectedArenaId(arenaId);
+  }, [arenaId]);
 
   if (!isOpen) return null;
 
+  const currentArenaId = selectedArenaId;
   const origin = window.location.origin;
 
   const dedicatedMonitors = [
     {
       id: 'monitor-red',
       name: '🔴 Red Team Pilot Box HUD',
-      path: `/arena/${arenaId}/display/red`,
+      path: `/arena/${currentArenaId}/display/red`,
       tag: 'Coach & Pilot Monitor',
       description: 'Dedicated high-contrast HUD for Red Team bench with live score, striker role, penalties, and sync clock.',
     },
     {
       id: 'monitor-blue',
       name: '🔵 Blue Team Pilot Box HUD',
-      path: `/arena/${arenaId}/display/blue`,
+      path: `/arena/${currentArenaId}/display/blue`,
       tag: 'Coach & Pilot Monitor',
       description: 'Dedicated high-contrast HUD for Blue Team bench with live score, striker role, penalties, and sync clock.',
     },
     {
       id: 'monitor-timer',
       name: '⏱️ Dedicated Stadium Jumbotron Clock',
-      path: `/arena/${arenaId}/display/timer`,
+      path: `/arena/${currentArenaId}/display/timer`,
       tag: 'Central LED Wall / Clock',
       description: 'Massive full-screen 10Hz authoritative match timer, animated phase alerts, and buzzer horn sync.',
     },
     {
       id: 'monitor-split',
       name: '👥 Split Red / Blue Telemetry Monitor',
-      path: `/arena/${arenaId}/display/split`,
+      path: `/arena/${currentArenaId}/display/split`,
       tag: 'Dual Pit / Analyst TV',
       description: 'High-visibility side-by-side profile showing both teams, set scores, striker status, and match clock.',
     },
     {
       id: 'monitor-crowd',
       name: '📺 Main Stadium Crowd Scoreboard',
-      path: `/arena/${arenaId}/display`,
+      path: `/arena/${currentArenaId}/display`,
       tag: 'Spectator Display',
       description: 'Complete crowd scoreboard with set tracking, hazard shootout banner, side-swap, and sponsor carousel.',
     },
@@ -58,7 +72,7 @@ export const ObsLinksModal: React.FC<ObsLinksModalProps> = ({ isOpen, onClose, a
     {
       id: 'lower-third',
       name: 'Esports Lower-Third Broadcast Bar',
-      path: `/arena/${arenaId}/overlay/lower-third`,
+      path: `/arena/${currentArenaId}/overlay/lower-third`,
       resolution: '1920 x 1080 (Custom CSS: transparent)',
       icon: Layers,
       description: 'Sleek broadcast HUD positioned at the bottom of the stream with live scores, penalties, sets, and clock.',
@@ -66,7 +80,7 @@ export const ObsLinksModal: React.FC<ObsLinksModalProps> = ({ isOpen, onClose, a
     {
       id: 'top-bar',
       name: 'Esports Top-Bar Broadcast Bar',
-      path: `/arena/${arenaId}/overlay/top-bar`,
+      path: `/arena/${currentArenaId}/overlay/top-bar`,
       resolution: '1920 x 1080 (Custom CSS: transparent)',
       icon: Tv,
       description: 'Sleek broadcast HUD positioned at the top of the stream with live scores, penalties, sets, and clock.',
@@ -74,7 +88,7 @@ export const ObsLinksModal: React.FC<ObsLinksModalProps> = ({ isOpen, onClose, a
     {
       id: 'penalty-alert',
       name: 'Dynamic Penalty Hazard Alert',
-      path: `/arena/${arenaId}/overlay/penalty-alert`,
+      path: `/arena/${currentArenaId}/overlay/penalty-alert`,
       resolution: '1920 x 1080',
       icon: AlertTriangle,
       description: 'High-visibility broadcast alert banner that automatically appears during active penalty shootout phases.',
@@ -97,16 +111,39 @@ export const ObsLinksModal: React.FC<ObsLinksModalProps> = ({ isOpen, onClose, a
           <X className="w-5 h-5" />
         </button>
 
-        <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 rounded-xl bg-purple-500/20 border border-purple-500/40 flex items-center justify-center">
-            <Layers className="w-5 h-5 text-purple-400" />
+        <div className="flex flex-wrap items-center justify-between gap-4 mb-4 pr-10">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-purple-500/20 border border-purple-500/40 flex items-center justify-center">
+              <Layers className="w-5 h-5 text-purple-400" />
+            </div>
+            <div>
+              <h2 className="text-xl font-display font-black text-white">
+                Arena {currentArenaId} Display &amp; Broadcast Hub
+              </h2>
+              <p className="text-xs font-mono text-cyan-400">DEDICATED MULTI-MONITOR OUTPUTS &amp; OBS FEEDS</p>
+            </div>
           </div>
-          <div>
-            <h2 className="text-xl font-display font-black text-white">
-              Arena {arenaId} Display &amp; Broadcast Hub
-            </h2>
-            <p className="text-xs font-mono text-cyan-400">DEDICATED MULTI-MONITOR OUTPUTS &amp; OBS FEEDS</p>
-          </div>
+
+          {arenas && arenas.length > 1 && (
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-mono text-slate-400">Switch Cage:</span>
+              <select
+                value={currentArenaId}
+                onChange={(e) => {
+                  const newId = Number(e.target.value);
+                  setSelectedArenaId(newId);
+                  onSelectArena?.(newId);
+                }}
+                className="px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-700 text-xs font-mono text-white focus:outline-none focus:border-cyan-500"
+              >
+                {arenas.map((a) => (
+                  <option key={a.arenaId} value={a.arenaId}>
+                    {a.arenaName} (#{a.arenaId})
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
         </div>
 
         {/* Tab Switcher */}

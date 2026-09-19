@@ -1,13 +1,28 @@
-import React, { useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useArenaStore } from '../store/arenaStore';
 import { useArenaWebSocket } from '../hooks/useArenaWebSocket';
 import { HeaderNav } from '../components/common/HeaderNav';
-import { Tv, Sliders, Zap } from 'lucide-react';
+import { AddArenaModal } from '../components/dashboard/AddArenaModal';
+import { DeleteArenaConfirmModal, DeletableArenaInfo } from '../components/dashboard/DeleteArenaConfirmModal';
+import { ArenaSummary } from '../types/scoreboard';
+import { Tv, Sliders, Zap, Plus, Trash2, LayoutDashboard } from 'lucide-react';
 
 export const HubHome: React.FC = () => {
   useArenaWebSocket();
   const { arenaSummaries } = useArenaStore();
+  const [isAddArenaModalOpen, setIsAddArenaModalOpen] = useState(false);
+  const [arenaToDelete, setArenaToDelete] = useState<DeletableArenaInfo | null>(null);
+
+  const nextArenaId = arenaSummaries.reduce((max, a) => Math.max(max, a.arenaId), 0) + 1;
+
+  const handleDeleteArena = async (arenaId: number) => {
+    try {
+      await fetch(`/api/arenas/${arenaId}`, { method: 'DELETE' });
+    } catch (e) {
+      console.error('Failed to delete arena:', e);
+    }
+  };
 
   useEffect(() => {
     document.title = 'Drone Soccer Scoreboard & Arena Client';
@@ -48,6 +63,35 @@ export const HubHome: React.FC = () => {
           </p>
         </div>
 
+        {/* Arenas Grid Header Bar */}
+        <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+          <div className="flex items-center gap-2.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse" />
+            <h2 className="text-xl font-display font-black text-white">
+              ACTIVE FLIGHT CAGES ({displayedArenas.length})
+            </h2>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <Link
+              to="/master"
+              className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 text-xs font-mono font-bold flex items-center gap-2 transition-colors"
+            >
+              <LayoutDashboard className="w-4 h-4 text-cyan-400" />
+              <span>ADMIN PANEL</span>
+            </Link>
+
+            <button
+              onClick={() => setIsAddArenaModalOpen(true)}
+              className="px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white text-xs font-mono font-black flex items-center gap-2 shadow-lg shadow-cyan-600/20 transition-all active:scale-95"
+              title="Deploy a new authoritative drone arena cage at runtime"
+            >
+              <Plus className="w-4 h-4 stroke-[3]" />
+              <span>ADD ARENA</span>
+            </button>
+          </div>
+        </div>
+
         {/* Arenas Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {displayedArenas.map((cage) => {
@@ -63,10 +107,26 @@ export const HubHome: React.FC = () => {
                     <span className="text-xs font-mono font-bold text-cyan-400 bg-cyan-950/60 px-3 py-1 rounded-lg border border-cyan-800">
                       CAGE {cage.id}
                     </span>
-                    <span className="flex items-center gap-1.5 text-[10px] font-mono text-emerald-400">
-                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                      <span>Live</span>
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="flex items-center gap-1.5 text-[10px] font-mono text-emerald-400">
+                        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                        <span>Live</span>
+                      </span>
+
+                      <button
+                        onClick={() => {
+                          const targetArena: DeletableArenaInfo = summary || {
+                            arenaId: cage.id,
+                            arenaName: cage.name,
+                          };
+                          setArenaToDelete(targetArena);
+                        }}
+                        className="p-1 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-950/50 border border-transparent hover:border-rose-700/50 transition-colors"
+                        title={`Decommission ${cage.name}`}
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </div>
 
                   <h3 className="text-2xl font-display font-bold text-white mb-1 group-hover:text-cyan-300 transition-colors">
@@ -192,6 +252,21 @@ export const HubHome: React.FC = () => {
       <footer className="border-t border-slate-800/80 py-6 text-center text-xs font-mono text-slate-500">
         Drone Soccer Multi-Arena Client • Dedicated 10Hz Synchronization Scoped Per Arena
       </footer>
+
+      {/* Dynamic Arena Creation Modal */}
+      <AddArenaModal
+        isOpen={isAddArenaModalOpen}
+        onClose={() => setIsAddArenaModalOpen(false)}
+        nextArenaId={nextArenaId}
+      />
+
+      {/* Arena Decommission Safety Confirmation Modal */}
+      <DeleteArenaConfirmModal
+        isOpen={arenaToDelete !== null}
+        arena={arenaToDelete}
+        onClose={() => setArenaToDelete(null)}
+        onConfirm={handleDeleteArena}
+      />
     </div>
   );
 };

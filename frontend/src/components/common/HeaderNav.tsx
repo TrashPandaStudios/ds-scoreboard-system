@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useArenaStore } from '../../store/arenaStore';
 import { ConnectionBadge } from './ConnectionBadge';
-import { Shield, Tv, Sliders, LayoutDashboard, Layers, Crosshair, ExternalLink, Monitor, Clock, Users } from 'lucide-react';
+import { AddArenaModal } from '../dashboard/AddArenaModal';
+import { Shield, Tv, Sliders, LayoutDashboard, Layers, Crosshair, ExternalLink, Monitor, Clock, Users, Plus } from 'lucide-react';
 
 export interface HeaderNavProps {
   arenaId?: number;
@@ -13,10 +14,13 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({ arenaId = 1, variant = 'cl
   const location = useLocation();
   const path = location.pathname;
   const { arenaSummaries } = useArenaStore();
+  const [isAddArenaModalOpen, setIsAddArenaModalOpen] = useState(false);
 
   const activeArenaIds = arenaSummaries.length > 0 
     ? arenaSummaries.map(a => a.arenaId) 
     : [1, 2, 3];
+
+  const nextArenaId = arenaSummaries.reduce((max, a) => Math.max(max, a.arenaId), 0) + 1;
 
   const handleLaunchAllScreens = () => {
     window.open(`/arena/${arenaId}/display/red`, '_blank');
@@ -154,68 +158,85 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({ arenaId = 1, variant = 'cl
   // -------------------------------------------------------------------------
   if (variant === 'admin') {
     return (
-      <header className="sticky top-0 z-50 bg-[#080b11]/90 backdrop-blur-md border-b border-slate-800 px-4 lg:px-8 py-3 transition-colors select-none">
-        <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
-          {/* Left: Branding */}
-          <div className="flex items-center gap-3">
-            <Link to="/master" className="flex items-center gap-2.5 group">
-              <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-500/20 group-hover:scale-105 transition-transform">
-                <LayoutDashboard className="w-5 h-5 text-white" />
-              </div>
-              <div>
-                <span className="font-display font-black tracking-wider text-base lg:text-lg text-white block leading-tight">
-                  DRONE SOCCER
-                </span>
-                <span className="text-[10px] font-mono tracking-widest text-cyan-400 uppercase font-bold">
-                  MAIN DOCKER ADMIN PANEL
-                </span>
-              </div>
-            </Link>
+      <>
+        <header className="sticky top-0 z-50 bg-[#080b11]/90 backdrop-blur-md border-b border-slate-800 px-4 lg:px-8 py-3 transition-colors select-none">
+          <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
+            {/* Left: Branding */}
+            <div className="flex items-center gap-3">
+              <Link to="/master" className="flex items-center gap-2.5 group">
+                <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-500/20 group-hover:scale-105 transition-transform">
+                  <LayoutDashboard className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <span className="font-display font-black tracking-wider text-base lg:text-lg text-white block leading-tight">
+                    DRONE SOCCER
+                  </span>
+                  <span className="text-[10px] font-mono tracking-widest text-cyan-400 uppercase font-bold">
+                    MAIN DOCKER ADMIN PANEL
+                  </span>
+                </div>
+              </Link>
 
-            {/* Quick Arena Switcher Tabs for Admin Inspection */}
-            <div className="hidden md:flex items-center gap-1 ml-4 pl-4 border-l border-slate-800">
-              {activeArenaIds.map((id) => (
-                <Link
-                  key={id}
-                  to={`/arena/${id}/referee`}
-                  target="_blank"
-                  className="px-2.5 py-1 text-xs font-mono font-semibold rounded-md text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 transition-all flex items-center gap-1"
-                  title={`Open Referee Desk for Cage ${id} in new window`}
-                >
-                  <span>Cage {id}</span>
-                  <ExternalLink className="w-2.5 h-2.5 opacity-50" />
-                </Link>
-              ))}
+              {/* Quick Arena Switcher Tabs for Admin Inspection */}
+              <div className="hidden md:flex items-center gap-1 ml-4 pl-4 border-l border-slate-800">
+                {activeArenaIds.map((id) => (
+                  <Link
+                    key={id}
+                    to={`/arena/${id}/referee`}
+                    target="_blank"
+                    className="px-2.5 py-1 text-xs font-mono font-semibold rounded-md text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 transition-all flex items-center gap-1"
+                    title={`Open Referee Desk for Cage ${id} in new window`}
+                  >
+                    <span>Cage {id}</span>
+                    <ExternalLink className="w-2.5 h-2.5 opacity-50" />
+                  </Link>
+                ))}
+              </div>
+            </div>
+
+            {/* Center: Admin Scope Info */}
+            <div className="hidden lg:flex items-center gap-2 px-3 py-1 rounded-xl bg-slate-900 border border-slate-800 text-xs font-mono text-slate-400">
+              <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
+              <span>AUTHORITATIVE TOURNAMENT COMMAND CENTER</span>
+            </div>
+
+            {/* Right: Add Arena & Connection Badge */}
+            <div className="flex items-center gap-2 sm:gap-3">
+              <button
+                onClick={() => setIsAddArenaModalOpen(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white text-xs font-mono font-bold shadow-md shadow-cyan-600/20 transition-all active:scale-95"
+                title="Deploy a new authoritative drone arena cage at runtime"
+              >
+                <Plus className="w-3.5 h-3.5 stroke-[3]" />
+                <span>ADD ARENA</span>
+              </button>
+              <ConnectionBadge />
             </div>
           </div>
+        </header>
 
-          {/* Center: Admin Scope Info */}
-          <div className="hidden lg:flex items-center gap-2 px-3 py-1 rounded-xl bg-slate-900 border border-slate-800 text-xs font-mono text-slate-400">
-            <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
-            <span>AUTHORITATIVE TOURNAMENT COMMAND CENTER</span>
-          </div>
-
-          {/* Right: Connection Badge */}
-          <div className="flex items-center gap-3">
-            <ConnectionBadge />
-          </div>
-        </div>
-      </header>
+        <AddArenaModal
+          isOpen={isAddArenaModalOpen}
+          onClose={() => setIsAddArenaModalOpen(false)}
+          nextArenaId={nextArenaId}
+        />
+      </>
     );
   }
 
   // -------------------------------------------------------------------------
   // CLIENT VARIANT: Standard client navigation (Hub, Stadium Display, Referee)
-  // Absolutely NO link to Admin Panel (/master)
   // -------------------------------------------------------------------------
   const clientNavItems = [
     { to: '/', label: 'Arena Hub', icon: Crosshair },
     { to: `/arena/${arenaId}/display`, label: 'Stadium Display', icon: Tv },
     { to: `/arena/${arenaId}/referee`, label: 'Referee Console', icon: Sliders },
+    { to: '/master', label: 'Admin Panel', icon: LayoutDashboard },
   ];
 
   return (
-    <header className="sticky top-0 z-50 bg-[#080b11]/90 backdrop-blur-md border-b border-slate-800 px-4 lg:px-8 py-3 transition-colors select-none">
+    <>
+      <header className="sticky top-0 z-50 bg-[#080b11]/90 backdrop-blur-md border-b border-slate-800 px-4 lg:px-8 py-3 transition-colors select-none">
       <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
         {/* Left: Branding & Current Cage Switcher */}
         <div className="flex items-center gap-3">
@@ -321,8 +342,17 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({ arenaId = 1, variant = 'cl
           </div>
         </nav>
 
-        {/* Right: Overlay Shortcuts & Connection */}
-        <div className="flex items-center gap-3">
+        {/* Right: Add Arena, Overlay Shortcuts & Connection */}
+        <div className="flex items-center gap-2 sm:gap-3">
+          <button
+            onClick={() => setIsAddArenaModalOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white text-xs font-mono font-bold shadow-md shadow-cyan-600/20 transition-all active:scale-95"
+            title="Deploy a new authoritative drone arena cage at runtime"
+          >
+            <Plus className="w-3.5 h-3.5 stroke-[3]" />
+            <span>ADD ARENA</span>
+          </button>
+
           <Link
             to={`/arena/${arenaId}/overlay/lower-third`}
             target="_blank"
@@ -336,5 +366,12 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({ arenaId = 1, variant = 'cl
         </div>
       </div>
     </header>
+
+    <AddArenaModal
+      isOpen={isAddArenaModalOpen}
+      onClose={() => setIsAddArenaModalOpen(false)}
+      nextArenaId={nextArenaId}
+    />
+  </>
   );
 };

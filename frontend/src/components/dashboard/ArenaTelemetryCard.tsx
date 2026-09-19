@@ -2,13 +2,14 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { ArenaSummary } from '../../types/scoreboard';
 import { useAuthoritativeTimer } from '../../hooks/useAuthoritativeTimer';
-import { Play, Pause, Tv, Sliders, Volume2, Layers, AlertCircle, Coffee } from 'lucide-react';
+import { Play, Pause, Tv, Sliders, Volume2, Layers, AlertCircle, Coffee, Trash2 } from 'lucide-react';
 
 interface ArenaTelemetryCardProps {
   arena: ArenaSummary;
   onToggleTimer: (arenaId: number) => void;
   onTriggerBuzzer: (arenaId: number) => void;
   onConfigureIntermission?: (arenaId: number) => void;
+  onDeleteArena?: (arena: ArenaSummary) => void;
 }
 
 export const ArenaTelemetryCard: React.FC<ArenaTelemetryCardProps> = ({
@@ -16,6 +17,7 @@ export const ArenaTelemetryCard: React.FC<ArenaTelemetryCardProps> = ({
   onToggleTimer,
   onTriggerBuzzer,
   onConfigureIntermission,
+  onDeleteArena,
 }) => {
   const { formattedTime } = useAuthoritativeTimer({
     serverRemainingMs: arena.timeRemainingMs,
@@ -60,6 +62,16 @@ export const ArenaTelemetryCard: React.FC<ArenaTelemetryCardProps> = ({
           >
             {arena.phase}
           </span>
+
+          {onDeleteArena && (
+            <button
+              onClick={() => onDeleteArena(arena)}
+              className="p-1 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-950/50 border border-transparent hover:border-rose-700/50 transition-colors"
+              title={`Decommission ${arena.arenaName}`}
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
+          )}
         </div>
       </div>
 

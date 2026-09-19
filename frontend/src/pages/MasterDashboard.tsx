@@ -8,8 +8,10 @@ import { MatchHistoryTable } from '../components/dashboard/MatchHistoryTable';
 import { ScheduleQueueManager } from '../components/dashboard/ScheduleQueueManager';
 import { SponsorConfigPanel } from '../components/dashboard/SponsorConfigPanel';
 import { AdminIntermissionModal } from '../components/dashboard/AdminIntermissionModal';
-import { MatchRecord, ScheduledMatch, SponsorItem } from '../types/scoreboard';
-import { AlertOctagon, Play, Layers, Radio, RefreshCw, Sparkles, Calendar, History, Coffee } from 'lucide-react';
+import { AddArenaModal } from '../components/dashboard/AddArenaModal';
+import { DeleteArenaConfirmModal } from '../components/dashboard/DeleteArenaConfirmModal';
+import { MatchRecord, ScheduledMatch, SponsorItem, ArenaSummary } from '../types/scoreboard';
+import { AlertOctagon, Play, Layers, Radio, RefreshCw, Sparkles, Calendar, History, Coffee, Plus } from 'lucide-react';
 
 export const MasterDashboard: React.FC = () => {
   const { sendCommand } = useArenaWebSocket();
@@ -19,7 +21,11 @@ export const MasterDashboard: React.FC = () => {
   const [queue, setQueue] = useState<ScheduledMatch[]>([]);
   const [selectedObsArenaId, setSelectedObsArenaId] = useState<number | null>(null);
   const [isIntermissionModalOpen, setIsIntermissionModalOpen] = useState(false);
+  const [isAddArenaModalOpen, setIsAddArenaModalOpen] = useState(false);
+  const [arenaToDelete, setArenaToDelete] = useState<ArenaSummary | null>(null);
   const [activeTab, setActiveTab] = useState<'TELEMETRY' | 'HISTORY' | 'QUEUE' | 'SPONSORS'>('TELEMETRY');
+
+  const nextArenaId = arenaSummaries.reduce((max, a) => Math.max(max, a.arenaId), 0) + 1;
 
   const fetchAllData = () => {
     fetch('/api/matches')
@@ -50,6 +56,18 @@ export const MasterDashboard: React.FC = () => {
 
   const handleEmergencyResumeAll = () => {
     fetch('/api/arenas/emergency-resume', { method: 'POST' }).catch(() => {});
+  };
+
+  const handleDeleteArena = async (arenaId: number) => {
+    try {
+      const res = await fetch(`/api/arenas/${arenaId}`, { method: 'DELETE' });
+      if (!res.ok) {
+        throw new Error(`Failed to delete arena (HTTP ${res.status})`);
+      }
+      fetchAllData();
+    } catch (e) {
+      console.error('Failed to delete arena:', e);
+    }
   };
 
   const handlePushMatchToArena = (match: ScheduledMatch) => {
@@ -129,6 +147,15 @@ export const MasterDashboard: React.FC = () => {
 
           {/* Emergency Global Actions */}
           <div className="flex flex-wrap items-center gap-3">
+            <button
+              onClick={() => setIsAddArenaModalOpen(true)}
+              className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white text-xs font-mono font-black flex items-center gap-2 shadow-lg shadow-cyan-600/20 transition-all active:scale-95"
+              title="Deploy a new authoritative drone arena cage at runtime"
+            >
+              <Plus className="w-4 h-4 stroke-[3]" />
+              <span>ADD ARENA</span>
+            </button>
+
             <button
               onClick={() => setIsIntermissionModalOpen(true)}
               className="px-4 py-2.5 rounded-xl bg-amber-600/30 hover:bg-amber-600/50 text-amber-300 border border-amber-500/40 text-xs font-mono font-bold flex items-center gap-2 transition-colors"
@@ -225,6 +252,7 @@ export const MasterDashboard: React.FC = () => {
                 onToggleTimer={(aId) => sendCommand('TOGGLE_TIMER', { arenaId: aId })}
                 onTriggerBuzzer={(aId) => sendCommand('TRIGGER_BUZZER', { arenaId: aId })}
                 onConfigureIntermission={() => setIsIntermissionModalOpen(true)}
+                onDeleteArena={(arena) => setArenaToDelete(arena)}
               />
             ))}
 
@@ -248,6 +276,7 @@ export const MasterDashboard: React.FC = () => {
           <div className="animate-fadeIn">
             <ScheduleQueueManager
               queue={queue}
+              arenas={arenaSummaries}
               onPushToArena={handlePushMatchToArena}
               onCreateMatch={handleCreateQueueMatch}
               onDeleteMatch={handleDeleteQueueMatch}
@@ -272,7 +301,9 @@ export const MasterDashboard: React.FC = () => {
       <ObsLinksModal
         isOpen={selectedObsArenaId !== null}
         onClose={() => setSelectedObsArenaId(null)}
-        arenaId={selectedObsArenaId || 1}
+        arenaId={selectedObsArenaId || arenaSummaries[0]?.arenaId || 1}
+        arenas={arenaSummaries}
+        onSelectArena={(id) => setSelectedObsArenaId(id)}
       />
 
       {/* Admin Intermission Configuration & Override Hub */}
@@ -281,6 +312,22 @@ export const MasterDashboard: React.FC = () => {
         onClose={() => setIsIntermissionModalOpen(false)}
         arenas={arenaSummaries}
         onSuccess={fetchAllData}
+      />
+
+      {/* Dynamic Arena Creation Modal */}
+      <AddArenaModal
+        isOpen={isAddArenaModalOpen}
+        onClose={() => setIsAddArenaModalOpen(false)}
+        onSuccess={fetchAllData}
+        nextArenaId={nextArenaId}
+      />
+
+      {/* Arena Decommission Safety Confirmation Modal */}
+      <DeleteArenaConfirmModal
+        isOpen={arenaToDelete !== null}
+        arena={arenaToDelete}
+        onClose={() => setArenaToDelete(null)}
+        onConfirm={handleDeleteArena}
       />
     </div>
   );

@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
-import { ScheduledMatch } from '../../types/scoreboard';
+import React, { useState, useEffect } from 'react';
+import { ScheduledMatch, ArenaSummary } from '../../types/scoreboard';
 import { Calendar, Plus, PlayCircle, Trash2 } from 'lucide-react';
 
 interface ScheduleQueueManagerProps {
   queue: ScheduledMatch[];
+  arenas?: ArenaSummary[];
   onPushToArena: (match: ScheduledMatch) => void;
   onCreateMatch: (match: {
     matchNumber: string;
@@ -17,6 +18,7 @@ interface ScheduleQueueManagerProps {
 
 export const ScheduleQueueManager: React.FC<ScheduleQueueManagerProps> = ({
   queue,
+  arenas = [],
   onPushToArena,
   onCreateMatch,
   onDeleteMatch,
@@ -24,9 +26,15 @@ export const ScheduleQueueManager: React.FC<ScheduleQueueManagerProps> = ({
   const [showAddForm, setShowAddForm] = useState(false);
   const [matchNumber, setMatchNumber] = useState('');
   const [tournamentName, setTournamentName] = useState('World Drone Soccer Championship');
-  const [arenaId, setArenaId] = useState(1);
+  const [arenaId, setArenaId] = useState(arenas[0]?.arenaId || 1);
   const [teamRed, setTeamRed] = useState('');
   const [teamBlue, setTeamBlue] = useState('');
+
+  useEffect(() => {
+    if (arenas.length > 0 && !arenas.some((a) => a.arenaId === arenaId)) {
+      setArenaId(arenas[0].arenaId);
+    }
+  }, [arenas, arenaId]);
 
   const handleAddMatch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -88,9 +96,19 @@ export const ScheduleQueueManager: React.FC<ScheduleQueueManagerProps> = ({
                 onChange={(e) => setArenaId(Number(e.target.value))}
                 className="w-full px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs font-mono text-slate-300 focus:outline-none focus:border-cyan-500"
               >
-                <option value={1}>Arena 1 (Alpha)</option>
-                <option value={2}>Arena 2 (Bravo)</option>
-                <option value={3}>Arena 3 (Charlie)</option>
+                {arenas.length > 0 ? (
+                  arenas.map((a) => (
+                    <option key={a.arenaId} value={a.arenaId}>
+                      {a.arenaName} (ID: #{a.arenaId})
+                    </option>
+                  ))
+                ) : (
+                  <>
+                    <option value={1}>Arena 1 (Alpha)</option>
+                    <option value={2}>Arena 2 (Bravo)</option>
+                    <option value={3}>Arena 3 (Charlie)</option>
+                  </>
+                )}
               </select>
             </div>
             <div>
