@@ -7,6 +7,7 @@ import com.dronesoccer.scoreboard.repository.MatchRecordRepository;
 import com.dronesoccer.scoreboard.repository.SetRecordRepository;
 import com.dronesoccer.scoreboard.service.HardwareBuzzerService;
 import com.dronesoccer.scoreboard.service.MatchAuditService;
+import com.dronesoccer.scoreboard.service.TeamLogoResolver;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -41,6 +42,9 @@ public class ArenaMatchEngine {
     // Teams
     private String teamRed = "Red Phoenix";
     private String teamBlue = "Blue Comets";
+    private String teamRedLogoUrl;
+    private String teamBlueLogoUrl;
+    private TeamLogoResolver teamLogoResolver;
 
     // Live Set State
     private int redScore = 0;
@@ -516,10 +520,49 @@ public class ArenaMatchEngine {
         }
     }
 
+    public void setTeamLogoResolver(TeamLogoResolver resolver) {
+        stateLock.lock();
+        try {
+            this.teamLogoResolver = resolver;
+            if (resolver != null) {
+                this.teamRedLogoUrl = resolver.resolveLogoUrl(this.teamRed);
+                this.teamBlueLogoUrl = resolver.resolveLogoUrl(this.teamBlue);
+            }
+        } finally {
+            stateLock.unlock();
+        }
+    }
+
+    public void updateTeamLogoIfMatching(String teamName, String newLogoUrl) {
+        stateLock.lock();
+        boolean changed = false;
+        try {
+            if (this.teamRed != null && this.teamRed.equalsIgnoreCase(teamName)) {
+                this.teamRedLogoUrl = newLogoUrl;
+                changed = true;
+            }
+            if (this.teamBlue != null && this.teamBlue.equalsIgnoreCase(teamName)) {
+                this.teamBlueLogoUrl = newLogoUrl;
+                changed = true;
+            }
+        } finally {
+            stateLock.unlock();
+        }
+        if (changed) {
+            broadcastState();
+        }
+    }
+
     public void loadMatch(MatchControlCommand cmd) {
         pauseTimer();
-        if (cmd.getTeamRed() != null) this.teamRed = cmd.getTeamRed();
-        if (cmd.getTeamBlue() != null) this.teamBlue = cmd.getTeamBlue();
+        if (cmd.getTeamRed() != null) {
+            this.teamRed = cmd.getTeamRed();
+            this.teamRedLogoUrl = teamLogoResolver != null ? teamLogoResolver.resolveLogoUrl(this.teamRed) : null;
+        }
+        if (cmd.getTeamBlue() != null) {
+            this.teamBlue = cmd.getTeamBlue();
+            this.teamBlueLogoUrl = teamLogoResolver != null ? teamLogoResolver.resolveLogoUrl(this.teamBlue) : null;
+        }
         if (cmd.getMatchNumber() != null) this.matchNumber = cmd.getMatchNumber();
         if (cmd.getTournamentName() != null) this.tournamentName = cmd.getTournamentName();
 
@@ -532,8 +575,14 @@ public class ArenaMatchEngine {
         stateLock.lock();
         try {
             pauseTimer();
-            if (red != null && !red.isBlank()) this.teamRed = red;
-            if (blue != null && !blue.isBlank()) this.teamBlue = blue;
+            if (red != null && !red.isBlank()) {
+                this.teamRed = red;
+                this.teamRedLogoUrl = teamLogoResolver != null ? teamLogoResolver.resolveLogoUrl(this.teamRed) : null;
+            }
+            if (blue != null && !blue.isBlank()) {
+                this.teamBlue = blue;
+                this.teamBlueLogoUrl = teamLogoResolver != null ? teamLogoResolver.resolveLogoUrl(this.teamBlue) : null;
+            }
             if (matchNum != null && !matchNum.isBlank()) this.matchNumber = matchNum;
             if (tournament != null && !tournament.isBlank()) this.tournamentName = tournament;
 
@@ -547,8 +596,14 @@ public class ArenaMatchEngine {
     }
 
     public void updateTeams(String red, String blue, String matchNum) {
-        if (red != null && !red.isBlank()) this.teamRed = red;
-        if (blue != null && !blue.isBlank()) this.teamBlue = blue;
+        if (red != null && !red.isBlank()) {
+            this.teamRed = red;
+            this.teamRedLogoUrl = teamLogoResolver != null ? teamLogoResolver.resolveLogoUrl(this.teamRed) : null;
+        }
+        if (blue != null && !blue.isBlank()) {
+            this.teamBlue = blue;
+            this.teamBlueLogoUrl = teamLogoResolver != null ? teamLogoResolver.resolveLogoUrl(this.teamBlue) : null;
+        }
         if (matchNum != null && !matchNum.isBlank()) this.matchNumber = matchNum;
         recentEvent = "Updated Teams: " + this.teamRed + " vs " + this.teamBlue;
     }
@@ -593,6 +648,8 @@ public class ArenaMatchEngine {
                     .tournamentName(tournamentName)
                     .teamRed(teamRed)
                     .teamBlue(teamBlue)
+                    .teamRedLogoUrl(teamRedLogoUrl)
+                    .teamBlueLogoUrl(teamBlueLogoUrl)
                     .redScore(redScore)
                     .blueScore(blueScore)
                     .redSetScore(redSetScore)
@@ -626,6 +683,8 @@ public class ArenaMatchEngine {
                 .matchNumber(full.getMatchNumber())
                 .teamRed(full.getTeamRed())
                 .teamBlue(full.getTeamBlue())
+                .teamRedLogoUrl(full.getTeamRedLogoUrl())
+                .teamBlueLogoUrl(full.getTeamBlueLogoUrl())
                 .redScore(full.getRedScore())
                 .blueScore(full.getBlueScore())
                 .redSetScore(full.getRedSetScore())

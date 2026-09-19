@@ -1,10 +1,12 @@
 import React from 'react';
 import { PenaltyPips } from './PenaltyPips';
-import { Shield, Target, Trophy } from 'lucide-react';
+import { Target, Trophy } from 'lucide-react';
+import { TeamBadge } from '../common/TeamBadge';
 
 interface ScoreCardProps {
   team: 'red' | 'blue';
   teamName: string;
+  logoUrl?: string | null;
   score: number;
   setScore: number;
   penalties: number;
@@ -15,6 +17,7 @@ interface ScoreCardProps {
 export const ScoreCard: React.FC<ScoreCardProps> = ({
   team,
   teamName,
+  logoUrl,
   score,
   setScore,
   penalties,
@@ -34,15 +37,13 @@ export const ScoreCard: React.FC<ScoreCardProps> = ({
       {/* Top Banner: Team Header & Striker Role */}
       <div className={`flex items-center justify-between gap-4 ${align === 'right' ? 'flex-row-reverse' : ''}`}>
         <div className="flex items-center gap-3">
-          <div
-            className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg ${
-              isRed
-                ? 'bg-gradient-to-tr from-red-600 to-rose-400 text-white shadow-red-500/30'
-                : 'bg-gradient-to-tr from-blue-600 to-sky-400 text-white shadow-blue-500/30'
-            }`}
-          >
-            <Shield className="w-7 h-7" />
-          </div>
+          <TeamBadge
+            teamName={teamName}
+            logoUrl={logoUrl}
+            side={team}
+            size="lg"
+            className="rounded-2xl"
+          />
           <div>
             <div className="flex items-center gap-2">
               <span

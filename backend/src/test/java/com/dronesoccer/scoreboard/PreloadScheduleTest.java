@@ -17,19 +17,22 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
+import com.dronesoccer.scoreboard.service.TeamService;
 import static org.mockito.Mockito.*;
 
 class PreloadScheduleTest {
 
     private ScheduledMatchRepository scheduledMatchRepository;
     private ArenaManagerService arenaManagerService;
+    private TeamService teamService;
     private TournamentQueueService queueService;
 
     @BeforeEach
     void setUp() {
         scheduledMatchRepository = mock(ScheduledMatchRepository.class);
         arenaManagerService = mock(ArenaManagerService.class);
-        queueService = new TournamentQueueService(scheduledMatchRepository, arenaManagerService);
+        teamService = mock(TeamService.class);
+        queueService = new TournamentQueueService(scheduledMatchRepository, arenaManagerService, teamService);
     }
 
     @Test

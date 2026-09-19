@@ -155,6 +155,7 @@ export const CrowdDisplay: React.FC = () => {
                   <ScoreCard
                     team="red"
                     teamName={arenaState.teamRed}
+                    logoUrl={arenaState.teamRedLogoUrl}
                     score={arenaState.redScore}
                     setScore={arenaState.redSetScore}
                     penalties={arenaState.redPenalties}
@@ -165,6 +166,7 @@ export const CrowdDisplay: React.FC = () => {
                   <ScoreCard
                     team="blue"
                     teamName={arenaState.teamBlue}
+                    logoUrl={arenaState.teamBlueLogoUrl}
                     score={arenaState.blueScore}
                     setScore={arenaState.blueSetScore}
                     penalties={arenaState.bluePenalties}
@@ -200,6 +202,7 @@ export const CrowdDisplay: React.FC = () => {
                   <ScoreCard
                     team="red"
                     teamName={arenaState.teamRed}
+                    logoUrl={arenaState.teamRedLogoUrl}
                     score={arenaState.redScore}
                     setScore={arenaState.redSetScore}
                     penalties={arenaState.redPenalties}
@@ -210,6 +213,7 @@ export const CrowdDisplay: React.FC = () => {
                   <ScoreCard
                     team="blue"
                     teamName={arenaState.teamBlue}
+                    logoUrl={arenaState.teamBlueLogoUrl}
                     score={arenaState.blueScore}
                     setScore={arenaState.blueSetScore}
                     penalties={arenaState.bluePenalties}

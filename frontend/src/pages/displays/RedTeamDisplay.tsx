@@ -7,6 +7,7 @@ import { useAudioBuzzer } from '../../hooks/useAudioBuzzer';
 import { HeaderNav } from '../../components/common/HeaderNav';
 import { PenaltyPips } from '../../components/display/PenaltyPips';
 import { Shield, Target, Trophy, Maximize, Minimize, AlertTriangle } from 'lucide-react';
+import { TeamBadge } from '../../components/common/TeamBadge';
 
 export const RedTeamDisplay: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -89,9 +90,13 @@ export const RedTeamDisplay: React.FC = () => {
         {/* Top Header Bar */}
         <div className="flex flex-wrap items-center justify-between gap-4 border-b border-red-500/30 pb-4">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-red-600 flex items-center justify-center text-white shadow-lg shadow-red-600/40">
-              <Shield className="w-7 h-7" />
-            </div>
+            <TeamBadge
+              teamName={state.teamRed}
+              logoUrl={state.teamRedLogoUrl}
+              side="red"
+              size="lg"
+              className="rounded-2xl shadow-red-600/40"
+            />
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-xs font-mono font-black uppercase tracking-widest text-red-400 bg-red-500/20 px-3 py-0.5 rounded-full border border-red-500/40">
@@ -190,9 +195,12 @@ export const RedTeamDisplay: React.FC = () => {
                 {state.blueScore} pts <span className="text-xs text-slate-500">({state.bluePenalties} penalties)</span>
               </span>
             </div>
-            <div className="w-10 h-10 rounded-xl bg-blue-600/40 border border-blue-500/40 flex items-center justify-center text-blue-400">
-              <Shield className="w-5 h-5" />
-            </div>
+            <TeamBadge
+              teamName={state.teamBlue}
+              logoUrl={state.teamBlueLogoUrl}
+              side="blue"
+              size="md"
+            />
           </div>
         </div>
       </main>

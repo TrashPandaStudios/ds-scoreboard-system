@@ -9,6 +9,7 @@ import { PenaltyPips } from '../../components/display/PenaltyPips';
 import { SetTracker } from '../../components/display/SetTracker';
 import { PhaseAlertBanner } from '../../components/display/PhaseAlertBanner';
 import { Shield, Target, Trophy, Maximize, Minimize } from 'lucide-react';
+import { TeamBadge } from '../../components/common/TeamBadge';
 
 export const SplitTeamsDisplay: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -72,6 +73,10 @@ export const SplitTeamsDisplay: React.FC = () => {
 
   const leftTeam = state.sideSwap ? 'blue' : 'red';
   const rightTeam = state.sideSwap ? 'red' : 'blue';
+  const leftTeamName = leftTeam === 'red' ? state.teamRed : state.teamBlue;
+  const rightTeamName = rightTeam === 'red' ? state.teamRed : state.teamBlue;
+  const leftTeamLogo = leftTeam === 'red' ? state.teamRedLogoUrl : state.teamBlueLogoUrl;
+  const rightTeamLogo = rightTeam === 'red' ? state.teamRedLogoUrl : state.teamBlueLogoUrl;
 
   return (
     <div
@@ -115,13 +120,13 @@ export const SplitTeamsDisplay: React.FC = () => {
           >
             <div className="flex items-center justify-between border-b border-slate-800 pb-4">
               <div className="flex items-center gap-3">
-                <div
-                  className={`w-12 h-12 rounded-2xl flex items-center justify-center text-white shadow-lg ${
-                    leftTeam === 'red' ? 'bg-red-600 shadow-red-500/30' : 'bg-blue-600 shadow-blue-500/30'
-                  }`}
-                >
-                  <Shield className="w-7 h-7" />
-                </div>
+                <TeamBadge
+                  teamName={leftTeamName}
+                  logoUrl={leftTeamLogo}
+                  side={leftTeam}
+                  size="lg"
+                  className="rounded-2xl"
+                />
                 <div>
                   <span
                     className={`text-xs font-mono font-black uppercase tracking-wider ${
@@ -212,13 +217,13 @@ export const SplitTeamsDisplay: React.FC = () => {
           >
             <div className="flex items-center justify-between border-b border-slate-800 pb-4">
               <div className="flex items-center gap-3">
-                <div
-                  className={`w-12 h-12 rounded-2xl flex items-center justify-center text-white shadow-lg ${
-                    rightTeam === 'red' ? 'bg-red-600 shadow-red-500/30' : 'bg-blue-600 shadow-blue-500/30'
-                  }`}
-                >
-                  <Shield className="w-7 h-7" />
-                </div>
+                <TeamBadge
+                  teamName={rightTeamName}
+                  logoUrl={rightTeamLogo}
+                  side={rightTeam}
+                  size="lg"
+                  className="rounded-2xl"
+                />
                 <div>
                   <span
                     className={`text-xs font-mono font-black uppercase tracking-wider ${

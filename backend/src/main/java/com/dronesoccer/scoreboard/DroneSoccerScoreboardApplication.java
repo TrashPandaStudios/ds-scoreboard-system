@@ -18,6 +18,9 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.dronesoccer.scoreboard.model.entity.Team;
+import com.dronesoccer.scoreboard.repository.TeamRepository;
+
 @Slf4j
 @SpringBootApplication
 public class DroneSoccerScoreboardApplication {
@@ -34,10 +37,27 @@ public class DroneSoccerScoreboardApplication {
 
     @Bean
     public CommandLineRunner seedInitialData(
+            TeamRepository teamRepo,
             SponsorItemRepository sponsorRepo,
             ScheduledMatchRepository matchQueueRepo,
             MatchRecordRepository matchRecordRepo) {
         return args -> {
+            // 0. Seed Teams if none exist
+            if (teamRepo.count() == 0) {
+                log.info("Seeding initial registered drone soccer teams...");
+                List<Team> defaultTeams = List.of(
+                        Team.builder().name("Red Phoenix").build(),
+                        Team.builder().name("Blue Comets").build(),
+                        Team.builder().name("Thunder Hawks").build(),
+                        Team.builder().name("Cyber Vipers").build(),
+                        Team.builder().name("Nova Strikers").build(),
+                        Team.builder().name("Shadow Drones").build(),
+                        Team.builder().name("Solar Flares").build(),
+                        Team.builder().name("Apex Predators").build()
+                );
+                teamRepo.saveAll(defaultTeams);
+            }
+
             // 1. Seed Sponsors if none exist
             if (sponsorRepo.count() == 0) {
                 log.info("Seeding initial tournament sponsor partners...");

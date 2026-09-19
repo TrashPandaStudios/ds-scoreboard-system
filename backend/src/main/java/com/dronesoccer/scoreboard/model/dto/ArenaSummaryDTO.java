@@ -16,6 +16,8 @@ public class ArenaSummaryDTO {
     private String matchNumber;
     private String teamRed;
     private String teamBlue;
+    private String teamRedLogoUrl;
+    private String teamBlueLogoUrl;
     private int redScore;
     private int blueScore;
     private int redSetScore;

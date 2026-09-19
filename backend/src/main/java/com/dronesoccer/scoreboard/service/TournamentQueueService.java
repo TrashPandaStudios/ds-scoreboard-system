@@ -26,6 +26,7 @@ public class TournamentQueueService {
 
     private final ScheduledMatchRepository scheduledMatchRepository;
     private final ArenaManagerService arenaManagerService;
+    private final TeamService teamService;
 
     public List<ScheduledMatch> getAllScheduledMatches() {
         return scheduledMatchRepository.findAllByOrderByOrderIndexAsc();
@@ -49,7 +50,10 @@ public class TournamentQueueService {
                 .createdAt(LocalDateTime.now())
                 .build();
 
-        return scheduledMatchRepository.save(match);
+        ScheduledMatch saved = scheduledMatchRepository.save(match);
+        teamService.autoProvisionTeam(saved.getTeamRed());
+        teamService.autoProvisionTeam(saved.getTeamBlue());
+        return saved;
     }
 
     @Transactional
@@ -140,6 +144,9 @@ public class TournamentQueueService {
         List<ScheduledMatch> savedMatches = scheduledMatchRepository.saveAll(entitiesToSave);
         log.info("Saved {} preloaded matches into database.", savedMatches.size());
 
+        // Auto-provision all unique participating teams into the Team Registry
+        teamService.autoProvisionTeams(uniqueTeams);
+
         List<PrimedArenaDTO> primedArenas = new ArrayList<>();
 
         // 4. Optionally auto-prime active arenas with their opening match
@@ -178,6 +185,8 @@ public class TournamentQueueService {
                         .matchNumber(firstMatch.getMatchNumber())
                         .teamRed(firstMatch.getTeamRed())
                         .teamBlue(firstMatch.getTeamBlue())
+                        .teamRedLogoUrl(teamService.resolveLogoUrl(firstMatch.getTeamRed()))
+                        .teamBlueLogoUrl(teamService.resolveLogoUrl(firstMatch.getTeamBlue()))
                         .tournamentName(firstMatch.getTournamentName())
                         .build());
             }
@@ -230,6 +239,8 @@ public class TournamentQueueService {
                         .matchNumber(match.getMatchNumber())
                         .teamRed(match.getTeamRed())
                         .teamBlue(match.getTeamBlue())
+                        .teamRedLogoUrl(teamService.resolveLogoUrl(match.getTeamRed()))
+                        .teamBlueLogoUrl(teamService.resolveLogoUrl(match.getTeamBlue()))
                         .tournamentName(match.getTournamentName())
                         .build());
             }

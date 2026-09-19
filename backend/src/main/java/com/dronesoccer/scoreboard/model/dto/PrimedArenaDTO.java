@@ -15,5 +15,7 @@ public class PrimedArenaDTO {
     private String matchNumber;
     private String teamRed;
     private String teamBlue;
+    private String teamRedLogoUrl;
+    private String teamBlueLogoUrl;
     private String tournamentName;
 }

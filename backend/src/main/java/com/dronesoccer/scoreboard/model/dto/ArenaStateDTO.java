@@ -23,6 +23,8 @@ public class ArenaStateDTO {
     // Teams
     private String teamRed;
     private String teamBlue;
+    private String teamRedLogoUrl;
+    private String teamBlueLogoUrl;
 
     // Live Set Scores
     private int redScore;

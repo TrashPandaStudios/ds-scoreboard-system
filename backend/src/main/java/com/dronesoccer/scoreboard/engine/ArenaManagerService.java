@@ -5,8 +5,10 @@ import com.dronesoccer.scoreboard.model.dto.ArenaSummaryDTO;
 import com.dronesoccer.scoreboard.model.dto.MatchControlCommand;
 import com.dronesoccer.scoreboard.repository.MatchRecordRepository;
 import com.dronesoccer.scoreboard.repository.SetRecordRepository;
+import com.dronesoccer.scoreboard.model.dto.TeamLogoUpdatedEvent;
 import com.dronesoccer.scoreboard.service.HardwareBuzzerService;
 import com.dronesoccer.scoreboard.service.MatchAuditService;
+import com.dronesoccer.scoreboard.service.TeamLogoResolver;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import lombok.RequiredArgsConstructor;
@@ -32,6 +34,7 @@ public class ArenaManagerService {
     private final MatchRecordRepository matchRecordRepository;
     private final SetRecordRepository setRecordRepository;
     private final MatchAuditService auditService;
+    private final TeamLogoResolver teamLogoResolver;
 
     @Value("${scoreboard.match.default-set-duration-ms:180000}")
     private long defaultSetDurationMs;
@@ -89,6 +92,7 @@ public class ArenaManagerService {
                     defaultIntermissionDurationMs,
                     defaultPenaltyDurationMs
             );
+            engine.setTeamLogoResolver(teamLogoResolver);
             arenas.put(id, engine);
             log.info("Registered Drone Soccer Arena [ID: {}, Name: '{}']", id, name);
             return engine;
@@ -116,19 +120,23 @@ public class ArenaManagerService {
     }
 
     public ArenaMatchEngine getArena(Long id) {
-        return arenas.computeIfAbsent(id, k -> new ArenaMatchEngine(
-                k,
-                "Arena " + k,
-                messagingTemplate,
-                buzzerService,
-                matchRecordRepository,
-                setRecordRepository,
-                auditService,
-                defaultSetDurationMs,
-                defaultTimeoutDurationMs,
-                defaultIntermissionDurationMs,
-                defaultPenaltyDurationMs
-        ));
+        return arenas.computeIfAbsent(id, k -> {
+            ArenaMatchEngine engine = new ArenaMatchEngine(
+                    k,
+                    "Arena " + k,
+                    messagingTemplate,
+                    buzzerService,
+                    matchRecordRepository,
+                    setRecordRepository,
+                    auditService,
+                    defaultSetDurationMs,
+                    defaultTimeoutDurationMs,
+                    defaultIntermissionDurationMs,
+                    defaultPenaltyDurationMs
+            );
+            engine.setTeamLogoResolver(teamLogoResolver);
+            return engine;
+        });
     }
 
     public Collection<ArenaMatchEngine> getAllArenas() {
@@ -152,6 +160,15 @@ public class ArenaManagerService {
         engine.loadMatchDirect(red, blue, matchNumber, tournamentName);
         broadcastSummary();
         log.info("Loaded match '{}' ({} vs {}) into Arena {}", matchNumber, red, blue, arenaId);
+    }
+
+    @org.springframework.context.event.EventListener
+    public void onTeamLogoUpdated(TeamLogoUpdatedEvent event) {
+        log.info("Received TeamLogoUpdatedEvent for '{}', updating active arenas with logo '{}'", event.getTeamName(), event.getNewLogoUrl());
+        for (ArenaMatchEngine engine : arenas.values()) {
+            engine.updateTeamLogoIfMatching(event.getTeamName(), event.getNewLogoUrl());
+        }
+        broadcastSummary();
     }
 
     public void emergencyPauseAll() {

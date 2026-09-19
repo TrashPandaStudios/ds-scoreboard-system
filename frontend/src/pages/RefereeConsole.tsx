@@ -206,6 +206,7 @@ export const RefereeConsole: React.FC = () => {
               <ScoreButtonGrid
                 team="red"
                 teamName={arenaState.teamRed}
+                logoUrl={arenaState.teamRedLogoUrl}
                 score={arenaState.redScore}
                 onAddScore={() => sendCommand('ADD_RED_SCORE')}
                 onSubScore={() => sendCommand('SUB_RED_SCORE')}
@@ -226,6 +227,7 @@ export const RefereeConsole: React.FC = () => {
               <ScoreButtonGrid
                 team="blue"
                 teamName={arenaState.teamBlue}
+                logoUrl={arenaState.teamBlueLogoUrl}
                 score={arenaState.blueScore}
                 onAddScore={() => sendCommand('ADD_BLUE_SCORE')}
                 onSubScore={() => sendCommand('SUB_BLUE_SCORE')}
@@ -249,6 +251,7 @@ export const RefereeConsole: React.FC = () => {
               <ScoreButtonGrid
                 team="blue"
                 teamName={arenaState.teamBlue}
+                logoUrl={arenaState.teamBlueLogoUrl}
                 score={arenaState.blueScore}
                 onAddScore={() => sendCommand('ADD_BLUE_SCORE')}
                 onSubScore={() => sendCommand('SUB_BLUE_SCORE')}
@@ -269,6 +272,7 @@ export const RefereeConsole: React.FC = () => {
               <ScoreButtonGrid
                 team="red"
                 teamName={arenaState.teamRed}
+                logoUrl={arenaState.teamRedLogoUrl}
                 score={arenaState.redScore}
                 onAddScore={() => sendCommand('ADD_RED_SCORE')}
                 onSubScore={() => sendCommand('SUB_RED_SCORE')}
@@ -313,6 +317,8 @@ export const RefereeConsole: React.FC = () => {
         onClose={() => setIsOverrideOpen(false)}
         teamRed={arenaState.teamRed}
         teamBlue={arenaState.teamBlue}
+        teamRedLogoUrl={arenaState.teamRedLogoUrl}
+        teamBlueLogoUrl={arenaState.teamBlueLogoUrl}
         matchNumber={arenaState.matchNumber}
         redScore={arenaState.redScore}
         blueScore={arenaState.blueScore}

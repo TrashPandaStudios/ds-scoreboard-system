@@ -25,6 +25,8 @@ export interface ArenaState {
   tournamentName: string;
   teamRed: string;
   teamBlue: string;
+  teamRedLogoUrl?: string | null;
+  teamBlueLogoUrl?: string | null;
   redScore: number;
   blueScore: number;
   redSetScore: number;
@@ -52,6 +54,8 @@ export interface ArenaSummary {
   matchNumber: string;
   teamRed: string;
   teamBlue: string;
+  teamRedLogoUrl?: string | null;
+  teamBlueLogoUrl?: string | null;
   redScore: number;
   blueScore: number;
   redSetScore: number;
@@ -113,6 +117,14 @@ export interface MatchControlCommand {
   teamBlue?: string;
   matchNumber?: string;
   tournamentName?: string;
+}
+
+export interface Team {
+  id: number;
+  name: string;
+  logoUrl?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface SponsorItem {
@@ -198,6 +210,8 @@ export interface PrimedArenaDTO {
   matchNumber: string;
   teamRed: string;
   teamBlue: string;
+  teamRedLogoUrl?: string | null;
+  teamBlueLogoUrl?: string | null;
   tournamentName: string;
 }
 

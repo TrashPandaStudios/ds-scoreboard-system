@@ -24,3 +24,6 @@ data/
 .DS_Store
 Thumbs.db
 *.log
+
+CONTEXT.md
+docs/adr

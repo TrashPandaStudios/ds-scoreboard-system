@@ -7,6 +7,7 @@ import { useAudioBuzzer } from '../../hooks/useAudioBuzzer';
 import { HeaderNav } from '../../components/common/HeaderNav';
 import { PhaseAlertBanner } from '../../components/display/PhaseAlertBanner';
 import { Clock, Play, Pause, AlertTriangle, Maximize, Minimize, Shield } from 'lucide-react';
+import { TeamBadge } from '../../components/common/TeamBadge';
 
 export const DedicatedTimerDisplay: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -161,9 +162,12 @@ export const DedicatedTimerDisplay: React.FC = () => {
         <div className="flex flex-wrap items-center justify-between gap-4 border-t border-slate-800 pt-6">
           {/* Red Team Snapshot */}
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-red-600 flex items-center justify-center text-white font-bold">
-              <Shield className="w-6 h-6" />
-            </div>
+            <TeamBadge
+              teamName={state.teamRed}
+              logoUrl={state.teamRedLogoUrl}
+              side="red"
+              size="md"
+            />
             <div>
               <span className="text-[10px] font-mono text-red-400 uppercase font-bold block">
                 RED TEAM (SETS: {state.redSetScore})
@@ -191,9 +195,12 @@ export const DedicatedTimerDisplay: React.FC = () => {
               </span>
               <span className="text-xl font-display font-black text-white">{state.teamBlue}</span>
             </div>
-            <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white font-bold">
-              <Shield className="w-6 h-6" />
-            </div>
+            <TeamBadge
+              teamName={state.teamBlue}
+              logoUrl={state.teamBlueLogoUrl}
+              side="blue"
+              size="md"
+            />
           </div>
         </div>
       </main>

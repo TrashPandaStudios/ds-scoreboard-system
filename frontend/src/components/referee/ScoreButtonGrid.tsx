@@ -1,9 +1,11 @@
 import React from 'react';
-import { Plus, Minus, Shield, Edit3 } from 'lucide-react';
+import { Plus, Minus, Edit3 } from 'lucide-react';
+import { TeamBadge } from '../common/TeamBadge';
 
 interface ScoreButtonGridProps {
   team: 'red' | 'blue';
   teamName: string;
+  logoUrl?: string | null;
   score: number;
   onAddScore: () => void;
   onSubScore: () => void;
@@ -15,6 +17,7 @@ interface ScoreButtonGridProps {
 export const ScoreButtonGrid: React.FC<ScoreButtonGridProps> = ({
   team,
   teamName,
+  logoUrl,
   score,
   onAddScore,
   onSubScore,
@@ -35,13 +38,12 @@ export const ScoreButtonGrid: React.FC<ScoreButtonGridProps> = ({
       {/* Team Header */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
-          <div
-            className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-white shadow-md ${
-              isRed ? 'bg-red-600' : 'bg-blue-600'
-            }`}
-          >
-            <Shield className="w-5 h-5" />
-          </div>
+          <TeamBadge
+            teamName={teamName}
+            logoUrl={logoUrl}
+            side={team}
+            size="md"
+          />
           <div>
             <span
               className={`text-xs font-mono font-bold uppercase tracking-wider block ${

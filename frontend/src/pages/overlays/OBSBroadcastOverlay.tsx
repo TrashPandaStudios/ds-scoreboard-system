@@ -4,6 +4,7 @@ import { useArenaStore } from '../../store/arenaStore';
 import { useArenaWebSocket } from '../../hooks/useArenaWebSocket';
 import { useAuthoritativeTimer } from '../../hooks/useAuthoritativeTimer';
 import { Shield, AlertTriangle } from 'lucide-react';
+import { TeamBadge } from '../../components/common/TeamBadge';
 
 export interface OBSBroadcastOverlayProps {
   position: 'top' | 'bottom';
@@ -60,6 +61,10 @@ export const OBSBroadcastOverlay: React.FC<OBSBroadcastOverlayProps> = ({ positi
 
   const leftTeam = state.sideSwap ? 'blue' : 'red';
   const rightTeam = state.sideSwap ? 'red' : 'blue';
+  const leftTeamName = leftTeam === 'red' ? state.teamRed : state.teamBlue;
+  const rightTeamName = rightTeam === 'red' ? state.teamRed : state.teamBlue;
+  const leftTeamLogo = leftTeam === 'red' ? state.teamRedLogoUrl : state.teamBlueLogoUrl;
+  const rightTeamLogo = rightTeam === 'red' ? state.teamRedLogoUrl : state.teamBlueLogoUrl;
 
   const penaltyCallout = isPenaltyPhase && (
     <div className="flex items-center justify-center gap-2 py-1.5 px-4 rounded-xl bg-amber-950/90 border border-amber-500 text-amber-300 text-xs font-mono font-black uppercase tracking-widest shadow-xl animate-pulse self-center">
@@ -77,19 +82,18 @@ export const OBSBroadcastOverlay: React.FC<OBSBroadcastOverlayProps> = ({ positi
         }`}
       >
         <div className="flex items-center gap-3">
-          <div
-            className={`w-9 h-9 rounded-xl flex items-center justify-center text-white font-bold shadow-md ${
-              leftTeam === 'red' ? 'bg-red-600' : 'bg-blue-600'
-            }`}
-          >
-            <Shield className="w-5 h-5" />
-          </div>
+          <TeamBadge
+            teamName={leftTeamName}
+            logoUrl={leftTeamLogo}
+            side={leftTeam}
+            size="md"
+          />
           <div>
             <span className="text-[10px] font-mono font-black text-slate-400 uppercase tracking-wider block">
               {leftTeam === 'red' ? 'RED TEAM' : 'BLUE TEAM'} (SETS: {leftTeam === 'red' ? state.redSetScore : state.blueSetScore})
             </span>
             <span className="text-xl font-display font-black text-white tracking-wide">
-              {leftTeam === 'red' ? state.teamRed : state.teamBlue}
+              {leftTeamName}
             </span>
           </div>
         </div>
@@ -179,16 +183,15 @@ export const OBSBroadcastOverlay: React.FC<OBSBroadcastOverlayProps> = ({ positi
               {rightTeam === 'red' ? 'RED TEAM' : 'BLUE TEAM'} (SETS: {rightTeam === 'red' ? state.redSetScore : state.blueSetScore})
             </span>
             <span className="text-xl font-display font-black text-white tracking-wide">
-              {rightTeam === 'red' ? state.teamRed : state.teamBlue}
+              {rightTeamName}
             </span>
           </div>
-          <div
-            className={`w-9 h-9 rounded-xl flex items-center justify-center text-white font-bold shadow-md ${
-              rightTeam === 'red' ? 'bg-red-600' : 'bg-blue-600'
-            }`}
-          >
-            <Shield className="w-5 h-5" />
-          </div>
+          <TeamBadge
+            teamName={rightTeamName}
+            logoUrl={rightTeamLogo}
+            side={rightTeam}
+            size="md"
+          />
         </div>
       </div>
     </div>

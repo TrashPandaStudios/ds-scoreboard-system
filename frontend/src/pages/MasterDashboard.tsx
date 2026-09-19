@@ -11,8 +11,9 @@ import { AdminIntermissionModal } from '../components/dashboard/AdminIntermissio
 import { AddArenaModal } from '../components/dashboard/AddArenaModal';
 import { DeleteArenaConfirmModal } from '../components/dashboard/DeleteArenaConfirmModal';
 import { PreloadScheduleModal } from '../components/dashboard/PreloadScheduleModal';
+import { TeamsManagementPanel } from '../components/dashboard/TeamsManagementPanel';
 import { MatchRecord, ScheduledMatch, SponsorItem, ArenaSummary } from '../types/scoreboard';
-import { AlertOctagon, Play, Layers, Radio, RefreshCw, Sparkles, Calendar, History, Coffee, Plus, UploadCloud } from 'lucide-react';
+import { AlertOctagon, Play, Layers, Radio, RefreshCw, Sparkles, Calendar, History, Coffee, Plus, UploadCloud, Users } from 'lucide-react';
 
 export const MasterDashboard: React.FC = () => {
   const { sendCommand } = useArenaWebSocket();
@@ -25,7 +26,7 @@ export const MasterDashboard: React.FC = () => {
   const [isAddArenaModalOpen, setIsAddArenaModalOpen] = useState(false);
   const [isPreloadModalOpen, setIsPreloadModalOpen] = useState(false);
   const [arenaToDelete, setArenaToDelete] = useState<ArenaSummary | null>(null);
-  const [activeTab, setActiveTab] = useState<'TELEMETRY' | 'HISTORY' | 'QUEUE' | 'SPONSORS'>('TELEMETRY');
+  const [activeTab, setActiveTab] = useState<'TELEMETRY' | 'HISTORY' | 'QUEUE' | 'SPONSORS' | 'TEAMS'>('TELEMETRY');
 
   const nextArenaId = arenaSummaries.reduce((max, a) => Math.max(max, a.arenaId), 0) + 1;
 
@@ -262,6 +263,18 @@ export const MasterDashboard: React.FC = () => {
             <Sparkles className="w-4 h-4" />
             <span>SPONSOR TAKEOVERS</span>
           </button>
+
+          <button
+            onClick={() => setActiveTab('TEAMS')}
+            className={`px-4 py-2 rounded-xl text-xs font-mono font-bold flex items-center gap-2 transition-all ${
+              activeTab === 'TEAMS'
+                ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-sm'
+                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40'
+            }`}
+          >
+            <Users className="w-4 h-4" />
+            <span>TEAMS & LOGOS</span>
+          </button>
         </div>
 
         {/* Tab 1: Live Cages Multi-Arena Grid */}
@@ -317,6 +330,13 @@ export const MasterDashboard: React.FC = () => {
               onUpdateSponsor={handleUpdateSponsor}
               onDeleteSponsor={handleDeleteSponsor}
             />
+          </div>
+        )}
+
+        {/* Tab 5: Teams & Logos Management */}
+        {activeTab === 'TEAMS' && (
+          <div className="animate-fadeIn">
+            <TeamsManagementPanel />
           </div>
         )}
       </main>
