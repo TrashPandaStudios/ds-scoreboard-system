@@ -1,5 +1,7 @@
 package com.dronesoccer.scoreboard.model.dto;
 
+import com.dronesoccer.scoreboard.config.FlexibleLocalDateTimeDeserializer;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -17,5 +19,7 @@ public class MatchScheduleRequest {
     private Long arenaId;
     private String teamRed;
     private String teamBlue;
+
+    @JsonDeserialize(using = FlexibleLocalDateTimeDeserializer.class)
     private LocalDateTime scheduledTime;
 }

@@ -147,6 +147,13 @@ public class ArenaManagerService {
         broadcastSummary();
     }
 
+    public void loadMatchIntoArena(Long arenaId, String red, String blue, String matchNumber, String tournamentName) {
+        ArenaMatchEngine engine = getArena(arenaId);
+        engine.loadMatchDirect(red, blue, matchNumber, tournamentName);
+        broadcastSummary();
+        log.info("Loaded match '{}' ({} vs {}) into Arena {}", matchNumber, red, blue, arenaId);
+    }
+
     public void emergencyPauseAll() {
         log.warn("EMERGENCY: Pausing all active arena timers!");
         for (ArenaMatchEngine engine : arenas.values()) {

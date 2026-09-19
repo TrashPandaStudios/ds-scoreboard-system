@@ -528,6 +528,24 @@ public class ArenaMatchEngine {
         auditService.logEvent(arenaId, currentMatchId, "MATCH_LOAD", recentEvent, null);
     }
 
+    public void loadMatchDirect(String red, String blue, String matchNum, String tournament) {
+        stateLock.lock();
+        try {
+            pauseTimer();
+            if (red != null && !red.isBlank()) this.teamRed = red;
+            if (blue != null && !blue.isBlank()) this.teamBlue = blue;
+            if (matchNum != null && !matchNum.isBlank()) this.matchNumber = matchNum;
+            if (tournament != null && !tournament.isBlank()) this.tournamentName = tournament;
+
+            resetMatchState();
+            recentEvent = "Loaded Match " + this.matchNumber + " (" + this.teamRed + " vs " + this.teamBlue + ")";
+            auditService.logEvent(arenaId, currentMatchId, "MATCH_LOAD", recentEvent, null);
+        } finally {
+            stateLock.unlock();
+        }
+        broadcastState();
+    }
+
     public void updateTeams(String red, String blue, String matchNum) {
         if (red != null && !red.isBlank()) this.teamRed = red;
         if (blue != null && !blue.isBlank()) this.teamBlue = blue;

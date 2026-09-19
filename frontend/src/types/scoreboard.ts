@@ -174,3 +174,38 @@ export interface AuditLogEntry {
   payloadJson?: string;
   timestamp: string;
 }
+
+export interface MatchScheduleInput {
+  matchNumber?: string;
+  tournamentName?: string;
+  arenaId?: number;
+  teamRed?: string;
+  teamBlue?: string;
+  scheduledTime?: string;
+}
+
+export interface PreloadScheduleRequest {
+  matches?: MatchScheduleInput[];
+  clearExisting?: boolean;
+  autoLoadArenas?: boolean;
+  defaultTournamentName?: string;
+  csvContent?: string;
+}
+
+export interface PrimedArenaDTO {
+  arenaId: number;
+  arenaName: string;
+  matchNumber: string;
+  teamRed: string;
+  teamBlue: string;
+  tournamentName: string;
+}
+
+export interface PreloadResultDTO {
+  totalMatchesLoaded: number;
+  totalArenasPrimed: number;
+  uniqueTeams: string[];
+  primedArenas: PrimedArenaDTO[];
+  scheduledMatches: ScheduledMatch[];
+  message: string;
+}

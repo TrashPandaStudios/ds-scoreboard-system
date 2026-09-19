@@ -10,8 +10,9 @@ import { SponsorConfigPanel } from '../components/dashboard/SponsorConfigPanel';
 import { AdminIntermissionModal } from '../components/dashboard/AdminIntermissionModal';
 import { AddArenaModal } from '../components/dashboard/AddArenaModal';
 import { DeleteArenaConfirmModal } from '../components/dashboard/DeleteArenaConfirmModal';
+import { PreloadScheduleModal } from '../components/dashboard/PreloadScheduleModal';
 import { MatchRecord, ScheduledMatch, SponsorItem, ArenaSummary } from '../types/scoreboard';
-import { AlertOctagon, Play, Layers, Radio, RefreshCw, Sparkles, Calendar, History, Coffee, Plus } from 'lucide-react';
+import { AlertOctagon, Play, Layers, Radio, RefreshCw, Sparkles, Calendar, History, Coffee, Plus, UploadCloud } from 'lucide-react';
 
 export const MasterDashboard: React.FC = () => {
   const { sendCommand } = useArenaWebSocket();
@@ -22,6 +23,7 @@ export const MasterDashboard: React.FC = () => {
   const [selectedObsArenaId, setSelectedObsArenaId] = useState<number | null>(null);
   const [isIntermissionModalOpen, setIsIntermissionModalOpen] = useState(false);
   const [isAddArenaModalOpen, setIsAddArenaModalOpen] = useState(false);
+  const [isPreloadModalOpen, setIsPreloadModalOpen] = useState(false);
   const [arenaToDelete, setArenaToDelete] = useState<ArenaSummary | null>(null);
   const [activeTab, setActiveTab] = useState<'TELEMETRY' | 'HISTORY' | 'QUEUE' | 'SPONSORS'>('TELEMETRY');
 
@@ -67,6 +69,17 @@ export const MasterDashboard: React.FC = () => {
       fetchAllData();
     } catch (e) {
       console.error('Failed to delete arena:', e);
+    }
+  };
+
+  const handlePrimeFirstMatches = async () => {
+    try {
+      const res = await fetch('/api/queue/prime-first-matches', { method: 'POST' });
+      if (res.ok) {
+        fetchAllData();
+      }
+    } catch (e) {
+      console.error('Failed to prime first matches:', e);
     }
   };
 
@@ -148,8 +161,17 @@ export const MasterDashboard: React.FC = () => {
           {/* Emergency Global Actions */}
           <div className="flex flex-wrap items-center gap-3">
             <button
+              onClick={() => setIsPreloadModalOpen(true)}
+              className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white text-xs font-mono font-black flex items-center gap-2 shadow-lg shadow-cyan-600/30 transition-all active:scale-95"
+              title="Preload tournament team lineups and opening matches for all cages"
+            >
+              <UploadCloud className="w-4 h-4 stroke-[2.5]" />
+              <span>PRELOAD EVENT</span>
+            </button>
+
+            <button
               onClick={() => setIsAddArenaModalOpen(true)}
-              className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white text-xs font-mono font-black flex items-center gap-2 shadow-lg shadow-cyan-600/20 transition-all active:scale-95"
+              className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white border border-slate-700 text-xs font-mono font-black flex items-center gap-2 transition-all active:scale-95"
               title="Deploy a new authoritative drone arena cage at runtime"
             >
               <Plus className="w-4 h-4 stroke-[3]" />
@@ -280,6 +302,8 @@ export const MasterDashboard: React.FC = () => {
               onPushToArena={handlePushMatchToArena}
               onCreateMatch={handleCreateQueueMatch}
               onDeleteMatch={handleDeleteQueueMatch}
+              onOpenPreload={() => setIsPreloadModalOpen(true)}
+              onPrimeArenas={handlePrimeFirstMatches}
             />
           </div>
         )}
@@ -328,6 +352,14 @@ export const MasterDashboard: React.FC = () => {
         arena={arenaToDelete}
         onClose={() => setArenaToDelete(null)}
         onConfirm={handleDeleteArena}
+      />
+
+      {/* Preload Tournament Schedule & Arm Arenas Modal */}
+      <PreloadScheduleModal
+        isOpen={isPreloadModalOpen}
+        onClose={() => setIsPreloadModalOpen(false)}
+        arenas={arenaSummaries}
+        onSuccess={fetchAllData}
       />
     </div>
   );
