@@ -18,7 +18,8 @@ export interface SetWinnerBanner {
   setsWon: number;
   currentSet: number;
   maxSets: number;
-  isMatchWinner: boolean;
+  isMatchWinner?: boolean;
+  matchWinner?: boolean;
 }
 
 export interface SetSummary {

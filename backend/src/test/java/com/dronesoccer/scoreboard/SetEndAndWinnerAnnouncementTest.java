@@ -130,4 +130,50 @@ class SetEndAndWinnerAnnouncementTest {
 
         assertNull(engine.toDTO().getSetWinnerBanner());
     }
+
+    @Test
+    void testDuplicateSetAwardIsIdempotent() {
+        // Award set 1 to Red
+        engine.awardSet("RED");
+        assertEquals(1, engine.toDTO().getRedSetScore());
+
+        // Repeated clicks should NOT increase sets won further
+        engine.awardSet("RED");
+        engine.awardSet("RED");
+        assertEquals(1, engine.toDTO().getRedSetScore());
+        assertEquals(0, engine.toDTO().getBlueSetScore());
+    }
+
+    @Test
+    void testAwardSetCorrectionReversesPreviousWinner() {
+        // Referee awards Set 1 to Red by mistake
+        engine.awardSet("RED");
+        assertEquals(1, engine.toDTO().getRedSetScore());
+        assertEquals(0, engine.toDTO().getBlueSetScore());
+
+        // Referee corrects and awards Set 1 to Blue
+        engine.awardSet("BLUE");
+        assertEquals(0, engine.toDTO().getRedSetScore());
+        assertEquals(1, engine.toDTO().getBlueSetScore());
+    }
+
+    @Test
+    void testSetWinnerBannerSerializationIncludesIsMatchWinner() throws Exception {
+        com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+        com.dronesoccer.scoreboard.model.dto.SetWinnerBannerDTO banner = com.dronesoccer.scoreboard.model.dto.SetWinnerBannerDTO.builder()
+                .active(true)
+                .winner("BLUE")
+                .winnerName("Blue Comets")
+                .redSetScore(0)
+                .blueSetScore(2)
+                .setsWon(2)
+                .currentSet(2)
+                .maxSets(3)
+                .isMatchWinner(true)
+                .build();
+
+        String json = mapper.writeValueAsString(banner);
+        assertTrue(json.contains("\"isMatchWinner\":true"), "JSON must contain isMatchWinner:true, got: " + json);
+    }
 }
+

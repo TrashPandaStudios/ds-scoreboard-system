@@ -445,7 +445,32 @@ public class ArenaMatchEngine {
     }
 
     public void awardSet(String winner) {
+        if (phase == MatchPhase.MATCH_ENDED) {
+            log.warn("Arena {} - Cannot award set: Match has already concluded.", arenaId);
+            return;
+        }
+
         pauseTimer();
+
+        // Check if current set has already been awarded to prevent runaway set wins
+        SetSummaryDTO existingSet = completedSets.stream()
+                .filter(s -> s.getSetNumber() == currentSet)
+                .findFirst()
+                .orElse(null);
+
+        if (existingSet != null) {
+            if (winner.equalsIgnoreCase(existingSet.getWinner())) {
+                log.info("Arena {} - Set {} already awarded to {}. Ignoring duplicate award.", arenaId, currentSet, winner);
+                return;
+            }
+            // Reversing previous winner for this set
+            if ("RED".equalsIgnoreCase(existingSet.getWinner())) {
+                redSetScore = Math.max(0, redSetScore - 1);
+            } else if ("BLUE".equalsIgnoreCase(existingSet.getWinner())) {
+                blueSetScore = Math.max(0, blueSetScore - 1);
+            }
+        }
+
         if ("RED".equalsIgnoreCase(winner)) {
             redSetScore++;
         } else if ("BLUE".equalsIgnoreCase(winner)) {

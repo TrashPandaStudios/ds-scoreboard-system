@@ -13,20 +13,26 @@ export const SetWinnerTakeoverModal: React.FC<SetWinnerTakeoverModalProps> = ({ 
   const isRed = banner.winner === 'RED';
   const isBlue = banner.winner === 'BLUE';
   const isTie = banner.winner === 'TIE';
-  const isMatchWinner = banner.isMatchWinner;
+  const setsNeededToWin = Math.floor((banner.maxSets || 3) / 2) + 1;
+  const isMatchWinner =
+    Boolean(banner.isMatchWinner) ||
+    Boolean(banner.matchWinner) ||
+    banner.setsWon >= setsNeededToWin ||
+    banner.redSetScore >= setsNeededToWin ||
+    banner.blueSetScore >= setsNeededToWin;
 
   // Primary team accent color styles
   const teamTheme = isRed
     ? {
-        border: 'border-red-500/80',
-        glow: 'shadow-[0_0_90px_rgba(239,68,68,0.45)]',
-        bgGradient: 'from-red-950/90 via-slate-950/95 to-slate-950/95',
-        badgeBg: 'bg-red-500/20 text-red-400 border-red-500/40',
-        accentText: 'text-red-400',
-        highlightGrad: 'from-red-500 to-rose-400',
-      }
+      border: 'border-red-500/80',
+      glow: 'shadow-[0_0_90px_rgba(239,68,68,0.45)]',
+      bgGradient: 'from-red-950/90 via-slate-950/95 to-slate-950/95',
+      badgeBg: 'bg-red-500/20 text-red-400 border-red-500/40',
+      accentText: 'text-red-400',
+      highlightGrad: 'from-red-500 to-rose-400',
+    }
     : isBlue
-    ? {
+      ? {
         border: 'border-blue-500/80',
         glow: 'shadow-[0_0_90px_rgba(59,130,246,0.45)]',
         bgGradient: 'from-blue-950/90 via-slate-950/95 to-slate-950/95',
@@ -34,7 +40,7 @@ export const SetWinnerTakeoverModal: React.FC<SetWinnerTakeoverModalProps> = ({ 
         accentText: 'text-blue-400',
         highlightGrad: 'from-blue-500 to-cyan-400',
       }
-    : {
+      : {
         border: 'border-amber-500/80',
         glow: 'shadow-[0_0_90px_rgba(245,158,11,0.35)]',
         bgGradient: 'from-amber-950/90 via-slate-950/95 to-slate-950/95',
@@ -50,9 +56,8 @@ export const SetWinnerTakeoverModal: React.FC<SetWinnerTakeoverModalProps> = ({ 
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-8 bg-black/85 backdrop-blur-xl animate-in fade-in duration-300 select-none">
       {/* Dynamic ambient pulsing glow background */}
       <div
-        className={`absolute inset-0 pointer-events-none opacity-30 ${
-          isMatchWinner ? 'bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-amber-500/30 via-slate-950/0 to-transparent animate-pulse' : ''
-        }`}
+        className={`absolute inset-0 pointer-events-none opacity-30 ${isMatchWinner ? 'bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-amber-500/30 via-slate-950/0 to-transparent animate-pulse' : ''
+          }`}
       />
 
       <div
@@ -95,9 +100,8 @@ export const SetWinnerTakeoverModal: React.FC<SetWinnerTakeoverModalProps> = ({ 
         {/* Centerpiece: Winning Team Logo Badge & Name */}
         <div className="flex flex-col items-center gap-4 my-3 sm:my-5">
           <div
-            className={`p-2 sm:p-3 rounded-full border-4 ${
-              isMatchWinner ? 'border-amber-400 shadow-[0_0_50px_rgba(245,158,11,0.6)]' : teamTheme.border
-            } bg-slate-950/80 transform hover:scale-105 transition-transform duration-300`}
+            className={`p-2 sm:p-3 rounded-full border-4 ${isMatchWinner ? 'border-amber-400 shadow-[0_0_50px_rgba(245,158,11,0.6)]' : teamTheme.border
+              } bg-slate-950/80 transform hover:scale-105 transition-transform duration-300`}
           >
             <TeamBadge
               side={isRed ? 'red' : isBlue ? 'blue' : 'neutral'}
@@ -109,13 +113,12 @@ export const SetWinnerTakeoverModal: React.FC<SetWinnerTakeoverModalProps> = ({ 
 
           <div className="flex flex-col items-center">
             <span
-              className={`text-3xl sm:text-5xl font-display font-black tracking-tight ${
-                isMatchWinner
+              className={`text-3xl sm:text-5xl font-display font-black tracking-tight ${isMatchWinner
                   ? 'text-white'
                   : isRed
-                  ? 'text-red-400 drop-shadow-[0_0_20px_rgba(239,68,68,0.5)]'
-                  : 'text-blue-400 drop-shadow-[0_0_20px_rgba(59,130,246,0.5)]'
-              }`}
+                    ? 'text-red-400 drop-shadow-[0_0_20px_rgba(239,68,68,0.5)]'
+                    : 'text-blue-400 drop-shadow-[0_0_20px_rgba(59,130,246,0.5)]'
+                }`}
             >
               {banner.winnerName}
             </span>
@@ -123,7 +126,7 @@ export const SetWinnerTakeoverModal: React.FC<SetWinnerTakeoverModalProps> = ({ 
             {isMatchWinner ? (
               <div className="mt-2 flex items-center gap-2 text-amber-300 font-mono font-bold text-sm sm:text-base bg-amber-950/60 px-4 py-1.5 rounded-xl border border-amber-600/40">
                 <Trophy className="w-4 h-4 text-amber-400" />
-                <span>VICTORY CLINCHED: {banner.setsWon} SETS TO {otherSetsWon}</span>
+                <span>VICTORY: {banner.setsWon} SETS TO {otherSetsWon}</span>
               </div>
             ) : (
               <div className="mt-2 flex items-center gap-2 text-slate-300 font-mono text-sm sm:text-base">

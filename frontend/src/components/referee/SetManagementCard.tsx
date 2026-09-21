@@ -7,6 +7,9 @@ interface SetManagementCardProps {
   redSetScore: number;
   blueSetScore: number;
   sideSwap: boolean;
+  isSetAlreadyAwarded?: boolean;
+  isMatchEnded?: boolean;
+  currentSetWinner?: string | null;
   onAwardSet: (winner: 'RED' | 'BLUE' | 'TIE') => void;
   onNextSet: () => void;
   onPrevSet: () => void;
@@ -21,6 +24,9 @@ export const SetManagementCard: React.FC<SetManagementCardProps> = ({
   redSetScore,
   blueSetScore,
   sideSwap,
+  isSetAlreadyAwarded = false,
+  isMatchEnded = false,
+  currentSetWinner,
   onAwardSet,
   onNextSet,
   onPrevSet,
@@ -48,31 +54,52 @@ export const SetManagementCard: React.FC<SetManagementCardProps> = ({
 
       {/* Award Current Set Winner Buttons */}
       <div className="flex flex-col gap-2">
-        <span className="text-xs font-mono font-bold uppercase tracking-wider text-slate-400">
-          AWARD WINNER FOR SET {currentSet}:
-        </span>
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-mono font-bold uppercase tracking-wider text-slate-400">
+            AWARD WINNER FOR SET {currentSet}:
+          </span>
+          {isMatchEnded ? (
+            <span className="text-xs font-mono text-amber-400 font-bold bg-amber-950/60 px-2.5 py-0.5 rounded border border-amber-800">
+              MATCH CONCLUDED
+            </span>
+          ) : isSetAlreadyAwarded ? (
+            <span className="text-xs font-mono text-emerald-400 font-bold bg-emerald-950/60 px-2.5 py-0.5 rounded border border-emerald-800 flex items-center gap-1">
+              <span>✓ SET {currentSet} AWARDED ({currentSetWinner || 'CONFIRMED'})</span>
+            </span>
+          ) : null}
+        </div>
+
         <div className="grid grid-cols-3 gap-3">
           <button
             onClick={() => onAwardSet('RED')}
-            className="py-3 px-4 rounded-xl bg-red-600 hover:bg-red-500 text-white font-display font-bold text-sm shadow-md shadow-red-600/20 active:scale-95 transition-all"
+            disabled={isSetAlreadyAwarded || isMatchEnded}
+            className="py-3 px-4 rounded-xl bg-red-600 hover:bg-red-500 disabled:opacity-30 disabled:cursor-not-allowed text-white font-display font-bold text-sm shadow-md shadow-red-600/20 active:scale-95 transition-all"
           >
             AWARD RED (+1 SET)
           </button>
 
           <button
             onClick={() => onAwardSet('BLUE')}
-            className="py-3 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-display font-bold text-sm shadow-md shadow-blue-600/20 active:scale-95 transition-all"
+            disabled={isSetAlreadyAwarded || isMatchEnded}
+            className="py-3 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-30 disabled:cursor-not-allowed text-white font-display font-bold text-sm shadow-md shadow-blue-600/20 active:scale-95 transition-all"
           >
             AWARD BLUE (+1 SET)
           </button>
 
           <button
             onClick={() => onAwardSet('TIE')}
-            className="py-3 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-display font-bold text-sm border border-slate-700 active:scale-95 transition-all"
+            disabled={isSetAlreadyAwarded || isMatchEnded}
+            className="py-3 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed text-slate-300 font-display font-bold text-sm border border-slate-700 active:scale-95 transition-all"
           >
             RECORD TIE SET
           </button>
         </div>
+
+        {isSetAlreadyAwarded && !isMatchEnded && (
+          <p className="text-[11px] font-mono text-slate-400 mt-0.5">
+            Set {currentSet} is already recorded. Click <strong className="text-cyan-400">Start Intermission Break</strong> above or <strong className="text-white">Next Set</strong> below to prepare Set {currentSet + 1}.
+          </p>
+        )}
       </div>
 
       {/* Set Controls & Side Swap */}

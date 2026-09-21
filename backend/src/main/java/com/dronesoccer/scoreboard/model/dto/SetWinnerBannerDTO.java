@@ -1,5 +1,6 @@
 package com.dronesoccer.scoreboard.model.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -19,5 +20,17 @@ public class SetWinnerBannerDTO {
     private int setsWon;            // Sets won by the winning team
     private int currentSet;         // Set just concluded
     private int maxSets;            // Total sets in match (e.g. 3)
+
+    @JsonProperty("isMatchWinner")
     private boolean isMatchWinner;  // True if this set win clinched the match
+
+    @JsonProperty("isMatchWinner")
+    public boolean isMatchWinner() {
+        return this.isMatchWinner;
+    }
+
+    @JsonProperty("isMatchWinner")
+    public void setMatchWinner(boolean matchWinner) {
+        this.isMatchWinner = matchWinner;
+    }
 }
