@@ -41,7 +41,7 @@ export const CrowdDisplay: React.FC = () => {
     timeRemainingMs: 180000,
     totalSetDurationMs: 180000,
     timerRunning: false,
-    phase: 'IDLE',
+    phase: 'NORMAL_PHASE',
     sideSwap: false,
     matchWinner: null,
     serverEpochMs: Date.now(),
@@ -83,7 +83,7 @@ export const CrowdDisplay: React.FC = () => {
   };
 
   const isIdleOrIntermission =
-    arenaState.phase === 'IDLE' || arenaState.phase === 'INTERMISSION';
+    arenaState.phase === 'INTERMISSION' && sponsors.some((s) => s.active);
 
   const isPenaltyPhase = arenaState.phase === 'PENALTY_PHASE';
 
@@ -95,7 +95,7 @@ export const CrowdDisplay: React.FC = () => {
 
   return (
     <div
-      className={`min-h-screen bg-[#080b11] text-slate-100 flex flex-col transition-all duration-200 select-none ${
+      className={`h-screen max-h-screen w-full bg-[#080b11] text-slate-100 flex flex-col transition-all duration-200 select-none overflow-hidden ${
         isBuzzerFiring ? 'buzzer-active-flash' : ''
       }`}
     >
@@ -103,12 +103,12 @@ export const CrowdDisplay: React.FC = () => {
       <HeaderNav arenaId={arenaId} variant="display" />
 
       {/* Main Stadium Arena Display */}
-      <main className="flex-1 flex flex-col justify-between p-4 lg:p-8 max-w-[1920px] w-full mx-auto relative overflow-hidden">
+      <main className="flex-1 min-h-0 h-full flex flex-col justify-between px-3 sm:px-6 lg:px-8 py-2 sm:py-3 w-full relative overflow-hidden">
         {/* Floating Top-Right Action Controls */}
-        <div className="absolute top-4 right-4 z-40 flex items-center gap-2">
+        <div className="absolute top-2 right-3 sm:top-3 sm:right-6 z-40 flex items-center gap-2">
           <button
             onClick={() => setShowMatchInfo(!showMatchInfo)}
-            className="p-2.5 rounded-2xl bg-slate-900/80 hover:bg-slate-800 text-cyan-400 hover:text-cyan-300 border border-slate-700 text-xs font-mono font-bold flex items-center gap-1.5 transition-colors shadow-lg"
+            className="p-2 sm:p-2.5 rounded-2xl bg-slate-900/80 hover:bg-slate-800 text-cyan-400 hover:text-cyan-300 border border-slate-700 text-xs font-mono font-bold flex items-center gap-1.5 transition-colors shadow-lg"
             title="View Cage Match Information & Schedule"
           >
             <span>MATCH INFO</span>
@@ -116,17 +116,17 @@ export const CrowdDisplay: React.FC = () => {
 
           <button
             onClick={toggleFullscreen}
-            className="p-2.5 rounded-2xl bg-slate-900/80 hover:bg-slate-800 text-slate-400 hover:text-white border border-slate-700 transition-colors shadow-lg"
+            className="p-2 sm:p-2.5 rounded-2xl bg-slate-900/80 hover:bg-slate-800 text-slate-400 hover:text-white border border-slate-700 transition-colors shadow-lg"
             title="Toggle Fullscreen Stadium View"
           >
-            {isFullscreen ? <Minimize className="w-5 h-5" /> : <Maximize className="w-5 h-5" />}
+            {isFullscreen ? <Minimize className="w-4 h-4 sm:w-5 sm:h-5" /> : <Maximize className="w-4 h-4 sm:w-5 sm:h-5" />}
           </button>
         </div>
 
         {/* Top Banner: Match Phase & Tournament Title */}
-        <div className="flex flex-col items-center gap-2 mb-4">
+        <div className="flex flex-col items-center gap-1 shrink-0 mb-1 sm:mb-2">
           <div className="text-center">
-            <span className="text-xs font-mono tracking-widest text-cyan-400 font-bold uppercase">
+            <span className="text-[10px] sm:text-xs font-mono tracking-widest text-cyan-400 font-bold uppercase">
               {arenaState.arenaName} • {arenaState.tournamentName} • MATCH {arenaState.matchNumber}
             </span>
           </div>
@@ -137,7 +137,7 @@ export const CrowdDisplay: React.FC = () => {
 
         {/* Center Area: Either Live Scoreboard OR Sponsor Takeover */}
         {isIdleOrIntermission ? (
-          <div className="flex-1 flex items-center justify-center my-4">
+          <div className="flex-1 min-h-0 flex items-center justify-center my-1 sm:my-2">
             <SponsorTakeover
               sponsors={sponsors}
               upcomingMatches={upcomingMatches}
@@ -146,11 +146,11 @@ export const CrowdDisplay: React.FC = () => {
             />
           </div>
         ) : (
-          <div className="flex-1 flex flex-col justify-center my-4">
+          <div className="flex-1 min-h-0 h-full flex flex-col justify-center my-1 sm:my-2 w-full">
             {/* Split Scoreboard Container */}
-            <div className="flex flex-col lg:flex-row items-center justify-center gap-6 w-full">
+            <div className="flex flex-col lg:flex-row items-stretch justify-center gap-3 sm:gap-4 lg:gap-6 w-full h-full flex-1 min-h-0">
               {/* Left Team Card */}
-              <div className="flex-1 min-w-0 w-full flex">
+              <div className="flex-[1.1] min-w-0 h-full flex">
                 {leftTeam === 'red' ? (
                   <ScoreCard
                     team="red"
@@ -177,27 +177,36 @@ export const CrowdDisplay: React.FC = () => {
               </div>
 
               {/* Authoritative Center Clock */}
-              <div className="w-full lg:w-80 xl:w-96 flex-shrink-0 flex flex-col items-center justify-center py-6 px-6 rounded-3xl bg-slate-900/60 border border-slate-800/80 backdrop-blur-md shadow-2xl">
-                <span className="text-xs font-mono font-black text-cyan-400 tracking-widest uppercase mb-2">
-                  MATCH CLOCK
-                </span>
-                <TabularTimer
-                  serverRemainingMs={arenaState.timeRemainingMs}
-                  totalDurationMs={arenaState.totalSetDurationMs}
-                  timerRunning={arenaState.timerRunning}
-                  phase={arenaState.phase}
-                  size="hero"
-                  showProgressBar={true}
-                />
-                <div className="mt-4 text-center">
-                  <span className="text-xs font-mono text-slate-400 uppercase tracking-wider block">
+              <div className="flex-[0.9] lg:flex-1 min-w-0 h-full flex flex-col justify-between items-center py-4 px-4 sm:px-6 rounded-3xl bg-slate-900/60 border border-slate-800/80 backdrop-blur-md shadow-2xl">
+                <div className="w-full flex items-center justify-between border-b border-slate-800/80 pb-2 shrink-0">
+                  <span className="text-[10px] sm:text-xs font-mono font-black text-cyan-400 tracking-widest uppercase">
+                    MATCH CLOCK
+                  </span>
+                  <span className="text-[10px] sm:text-xs font-mono text-slate-400 uppercase tracking-wider">
                     SET {arenaState.currentSet} OF {arenaState.maxSets}
+                  </span>
+                </div>
+
+                <div className="flex-1 min-h-0 flex items-center justify-center my-auto w-full py-2">
+                  <TabularTimer
+                    serverRemainingMs={arenaState.timeRemainingMs}
+                    totalDurationMs={arenaState.totalSetDurationMs}
+                    timerRunning={arenaState.timerRunning}
+                    phase={arenaState.phase}
+                    size="stadium"
+                    showProgressBar={true}
+                  />
+                </div>
+
+                <div className="w-full pt-2 border-t border-slate-800/80 text-center shrink-0">
+                  <span className="text-[10px] sm:text-[11px] font-mono text-cyan-400/80 tracking-widest uppercase">
+                    AUTHORITATIVE TIMING ENGINE
                   </span>
                 </div>
               </div>
 
               {/* Right Team Card */}
-              <div className="flex-1 min-w-0 w-full flex">
+              <div className="flex-[1.1] min-w-0 h-full flex">
                 {rightTeam === 'red' ? (
                   <ScoreCard
                     team="red"
@@ -227,7 +236,7 @@ export const CrowdDisplay: React.FC = () => {
         )}
 
         {/* Bottom Bar: Set Progression & Sponsor Watermark */}
-        <div className="flex flex-wrap items-center justify-between border-t border-slate-800/80 pt-4 mt-4 gap-4">
+        <div className="flex flex-wrap items-center justify-between border-t border-slate-800/80 pt-2 shrink-0 gap-2">
           <SetTracker
             currentSet={arenaState.currentSet}
             maxSets={arenaState.maxSets}
@@ -236,7 +245,7 @@ export const CrowdDisplay: React.FC = () => {
             teamBlue={arenaState.teamBlue}
           />
 
-          <div className="flex items-center gap-3 text-xs font-mono text-slate-500">
+          <div className="flex items-center gap-2 sm:gap-3 text-[10px] sm:text-xs font-mono text-slate-500">
             <span>{arenaState.recentEvent}</span>
             <span>•</span>
             <span>{arenaState.sideSwap ? 'SIDES SWAPPED (BLUE/RED)' : 'DEFAULT SIDES (RED/BLUE)'}</span>
