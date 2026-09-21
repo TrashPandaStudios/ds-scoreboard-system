@@ -29,5 +29,6 @@ public class ArenaSummaryDTO {
     private boolean timerRunning;
     private MatchPhase phase;
     private boolean sideSwap;
+    private SetWinnerBannerDTO setWinnerBanner;
     private long serverEpochMs;
 }

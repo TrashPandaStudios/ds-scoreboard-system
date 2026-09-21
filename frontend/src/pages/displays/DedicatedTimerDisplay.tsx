@@ -6,6 +6,7 @@ import { useAuthoritativeTimer } from '../../hooks/useAuthoritativeTimer';
 import { useAudioBuzzer } from '../../hooks/useAudioBuzzer';
 import { HeaderNav } from '../../components/common/HeaderNav';
 import { PhaseAlertBanner } from '../../components/display/PhaseAlertBanner';
+import { SetWinnerTakeoverModal } from '../../components/display/SetWinnerTakeoverModal';
 import { Clock, Play, Pause, AlertTriangle, Maximize, Minimize, Shield } from 'lucide-react';
 import { TeamBadge } from '../../components/common/TeamBadge';
 
@@ -204,6 +205,11 @@ export const DedicatedTimerDisplay: React.FC = () => {
           </div>
         </div>
       </main>
+
+      {/* Authoritative Set & Match Winner Takeover Popup */}
+      {state.setWinnerBanner?.active && (
+        <SetWinnerTakeoverModal banner={state.setWinnerBanner} />
+      )}
     </div>
   );
 };

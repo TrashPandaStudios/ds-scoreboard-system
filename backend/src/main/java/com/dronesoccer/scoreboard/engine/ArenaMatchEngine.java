@@ -75,6 +75,7 @@ public class ArenaMatchEngine {
     private MatchPhase phase = MatchPhase.IDLE;
     private boolean sideSwap = false;
     private String matchWinner = null;
+    private SetWinnerBannerDTO setWinnerBanner = null;
     private String recentEvent = "Arena Initialized";
 
     public ArenaMatchEngine(Long arenaId,
@@ -113,16 +114,21 @@ public class ArenaMatchEngine {
         stateLock.lock();
         try {
             if (timerRunning) {
-                long elapsedMs = (System.nanoTime() - timerStartNano) / 1_000_000;
-                long updated = timerInitialRemainingMs - elapsedMs;
-
-                if (updated <= 0) {
-                    timeRemainingMs = 0;
-                    timerRunning = false;
-                    onTimerExpired();
-                    broadcastRequired = true;
+                if (phase == MatchPhase.SUDDEN_DEATH) {
+                    long elapsedMs = (System.nanoTime() - timerStartNano) / 1_000_000;
+                    timeRemainingMs = elapsedMs;
                 } else {
-                    timeRemainingMs = updated;
+                    long elapsedMs = (System.nanoTime() - timerStartNano) / 1_000_000;
+                    long updated = timerInitialRemainingMs - elapsedMs;
+
+                    if (updated <= 0) {
+                        timeRemainingMs = 0;
+                        timerRunning = false;
+                        onTimerExpired();
+                        broadcastRequired = true;
+                    } else {
+                        timeRemainingMs = updated;
+                    }
                 }
             }
         } finally {
@@ -229,6 +235,8 @@ public class ArenaMatchEngine {
                 case RESET_MATCH -> resetMatch();
                 case UPDATE_TEAMS -> updateTeams(command.getTeamRed(), command.getTeamBlue(), command.getMatchNumber());
                 case CONFIRM_MATCH_END -> confirmMatchEnd();
+                case START_SUDDEN_DEATH -> startSuddenDeath();
+                case DISMISS_WINNER_BANNER -> dismissWinnerBanner();
             }
         } finally {
             stateLock.unlock();
@@ -301,6 +309,12 @@ public class ArenaMatchEngine {
             recentEvent = "Blue Score " + (delta > 0 ? "+1" : "-1") + " (" + blueScore + ")";
             auditService.logEvent(arenaId, currentMatchId, delta > 0 ? "SCORE_BLUE_PLUS" : "SCORE_BLUE_MINUS", "Blue Score: " + blueScore, null);
         }
+
+        // Sudden death rule: first team to score (+1) immediately wins the set
+        if (phase == MatchPhase.SUDDEN_DEATH && delta > 0) {
+            log.info("Arena {} - Sudden Death Goal scored by {} team!", arenaId, isRed ? "RED" : "BLUE");
+            awardSet(isRed ? "RED" : "BLUE");
+        }
     }
 
     public void setScore(boolean isRed, int score) {
@@ -345,6 +359,10 @@ public class ArenaMatchEngine {
             this.timeRemainingMs = intermissionDurationMs;
             this.totalSetDurationMs = intermissionDurationMs;
             recentEvent = "INTERMISSION Break (" + (intermissionDurationMs / 1000) + "s)";
+        } else if (newPhase == MatchPhase.SUDDEN_DEATH) {
+            this.timeRemainingMs = 0;
+            this.totalSetDurationMs = 0;
+            recentEvent = "SUDDEN DEATH Phase - Next Goal Wins!";
         } else if (newPhase == MatchPhase.NORMAL_PHASE) {
             recentEvent = "NORMAL GAMEPLAY Phase";
         }
@@ -367,7 +385,30 @@ public class ArenaMatchEngine {
         startTimer();
     }
 
+    public void startSuddenDeath() {
+        pauseTimer();
+        dismissWinnerBanner();
+        this.phase = MatchPhase.SUDDEN_DEATH;
+        this.timeRemainingMs = 0;
+        this.totalSetDurationMs = 0;
+        this.timerRunning = true;
+        this.timerStartNano = System.nanoTime();
+        this.timerInitialRemainingMs = 0;
+        recentEvent = "SUDDEN DEATH Started - First Goal Wins!";
+        auditService.logEvent(arenaId, currentMatchId, "SUDDEN_DEATH_START", recentEvent, null);
+    }
+
     public void startIntermission() {
+        dismissWinnerBanner();
+        // If current set has been awarded, advance to next set and reset live set scores
+        boolean setAlreadyAwarded = completedSets.stream().anyMatch(s -> s.getSetNumber() == currentSet);
+        if (setAlreadyAwarded && currentSet < maxSets && phase != MatchPhase.MATCH_ENDED) {
+            currentSet++;
+            redScore = 0;
+            blueScore = 0;
+            redPenalties = 0;
+            bluePenalties = 0;
+        }
         setPhase(MatchPhase.INTERMISSION);
         startTimer();
     }
@@ -429,21 +470,46 @@ public class ArenaMatchEngine {
 
         // Check if match won
         int setsNeededToWin = (maxSets / 2) + 1;
-        if (redSetScore >= setsNeededToWin || blueSetScore >= setsNeededToWin || currentSet >= maxSets) {
+        boolean isMatchWon = (redSetScore >= setsNeededToWin || blueSetScore >= setsNeededToWin);
+
+        String winnerName = "RED".equalsIgnoreCase(winner) ? teamRed : ("BLUE".equalsIgnoreCase(winner) ? teamBlue : "Tie");
+        String winnerLogoUrl = "RED".equalsIgnoreCase(winner) ? teamRedLogoUrl : ("BLUE".equalsIgnoreCase(winner) ? teamBlueLogoUrl : null);
+        int setsWon = "RED".equalsIgnoreCase(winner) ? redSetScore : ("BLUE".equalsIgnoreCase(winner) ? blueSetScore : 0);
+
+        this.setWinnerBanner = SetWinnerBannerDTO.builder()
+                .active(true)
+                .winner(winner)
+                .winnerName(winnerName)
+                .winnerLogoUrl(winnerLogoUrl)
+                .redSetScore(redSetScore)
+                .blueSetScore(blueSetScore)
+                .setsWon(setsWon)
+                .currentSet(currentSet)
+                .maxSets(maxSets)
+                .isMatchWinner(isMatchWon)
+                .build();
+
+        if (isMatchWon || currentSet >= maxSets) {
             confirmMatchEnd();
         } else {
-            // Auto advance or start intermission
-            startIntermission();
-            currentSet++;
-            redScore = 0;
-            blueScore = 0;
-            redPenalties = 0;
-            bluePenalties = 0;
+            // Decoupled intermission: Hold in IDLE with timer paused at 00:00 awaiting referee to trigger intermission or dismiss banner
+            phase = MatchPhase.IDLE;
+            timeRemainingMs = 0;
+        }
+    }
+
+    public void dismissWinnerBanner() {
+        if (this.setWinnerBanner != null) {
+            this.setWinnerBanner.setActive(false);
+            this.setWinnerBanner = null;
+            recentEvent = "Winner Banner Dismissed";
+            auditService.logEvent(arenaId, currentMatchId, "BANNER_DISMISS", "Winner banner dismissed", null);
         }
     }
 
     public void advanceToNextSet() {
         if (currentSet < maxSets) {
+            dismissWinnerBanner();
             currentSet++;
             redScore = 0;
             blueScore = 0;
@@ -625,6 +691,7 @@ public class ArenaMatchEngine {
         bluePenalties = 0;
         currentSet = 1;
         matchWinner = null;
+        setWinnerBanner = null;
         phase = MatchPhase.IDLE;
         completedSets.clear();
         timeRemainingMs = defaultSetDurationMs;
@@ -636,8 +703,13 @@ public class ArenaMatchEngine {
         try {
             long currentRemaining = timeRemainingMs;
             if (timerRunning) {
-                long elapsed = (System.nanoTime() - timerStartNano) / 1_000_000;
-                currentRemaining = Math.max(0, timerInitialRemainingMs - elapsed);
+                if (phase == MatchPhase.SUDDEN_DEATH) {
+                    long elapsed = (System.nanoTime() - timerStartNano) / 1_000_000;
+                    currentRemaining = elapsed;
+                } else {
+                    long elapsed = (System.nanoTime() - timerStartNano) / 1_000_000;
+                    currentRemaining = Math.max(0, timerInitialRemainingMs - elapsed);
+                }
             }
 
             return ArenaStateDTO.builder()
@@ -665,6 +737,7 @@ public class ArenaMatchEngine {
                     .phase(phase)
                     .sideSwap(sideSwap)
                     .matchWinner(matchWinner)
+                    .setWinnerBanner(setWinnerBanner)
                     .serverEpochMs(System.currentTimeMillis())
                     .recentEvent(recentEvent)
                     .completedSets(new ArrayList<>(completedSets))
@@ -696,6 +769,7 @@ public class ArenaMatchEngine {
                 .timerRunning(full.isTimerRunning())
                 .phase(full.getPhase())
                 .sideSwap(full.isSideSwap())
+                .setWinnerBanner(full.getSetWinnerBanner())
                 .serverEpochMs(full.getServerEpochMs())
                 .build();
     }

@@ -8,6 +8,7 @@ import { HeaderNav } from '../../components/common/HeaderNav';
 import { PenaltyPips } from '../../components/display/PenaltyPips';
 import { SetTracker } from '../../components/display/SetTracker';
 import { PhaseAlertBanner } from '../../components/display/PhaseAlertBanner';
+import { SetWinnerTakeoverModal } from '../../components/display/SetWinnerTakeoverModal';
 import { Shield, Target, Trophy, Maximize, Minimize } from 'lucide-react';
 import { TeamBadge } from '../../components/common/TeamBadge';
 
@@ -279,6 +280,11 @@ export const SplitTeamsDisplay: React.FC = () => {
           <span>{state.sideSwap ? 'ORIENTATION: BLUE ON LEFT / RED ON RIGHT' : 'ORIENTATION: RED ON LEFT / BLUE ON RIGHT'}</span>
         </div>
       </main>
+
+      {/* Authoritative Set & Match Winner Takeover Popup */}
+      {state.setWinnerBanner?.active && (
+        <SetWinnerTakeoverModal banner={state.setWinnerBanner} />
+      )}
     </div>
   );
 };

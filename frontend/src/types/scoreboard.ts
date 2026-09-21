@@ -3,9 +3,23 @@ export type MatchPhase =
   | 'COUNTDOWN'
   | 'NORMAL_PHASE'
   | 'PENALTY_PHASE'
+  | 'SUDDEN_DEATH'
   | 'TIMEOUT'
   | 'INTERMISSION'
   | 'MATCH_ENDED';
+
+export interface SetWinnerBanner {
+  active: boolean;
+  winner: 'RED' | 'BLUE' | 'TIE' | string;
+  winnerName: string;
+  winnerLogoUrl?: string | null;
+  redSetScore: number;
+  blueSetScore: number;
+  setsWon: number;
+  currentSet: number;
+  maxSets: number;
+  isMatchWinner: boolean;
+}
 
 export interface SetSummary {
   setNumber: number;
@@ -42,6 +56,7 @@ export interface ArenaState {
   phase: MatchPhase;
   sideSwap: boolean; // false = Red on Left, true = Blue on Left
   matchWinner: string | null;
+  setWinnerBanner?: SetWinnerBanner | null;
   serverEpochMs: number;
   recentEvent: string;
   completedSets: SetSummary[];
@@ -67,6 +82,7 @@ export interface ArenaSummary {
   timerRunning: boolean;
   phase: MatchPhase;
   sideSwap: boolean;
+  setWinnerBanner?: SetWinnerBanner | null;
   serverEpochMs: number;
 }
 
@@ -99,12 +115,14 @@ export type CommandType =
   | 'START_COUNTDOWN'
   | 'START_TIMEOUT'
   | 'START_INTERMISSION'
+  | 'START_SUDDEN_DEATH'
   | 'SET_INTERMISSION_DURATION'
   | 'TRIGGER_BUZZER'
   | 'LOAD_MATCH'
   | 'RESET_MATCH'
   | 'UPDATE_TEAMS'
-  | 'CONFIRM_MATCH_END';
+  | 'CONFIRM_MATCH_END'
+  | 'DISMISS_WINNER_BANNER';
 
 export interface MatchControlCommand {
   type: CommandType;

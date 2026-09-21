@@ -6,6 +6,7 @@ import { useAuthoritativeTimer } from '../../hooks/useAuthoritativeTimer';
 import { useAudioBuzzer } from '../../hooks/useAudioBuzzer';
 import { HeaderNav } from '../../components/common/HeaderNav';
 import { PenaltyPips } from '../../components/display/PenaltyPips';
+import { SetWinnerTakeoverModal } from '../../components/display/SetWinnerTakeoverModal';
 import { Shield, Target, Trophy, Maximize, Minimize, AlertTriangle } from 'lucide-react';
 import { TeamBadge } from '../../components/common/TeamBadge';
 
@@ -204,6 +205,11 @@ export const RedTeamDisplay: React.FC = () => {
           </div>
         </div>
       </main>
+
+      {/* Authoritative Set & Match Winner Takeover Popup */}
+      {state.setWinnerBanner?.active && (
+        <SetWinnerTakeoverModal banner={state.setWinnerBanner} />
+      )}
     </div>
   );
 };

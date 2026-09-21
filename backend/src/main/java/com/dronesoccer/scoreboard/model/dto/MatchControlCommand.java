@@ -48,6 +48,7 @@ public class MatchControlCommand {
         START_COUNTDOWN,
         START_TIMEOUT,
         START_INTERMISSION,
+        START_SUDDEN_DEATH,
         SET_INTERMISSION_DURATION,
         
         // Buzzer
@@ -57,7 +58,8 @@ public class MatchControlCommand {
         LOAD_MATCH,
         RESET_MATCH,
         UPDATE_TEAMS,
-        CONFIRM_MATCH_END
+        CONFIRM_MATCH_END,
+        DISMISS_WINNER_BANNER
     }
 
     private CommandType type;

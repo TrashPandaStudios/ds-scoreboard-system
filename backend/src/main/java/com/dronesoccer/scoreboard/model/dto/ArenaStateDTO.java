@@ -54,6 +54,7 @@ public class ArenaStateDTO {
 
     // Winner tracking
     private String matchWinner; // "RED", "BLUE", "TIE", or null
+    private SetWinnerBannerDTO setWinnerBanner;
 
     // Telemetry and Sync
     private long serverEpochMs;

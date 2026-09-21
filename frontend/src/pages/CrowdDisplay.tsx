@@ -9,6 +9,7 @@ import { TabularTimer } from '../components/common/TabularTimer';
 import { SetTracker } from '../components/display/SetTracker';
 import { PhaseAlertBanner } from '../components/display/PhaseAlertBanner';
 import { SponsorTakeover } from '../components/display/SponsorTakeover';
+import { SetWinnerTakeoverModal } from '../components/display/SetWinnerTakeoverModal';
 import { ScheduledMatch } from '../types/scoreboard';
 import { Maximize, Minimize } from 'lucide-react';
 
@@ -322,6 +323,11 @@ export const CrowdDisplay: React.FC = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Authoritative Set & Match Winner Takeover Popup */}
+      {arenaState.setWinnerBanner?.active && (
+        <SetWinnerTakeoverModal banner={arenaState.setWinnerBanner} />
       )}
     </div>
   );

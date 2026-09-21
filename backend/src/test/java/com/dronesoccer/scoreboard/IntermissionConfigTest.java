@@ -88,8 +88,12 @@ class IntermissionConfigTest {
     @Test
     void testAwardSetStartsIntermissionWithConfiguredDuration() {
         engine.setIntermissionDurationMs(60000L, false);
-        // Award set to RED
+        // Award set to RED - under ADR 0003, holds in IDLE with winner banner
         engine.awardSet("RED");
+        assertEquals(MatchPhase.IDLE, engine.toDTO().getPhase());
+
+        // Referee starts intermission break
+        engine.startIntermission();
 
         ArenaStateDTO dto = engine.toDTO();
         assertEquals(MatchPhase.INTERMISSION, dto.getPhase());

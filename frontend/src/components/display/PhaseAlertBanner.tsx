@@ -1,6 +1,6 @@
 import React from 'react';
 import { MatchPhase } from '../../types/scoreboard';
-import { AlertTriangle, Clock, PlayCircle, Coffee, CheckCircle2, Zap } from 'lucide-react';
+import { AlertTriangle, Clock, PlayCircle, Coffee, CheckCircle2, Zap, Swords } from 'lucide-react';
 
 interface PhaseAlertBannerProps {
   phase: MatchPhase;
@@ -9,6 +9,19 @@ interface PhaseAlertBannerProps {
 
 export const PhaseAlertBanner: React.FC<PhaseAlertBannerProps> = ({ phase, currentSet }) => {
   switch (phase) {
+    case 'SUDDEN_DEATH':
+      return (
+        <div className="w-full relative overflow-hidden rounded-2xl border-2 border-amber-400 bg-amber-950/70 p-4 shadow-[0_0_35px_rgba(251,191,36,0.5)] animate-pulse">
+          <div className="relative flex items-center justify-center gap-3 text-amber-300">
+            <Swords className="w-6 h-6 text-amber-400 animate-bounce" />
+            <span className="font-display font-black text-xl lg:text-2xl uppercase tracking-widest text-white drop-shadow-md">
+              SUDDEN DEATH OVERTIME — FIRST GOAL WINS!
+            </span>
+            <Swords className="w-6 h-6 text-amber-400 animate-bounce" />
+          </div>
+        </div>
+      );
+
     case 'PENALTY_PHASE':
       return (
         <div className="w-full relative overflow-hidden rounded-2xl border-2 border-amber-500 bg-amber-950/60 p-4 shadow-[0_0_30px_rgba(245,158,11,0.4)] animate-pulse">

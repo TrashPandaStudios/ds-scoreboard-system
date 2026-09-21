@@ -26,8 +26,9 @@ export const TabularTimer: React.FC<TabularTimerProps> = ({
     timerRunning,
   });
 
-  const isLowTime = currentMs <= 10000 && currentMs > 0;
-  const isZero = currentMs <= 0;
+  const isSuddenDeath = phase === 'SUDDEN_DEATH';
+  const isLowTime = !isSuddenDeath && currentMs <= 10000 && currentMs > 0;
+  const isZero = !isSuddenDeath && currentMs <= 0;
   const isPenaltyPhase = phase === 'PENALTY_PHASE';
 
   // Size configurations
@@ -45,7 +46,9 @@ export const TabularTimer: React.FC<TabularTimerProps> = ({
       <div className="flex flex-col items-center justify-center">
         <span
           className={`font-mono tabular-nums leading-none select-none whitespace-nowrap transition-colors duration-150 ${sizeClasses[size]} ${
-            isZero
+            isSuddenDeath
+              ? 'text-amber-400 glow-amber animate-pulse'
+              : isZero
               ? 'text-rose-500 animate-pulse glow-red'
               : isPenaltyPhase
               ? 'text-amber-400 glow-amber'

@@ -12,8 +12,9 @@ import { SetManagementCard } from '../components/referee/SetManagementCard';
 import { TeamOverrideModal } from '../components/referee/TeamOverrideModal';
 import { HotkeyLegendModal } from '../components/referee/HotkeyLegendModal';
 import { IntermissionConfigModal } from '../components/referee/IntermissionConfigModal';
+import { SetEndResolutionModal } from '../components/referee/SetEndResolutionModal';
 import { CommandType } from '../types/scoreboard';
-import { Keyboard, Edit3, Volume2, ShieldAlert, Coffee } from 'lucide-react';
+import { Keyboard, Edit3, Volume2, ShieldAlert, Coffee, Trophy, Swords } from 'lucide-react';
 
 export const RefereeConsole: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -26,6 +27,8 @@ export const RefereeConsole: React.FC = () => {
   const [isOverrideOpen, setIsOverrideOpen] = useState(false);
   const [isHotkeyLegendOpen, setIsHotkeyLegendOpen] = useState(false);
   const [isIntermissionModalOpen, setIsIntermissionModalOpen] = useState(false);
+  const [isResolutionModalOpen, setIsResolutionModalOpen] = useState(false);
+  const promptedSetRef = React.useRef<number | null>(null);
 
   const arenaState = arenaStates[arenaId] || {
     arenaId,
@@ -103,6 +106,19 @@ export const RefereeConsole: React.FC = () => {
     }
   };
 
+  // Auto-open Set End Resolution Modal when time reaches 00:00 in NORMAL_PHASE
+  React.useEffect(() => {
+    if (
+      arenaState.timeRemainingMs === 0 &&
+      arenaState.phase === 'NORMAL_PHASE' &&
+      !arenaState.setWinnerBanner?.active &&
+      promptedSetRef.current !== arenaState.currentSet
+    ) {
+      promptedSetRef.current = arenaState.currentSet;
+      setIsResolutionModalOpen(true);
+    }
+  }, [arenaState.timeRemainingMs, arenaState.phase, arenaState.setWinnerBanner, arenaState.currentSet]);
+
   return (
     <div className="min-h-screen bg-[#080b11] text-slate-100 flex flex-col select-none">
       <HeaderNav arenaId={arenaId} variant="referee" />
@@ -158,6 +174,15 @@ export const RefereeConsole: React.FC = () => {
             </button>
 
             <button
+              onClick={() => setIsResolutionModalOpen(true)}
+              className="px-3.5 py-2 rounded-xl bg-violet-950/80 hover:bg-violet-900 text-violet-300 hover:text-white border border-violet-700/50 text-xs font-mono font-bold flex items-center gap-1.5 transition-colors shadow-sm"
+              title="Resolve Penalties and Set Winner"
+            >
+              <ShieldAlert className="w-4 h-4 text-violet-400" />
+              <span>RESOLVE SET</span>
+            </button>
+
+            <button
               onClick={() => setIsIntermissionModalOpen(true)}
               className="px-3.5 py-2 rounded-xl bg-amber-950/60 hover:bg-amber-900/80 text-amber-300 hover:text-white border border-amber-700/50 text-xs font-mono font-bold flex items-center gap-1.5 transition-colors"
               title="Configure arena intermission break duration"
@@ -175,6 +200,58 @@ export const RefereeConsole: React.FC = () => {
             </button>
           </div>
         </div>
+
+        {/* Active Winner Banner Status Callout */}
+        {arenaState.setWinnerBanner?.active && (
+          <div className="w-full p-5 rounded-3xl bg-slate-900/95 border-2 border-amber-500/70 shadow-2xl flex flex-wrap items-center justify-between gap-4 animate-in fade-in">
+            <div className="flex items-center gap-3">
+              <div className="p-3 rounded-2xl bg-amber-500/20 text-amber-400 border border-amber-500/40">
+                <Trophy className="w-6 h-6" />
+              </div>
+              <div className="flex flex-col">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-mono font-bold tracking-wider text-amber-400 uppercase">
+                    {arenaState.setWinnerBanner.isMatchWinner ? 'MATCH CLINCHED' : `SET ${arenaState.setWinnerBanner.currentSet} CONCLUDED`}
+                  </span>
+                  <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
+                </div>
+                <h2 className="text-xl font-display font-black text-white">
+                  Winner: <span className={arenaState.setWinnerBanner.winner === 'RED' ? 'text-red-400' : 'text-blue-400'}>{arenaState.setWinnerBanner.winnerName}</span>
+                  {' • '}{arenaState.setWinnerBanner.setsWon} Sets Won
+                </h2>
+                <span className="text-xs font-mono text-slate-400">
+                  Celebratory takeover is live across all arena scoreboard displays.
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              {!arenaState.setWinnerBanner.isMatchWinner ? (
+                <button
+                  onClick={() => sendCommand('START_INTERMISSION')}
+                  className="px-5 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-mono font-bold flex items-center gap-2 shadow-lg shadow-purple-600/30 transition-all"
+                >
+                  <Coffee className="w-4 h-4" />
+                  <span>START INTERMISSION BREAK</span>
+                </button>
+              ) : (
+                <button
+                  onClick={() => sendCommand('RESET_MATCH')}
+                  className="px-5 py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-mono font-bold flex items-center gap-2 shadow-lg shadow-cyan-600/30 transition-all"
+                >
+                  <span>START NEW MATCH</span>
+                </button>
+              )}
+
+              <button
+                onClick={() => sendCommand('DISMISS_WINNER_BANNER')}
+                className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 text-xs font-mono font-bold transition-colors"
+              >
+                DISMISS BANNER
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Central Authoritative Timer & Clock Bar */}
         <TimerControlBar
@@ -345,6 +422,28 @@ export const RefereeConsole: React.FC = () => {
         onStartIntermission={() => {
           sendCommand('START_INTERMISSION');
         }}
+      />
+
+      <SetEndResolutionModal
+        isOpen={isResolutionModalOpen}
+        onClose={() => setIsResolutionModalOpen(false)}
+        currentSet={arenaState.currentSet}
+        maxSets={arenaState.maxSets}
+        teamRed={arenaState.teamRed}
+        teamBlue={arenaState.teamBlue}
+        redScore={arenaState.redScore}
+        blueScore={arenaState.blueScore}
+        redPenalties={arenaState.redPenalties}
+        bluePenalties={arenaState.bluePenalties}
+        onAdjustScore={(isRed, delta) => {
+          sendCommand(isRed ? (delta > 0 ? 'ADD_RED_SCORE' : 'SUB_RED_SCORE') : (delta > 0 ? 'ADD_BLUE_SCORE' : 'SUB_BLUE_SCORE'));
+        }}
+        onAdjustPenalty={(isRed, delta) => {
+          sendCommand(isRed ? (delta > 0 ? 'ADD_RED_PENALTY' : 'SUB_RED_PENALTY') : (delta > 0 ? 'ADD_BLUE_PENALTY' : 'SUB_BLUE_PENALTY'));
+        }}
+        onEnterPenaltyPhase={() => sendCommand('SET_PHASE', { phaseValue: 'PENALTY_PHASE' })}
+        onEnterSuddenDeath={() => sendCommand('START_SUDDEN_DEATH')}
+        onAwardSet={(winner) => sendCommand(winner === 'RED' ? 'AWARD_SET_RED' : 'AWARD_SET_BLUE')}
       />
     </div>
   );
