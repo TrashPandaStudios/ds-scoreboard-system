@@ -160,14 +160,14 @@ export const SplitTeamsDisplay: React.FC = () => {
             </div>
 
             {/* Footer: Penalties & Sets Won */}
-            <div className="flex items-center justify-between border-t border-slate-800 pt-3 sm:pt-4 shrink-0">
+            <div className="flex items-center justify-between border-t border-slate-800 pt-3 sm:pt-4 shrink-0 flex-wrap gap-2">
               <PenaltyPips
                 count={leftTeam === 'red' ? state.redPenalties : state.bluePenalties}
                 team={leftTeam}
-                size="md"
+                size="xl"
               />
-              <div className="flex items-center gap-1.5 sm:gap-2 text-[10px] sm:text-xs font-mono text-amber-400 font-bold bg-slate-900 px-2.5 sm:px-3 py-1 rounded-xl border border-slate-800">
-                <Trophy className="w-3.5 sm:w-4 h-3.5 sm:h-4" />
+              <div className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm font-mono text-amber-400 font-bold bg-slate-900 px-3 sm:px-4 py-1.5 sm:py-2 rounded-2xl border border-slate-800">
+                <Trophy className="w-4 sm:w-5 h-4 sm:h-5 text-amber-400" />
                 <span>SETS: {leftTeam === 'red' ? state.redSetScore : state.blueSetScore}</span>
               </div>
             </div>
@@ -259,14 +259,14 @@ export const SplitTeamsDisplay: React.FC = () => {
             </div>
 
             {/* Footer: Penalties & Sets Won */}
-            <div className="flex items-center justify-between border-t border-slate-800 pt-3 sm:pt-4 shrink-0">
+            <div className="flex items-center justify-between border-t border-slate-800 pt-3 sm:pt-4 shrink-0 flex-wrap gap-2">
               <PenaltyPips
                 count={rightTeam === 'red' ? state.redPenalties : state.bluePenalties}
                 team={rightTeam}
-                size="md"
+                size="xl"
               />
-              <div className="flex items-center gap-1.5 sm:gap-2 text-[10px] sm:text-xs font-mono text-amber-400 font-bold bg-slate-900 px-2.5 sm:px-3 py-1 rounded-xl border border-slate-800">
-                <Trophy className="w-3.5 sm:w-4 h-3.5 sm:h-4" />
+              <div className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm font-mono text-amber-400 font-bold bg-slate-900 px-3 sm:px-4 py-1.5 sm:py-2 rounded-2xl border border-slate-800">
+                <Trophy className="w-4 sm:w-5 h-4 sm:h-5 text-amber-400" />
                 <span>SETS: {rightTeam === 'red' ? state.redSetScore : state.blueSetScore}</span>
               </div>
             </div>

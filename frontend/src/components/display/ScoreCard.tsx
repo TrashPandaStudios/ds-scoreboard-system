@@ -88,11 +88,11 @@ export const ScoreCard: React.FC<ScoreCardProps> = ({
       </div>
 
       {/* Bottom: Penalty Counters */}
-      <div className={`flex items-center justify-between border-t border-slate-800/80 pt-3 lg:pt-4 shrink-0 ${align === 'right' ? 'flex-row-reverse' : ''}`}>
-        <PenaltyPips count={penalties} team={team} size="md" />
+      <div className={`flex items-center justify-between border-t border-slate-800/80 pt-3 lg:pt-4 shrink-0 flex-wrap gap-2 ${align === 'right' ? 'flex-row-reverse' : ''}`}>
+        <PenaltyPips count={penalties} team={team} size="xl" />
         {isWinning && (
           <span
-            className={`text-[10px] sm:text-xs font-mono font-bold px-2.5 sm:px-3 py-1 rounded-full uppercase tracking-wider ${
+            className={`text-xs sm:text-sm font-mono font-bold px-3 py-1 rounded-full uppercase tracking-wider ${
               isRed ? 'bg-red-500/20 text-red-300 border border-red-500/40' : 'bg-blue-500/20 text-blue-300 border border-blue-500/40'
             }`}
           >

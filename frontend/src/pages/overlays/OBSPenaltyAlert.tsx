@@ -4,6 +4,7 @@ import { useArenaStore } from '../../store/arenaStore';
 import { useArenaWebSocket } from '../../hooks/useArenaWebSocket';
 import { useAuthoritativeTimer } from '../../hooks/useAuthoritativeTimer';
 import { AlertTriangle, Zap } from 'lucide-react';
+import { PenaltyPips } from '../../components/display/PenaltyPips';
 
 export const OBSPenaltyAlert: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -66,14 +67,22 @@ export const OBSPenaltyAlert: React.FC = () => {
             <AlertTriangle className="w-10 h-10 animate-spin" />
           </div>
 
-          <div className="flex items-center gap-6 my-2 text-xl font-bold font-mono">
-            <span className="text-red-400">
-              {state.teamRed} ({state.redPenalties} penalties)
-            </span>
-            <span className="text-slate-500">VS</span>
-            <span className="text-blue-400">
-              {state.teamBlue} ({state.bluePenalties} penalties)
-            </span>
+          <div className="flex items-center justify-center gap-6 my-4 flex-wrap">
+            <div className="flex items-center gap-3 bg-red-950/40 px-5 py-2.5 rounded-2xl border border-red-500/50 shadow-lg">
+              <span className="text-xl sm:text-2xl font-bold font-mono text-red-400">
+                {state.teamRed}
+              </span>
+              <PenaltyPips count={state.redPenalties} team="red" size="lg" />
+            </div>
+
+            <span className="text-slate-500 font-mono font-black text-2xl">VS</span>
+
+            <div className="flex items-center gap-3 bg-blue-950/40 px-5 py-2.5 rounded-2xl border border-blue-500/50 shadow-lg">
+              <span className="text-xl sm:text-2xl font-bold font-mono text-blue-400">
+                {state.teamBlue}
+              </span>
+              <PenaltyPips count={state.bluePenalties} team="blue" size="lg" />
+            </div>
           </div>
 
           <div className="flex items-center gap-2 px-6 py-2 rounded-2xl bg-amber-500/20 border border-amber-500/50">

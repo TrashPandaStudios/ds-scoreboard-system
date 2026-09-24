@@ -159,7 +159,7 @@ export const DedicatedTimerDisplay: React.FC = () => {
           </div>
         </div>
 
-        {/* Bottom Banner: Match Scores Summary Bar */}
+        {/* Bottom Banner: Match Scores Summary Bar & Penalties */}
         <div className="grid grid-cols-3 items-center justify-between gap-3 sm:gap-6 border-t border-slate-800 pt-3 sm:pt-4 shrink-0">
           {/* Red Team Snapshot */}
           <div className="flex items-center gap-2 sm:gap-3 min-w-0">
@@ -176,9 +176,22 @@ export const DedicatedTimerDisplay: React.FC = () => {
               </span>
               <span className="text-sm sm:text-base lg:text-xl font-display font-black text-white truncate block">{state.teamRed}</span>
             </div>
-            <span className="text-2xl sm:text-3xl lg:text-4xl font-display font-black text-red-500 tabular-nums ml-1 sm:ml-2 shrink-0">
-              {state.redScore}
-            </span>
+            <div className="flex items-center gap-2 ml-1 sm:ml-2 shrink-0">
+              <span className="text-2xl sm:text-3xl lg:text-4xl font-display font-black text-red-500 tabular-nums">
+                {state.redScore}
+              </span>
+              <span
+                className={`inline-flex items-center gap-1 font-mono font-black text-xs sm:text-sm px-2.5 py-1 rounded-xl border transition-all ${
+                  state.redPenalties > 0
+                    ? 'bg-rose-950/90 text-rose-300 border-rose-500 shadow-[0_0_12px_rgba(244,63,94,0.45)] animate-pulse'
+                    : 'bg-slate-900 text-slate-400 border-slate-800'
+                }`}
+                title="Red Team Penalties"
+              >
+                <AlertTriangle className={`w-3.5 h-3.5 ${state.redPenalties > 0 ? 'text-rose-400' : 'text-slate-500'}`} />
+                <span>{state.redPenalties} PEN</span>
+              </span>
+            </div>
           </div>
 
           {/* Set Status */}
@@ -190,9 +203,22 @@ export const DedicatedTimerDisplay: React.FC = () => {
 
           {/* Blue Team Snapshot */}
           <div className="flex items-center justify-end gap-2 sm:gap-3 text-right min-w-0">
-            <span className="text-2xl sm:text-3xl lg:text-4xl font-display font-black text-blue-400 tabular-nums mr-1 sm:mr-2 shrink-0">
-              {state.blueScore}
-            </span>
+            <div className="flex items-center gap-2 mr-1 sm:mr-2 shrink-0">
+              <span
+                className={`inline-flex items-center gap-1 font-mono font-black text-xs sm:text-sm px-2.5 py-1 rounded-xl border transition-all ${
+                  state.bluePenalties > 0
+                    ? 'bg-amber-950/90 text-amber-300 border-amber-500 shadow-[0_0_12px_rgba(245,158,11,0.45)] animate-pulse'
+                    : 'bg-slate-900 text-slate-400 border-slate-800'
+                }`}
+                title="Blue Team Penalties"
+              >
+                <AlertTriangle className={`w-3.5 h-3.5 ${state.bluePenalties > 0 ? 'text-amber-400' : 'text-slate-500'}`} />
+                <span>{state.bluePenalties} PEN</span>
+              </span>
+              <span className="text-2xl sm:text-3xl lg:text-4xl font-display font-black text-blue-400 tabular-nums">
+                {state.blueScore}
+              </span>
+            </div>
             <div className="min-w-0">
               <span className="text-[9px] sm:text-[10px] font-mono text-blue-400 uppercase font-bold block truncate">
                 BLUE TEAM (SETS: {state.blueSetScore})
