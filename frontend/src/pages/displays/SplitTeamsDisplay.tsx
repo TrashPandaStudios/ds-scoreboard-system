@@ -166,9 +166,9 @@ export const SplitTeamsDisplay: React.FC = () => {
                 team={leftTeam}
                 size="xl"
               />
-              <div className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm font-mono text-amber-400 font-bold bg-slate-900 px-3 sm:px-4 py-1.5 sm:py-2 rounded-2xl border border-slate-800">
-                <Trophy className="w-4 sm:w-5 h-4 sm:h-5 text-amber-400" />
-                <span>SETS: {leftTeam === 'red' ? state.redSetScore : state.blueSetScore}</span>
+              <div className="flex items-center gap-2 sm:gap-2.5 text-lg sm:text-2xl lg:text-3xl font-mono text-amber-300 font-black bg-amber-950/30 px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl border-2 border-amber-500/40 shadow-[0_0_18px_rgba(245,158,11,0.25)]">
+                <Trophy className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-amber-400 shrink-0" />
+                <span className="tabular-nums tracking-wider">SETS: {leftTeam === 'red' ? state.redSetScore : state.blueSetScore}</span>
               </div>
             </div>
           </div>
@@ -265,9 +265,9 @@ export const SplitTeamsDisplay: React.FC = () => {
                 team={rightTeam}
                 size="xl"
               />
-              <div className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm font-mono text-amber-400 font-bold bg-slate-900 px-3 sm:px-4 py-1.5 sm:py-2 rounded-2xl border border-slate-800">
-                <Trophy className="w-4 sm:w-5 h-4 sm:h-5 text-amber-400" />
-                <span>SETS: {rightTeam === 'red' ? state.redSetScore : state.blueSetScore}</span>
+              <div className="flex items-center gap-2 sm:gap-2.5 text-lg sm:text-2xl lg:text-3xl font-mono text-amber-300 font-black bg-amber-950/30 px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl border-2 border-amber-500/40 shadow-[0_0_18px_rgba(245,158,11,0.25)]">
+                <Trophy className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-amber-400 shrink-0" />
+                <span className="tabular-nums tracking-wider">SETS: {rightTeam === 'red' ? state.redSetScore : state.blueSetScore}</span>
               </div>
             </div>
           </div>
