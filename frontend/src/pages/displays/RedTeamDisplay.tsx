@@ -174,10 +174,10 @@ export const RedTeamDisplay: React.FC = () => {
         </div>
 
         {/* Bottom Bar: Large Penalties HUD, Sets Won, and Opponent Quick Check */}
-        <div className="grid grid-cols-1 md:grid-cols-3 items-center justify-between gap-3 sm:gap-6 border-t border-red-500/30 pt-3 sm:pt-4 shrink-0">
+        <div className="grid grid-cols-1 md:grid-cols-3 items-stretch justify-between gap-3 sm:gap-6 border-t border-red-500/30 pt-3 sm:pt-4 shrink-0">
           {/* Main Pilot Team Penalties */}
           <div
-            className={`flex items-center gap-3 sm:gap-4 bg-slate-900/90 px-4 sm:px-6 py-2.5 sm:py-3.5 rounded-2xl border transition-all ${
+            className={`flex items-center justify-center gap-3 sm:gap-4 bg-slate-900/90 px-4 sm:px-6 py-3 sm:py-5 rounded-2xl border transition-all h-full ${
               state.redPenalties > 0
                 ? 'border-rose-500/70 bg-rose-950/30 shadow-[0_0_28px_rgba(244,63,94,0.3)]'
                 : 'border-slate-800'
@@ -191,38 +191,39 @@ export const RedTeamDisplay: React.FC = () => {
             />
           </div>
 
-          {/* Sets Won */}
-          <div className="flex items-center justify-center gap-2 sm:gap-3 bg-slate-900/80 px-3 sm:px-6 py-2.5 sm:py-3.5 rounded-2xl border border-slate-800">
-            <Trophy className="w-5 h-5 sm:w-7 sm:h-7 text-amber-400 shrink-0" />
+          {/* Sets Won — scaled to match penalties badge height/weight */}
+          <div className="flex items-center justify-center gap-4 sm:gap-5 bg-slate-900/80 px-4 sm:px-6 py-3 sm:py-5 rounded-2xl border border-slate-800 h-full">
+            <Trophy className="w-8 h-8 sm:w-12 sm:h-12 text-amber-400 shrink-0" />
             <div className="text-left">
-              <span className="text-[10px] sm:text-xs font-mono text-slate-400 block uppercase font-bold tracking-wider">
+              <span className="text-lg sm:text-2xl lg:text-3xl font-mono font-black text-slate-200 block uppercase tracking-widest leading-none">
                 TOTAL SETS WON
               </span>
-              <span className="text-xl sm:text-3xl font-mono font-black text-white leading-tight">
-                {state.redSetScore} <span className="text-xs sm:text-base font-normal text-slate-500">/ 2 to win</span>
+              <span className="text-6xl sm:text-7xl lg:text-8xl font-mono font-black text-white leading-none tabular-nums">
+                {state.redSetScore}{' '}
+                <span className="text-lg sm:text-2xl font-bold text-slate-500">/ 2 to win</span>
               </span>
             </div>
           </div>
 
           {/* Opponent Quick Telemetry with Distinct Penalties Badge */}
-          <div className="flex items-center justify-end gap-3 sm:gap-4 text-right bg-slate-900/80 px-4 sm:px-6 py-2.5 sm:py-3.5 rounded-2xl border border-slate-800">
+          <div className="flex items-center justify-end gap-3 sm:gap-5 text-right bg-slate-900/80 px-4 sm:px-6 py-3 sm:py-5 rounded-2xl border border-slate-800 h-full">
             <div className="min-w-0">
-              <span className="text-[10px] sm:text-xs font-mono text-slate-400 uppercase block font-bold tracking-wider truncate">
+              <span className="text-sm sm:text-lg font-mono text-slate-200 uppercase block font-black tracking-widest truncate">
                 OPPONENT ({state.teamBlue})
               </span>
-              <div className="flex items-center justify-end gap-2 sm:gap-3 mt-0.5">
-                <span className="text-xl sm:text-3xl font-display font-black text-blue-400 tabular-nums">
+              <div className="flex items-center justify-end gap-2 sm:gap-3 mt-1.5">
+                <span className="text-5xl sm:text-6xl lg:text-7xl font-display font-black text-blue-400 tabular-nums leading-none">
                   {state.blueScore} pts
                 </span>
                 <span
-                  className={`inline-flex items-center gap-1.5 font-mono font-black text-sm sm:text-lg lg:text-xl px-3 sm:px-4 py-1 sm:py-1.5 rounded-xl border-2 transition-all ${
+                  className={`inline-flex items-center gap-1.5 font-mono font-black text-xl sm:text-2xl lg:text-3xl px-4 sm:px-6 py-2 sm:py-3 rounded-2xl border-4 transition-all ${
                     state.bluePenalties > 0
                       ? 'bg-amber-950/90 text-amber-200 border-amber-500 shadow-[0_0_18px_rgba(245,158,11,0.6)] animate-pulse'
-                      : 'bg-slate-800 text-slate-300 border-slate-700'
+                      : 'bg-slate-900/95 text-slate-200 border-slate-700/80'
                   }`}
                   title="Opponent Penalties"
                 >
-                  <AlertTriangle className={`w-4 h-4 sm:w-5 sm:h-5 ${state.bluePenalties > 0 ? 'text-amber-400' : 'text-slate-500'}`} />
+                  <AlertTriangle className={`w-6 h-6 sm:w-8 sm:h-8 ${state.bluePenalties > 0 ? 'text-amber-400' : 'text-slate-500'}`} />
                   <span>{state.bluePenalties} PEN</span>
                 </span>
               </div>
@@ -231,7 +232,7 @@ export const RedTeamDisplay: React.FC = () => {
               teamName={state.teamBlue}
               logoUrl={state.teamBlueLogoUrl}
               side="blue"
-              size="md"
+              size="xl"
               className="shrink-0"
             />
           </div>
