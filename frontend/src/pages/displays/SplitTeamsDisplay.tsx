@@ -61,10 +61,10 @@ export const SplitTeamsDisplay: React.FC = () => {
 
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen().catch(() => {});
+      document.documentElement.requestFullscreen().catch(() => { });
       setIsFullscreen(true);
     } else {
-      document.exitFullscreen().catch(() => {});
+      document.exitFullscreen().catch(() => { });
       setIsFullscreen(false);
     }
   };
@@ -81,9 +81,8 @@ export const SplitTeamsDisplay: React.FC = () => {
 
   return (
     <div
-      className={`h-screen max-h-screen w-full bg-[#080b11] text-slate-100 flex flex-col select-none overflow-hidden ${
-        isBuzzerFiring ? 'buzzer-active-flash' : ''
-      }`}
+      className={`h-screen max-h-screen w-full bg-[#080b11] text-slate-100 flex flex-col select-none overflow-hidden ${isBuzzerFiring ? 'buzzer-active-flash' : ''
+        }`}
     >
       <HeaderNav arenaId={arenaId} variant="display" />
 
@@ -101,7 +100,7 @@ export const SplitTeamsDisplay: React.FC = () => {
         <div className="flex flex-col items-center gap-1 shrink-0 mb-1 sm:mb-2">
           <div className="text-center">
             <span className="text-[10px] sm:text-xs font-mono tracking-widest text-cyan-400 font-bold uppercase">
-              {state.arenaName} • DEDICATED SPLIT TEAM TELEMETRY • MATCH {state.matchNumber}
+              {state.arenaName} • MATCH {state.matchNumber}
             </span>
           </div>
           <div className="w-full max-w-2xl">
@@ -113,11 +112,10 @@ export const SplitTeamsDisplay: React.FC = () => {
         <div className="flex flex-col lg:flex-row gap-3 sm:gap-4 lg:gap-6 items-stretch justify-center w-full h-full flex-1 min-h-0 my-1 sm:my-2">
           {/* Left Team Side */}
           <div
-            className={`flex-[1.1] min-w-0 h-full flex flex-col justify-between p-4 sm:p-6 lg:p-7 rounded-3xl border-2 transition-all ${
-              leftTeam === 'red'
+            className={`flex-[1.1] min-w-0 h-full flex flex-col justify-between p-4 sm:p-6 lg:p-7 rounded-3xl border-2 transition-all ${leftTeam === 'red'
                 ? 'bg-gradient-to-b from-red-950/50 via-slate-900/90 to-slate-950/95 border-red-500/40 box-glow-red'
                 : 'bg-gradient-to-b from-blue-950/50 via-slate-900/90 to-slate-950/95 border-blue-500/40 box-glow-blue'
-            }`}
+              }`}
           >
             <div className="flex items-center justify-between border-b border-slate-800 pb-3 sm:pb-4 shrink-0">
               <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
@@ -130,9 +128,8 @@ export const SplitTeamsDisplay: React.FC = () => {
                 />
                 <div className="min-w-0">
                   <span
-                    className={`text-[10px] sm:text-xs font-mono font-black uppercase tracking-wider ${
-                      leftTeam === 'red' ? 'text-red-400' : 'text-blue-400'
-                    }`}
+                    className={`text-[10px] sm:text-xs font-mono font-black uppercase tracking-wider ${leftTeam === 'red' ? 'text-red-400' : 'text-blue-400'
+                      }`}
                   >
                     {leftTeam === 'red' ? 'RED TEAM' : 'BLUE TEAM'}
                   </span>
@@ -151,9 +148,8 @@ export const SplitTeamsDisplay: React.FC = () => {
             {/* Score */}
             <div className="flex-1 min-h-0 flex items-center justify-center my-auto w-full py-2">
               <div
-                className={`font-display font-black text-[clamp(6rem,14vw,22rem)] leading-none tabular-nums select-none ${
-                  leftTeam === 'red' ? 'text-red-500 glow-red' : 'text-blue-400 glow-blue'
-                }`}
+                className={`font-display font-black text-[clamp(6rem,14vw,22rem)] leading-none tabular-nums select-none ${leftTeam === 'red' ? 'text-red-500 glow-red' : 'text-blue-400 glow-blue'
+                  }`}
               >
                 {leftTeam === 'red' ? state.redScore : state.blueScore}
               </div>
@@ -186,13 +182,12 @@ export const SplitTeamsDisplay: React.FC = () => {
 
             <div className="flex-1 min-h-0 flex items-center justify-center my-auto w-full py-2">
               <span
-                className={`font-mono font-black text-[clamp(3.5rem,6.5vw,9.5rem)] tabular-nums leading-none whitespace-nowrap ${
-                  isPenaltyPhase
+                className={`font-mono font-black text-[clamp(3.5rem,6.5vw,9.5rem)] tabular-nums leading-none whitespace-nowrap ${isPenaltyPhase
                     ? 'text-amber-400 glow-amber'
                     : isLowTime
-                    ? 'text-rose-400 glow-red animate-pulse'
-                    : 'text-white'
-                }`}
+                      ? 'text-rose-400 glow-red animate-pulse'
+                      : 'text-white'
+                  }`}
               >
                 {isLowTime ? formattedWithTenths : formattedTime}
               </span>
@@ -212,11 +207,10 @@ export const SplitTeamsDisplay: React.FC = () => {
 
           {/* Right Team Side */}
           <div
-            className={`flex-[1.1] min-w-0 h-full flex flex-col justify-between p-4 sm:p-6 lg:p-7 rounded-3xl border-2 transition-all ${
-              rightTeam === 'red'
+            className={`flex-[1.1] min-w-0 h-full flex flex-col justify-between p-4 sm:p-6 lg:p-7 rounded-3xl border-2 transition-all ${rightTeam === 'red'
                 ? 'bg-gradient-to-b from-red-950/50 via-slate-900/90 to-slate-950/95 border-red-500/40 box-glow-red'
                 : 'bg-gradient-to-b from-blue-950/50 via-slate-900/90 to-slate-950/95 border-blue-500/40 box-glow-blue'
-            }`}
+              }`}
           >
             <div className="flex items-center justify-between border-b border-slate-800 pb-3 sm:pb-4 shrink-0">
               <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
@@ -229,9 +223,8 @@ export const SplitTeamsDisplay: React.FC = () => {
                 />
                 <div className="min-w-0">
                   <span
-                    className={`text-[10px] sm:text-xs font-mono font-black uppercase tracking-wider ${
-                      rightTeam === 'red' ? 'text-red-400' : 'text-blue-400'
-                    }`}
+                    className={`text-[10px] sm:text-xs font-mono font-black uppercase tracking-wider ${rightTeam === 'red' ? 'text-red-400' : 'text-blue-400'
+                      }`}
                   >
                     {rightTeam === 'red' ? 'RED TEAM' : 'BLUE TEAM'}
                   </span>
@@ -250,9 +243,8 @@ export const SplitTeamsDisplay: React.FC = () => {
             {/* Score */}
             <div className="flex-1 min-h-0 flex items-center justify-center my-auto w-full py-2">
               <div
-                className={`font-display font-black text-[clamp(6rem,14vw,22rem)] leading-none tabular-nums select-none ${
-                  rightTeam === 'red' ? 'text-red-500 glow-red' : 'text-blue-400 glow-blue'
-                }`}
+                className={`font-display font-black text-[clamp(6rem,14vw,22rem)] leading-none tabular-nums select-none ${rightTeam === 'red' ? 'text-red-500 glow-red' : 'text-blue-400 glow-blue'
+                  }`}
               >
                 {rightTeam === 'red' ? state.redScore : state.blueScore}
               </div>
