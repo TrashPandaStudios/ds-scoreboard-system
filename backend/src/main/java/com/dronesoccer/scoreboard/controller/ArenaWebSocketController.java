@@ -27,7 +27,10 @@ public class ArenaWebSocketController {
 
     @SubscribeMapping("/arena/{arenaId}/state")
     public ArenaStateDTO onSubscribeArenaState(@DestinationVariable Long arenaId) {
-        ArenaMatchEngine engine = arenaManagerService.getArena(arenaId);
+        ArenaMatchEngine engine = arenaManagerService.findArena(arenaId);
+        if (engine == null) {
+            return null;
+        }
         return engine.toDTO();
     }
 

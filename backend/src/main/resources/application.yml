@@ -30,13 +30,13 @@ scoreboard:
     default-intermission-duration-ms: ${DEFAULT_INTERMISSION_DURATION_MS:90000} # 90 seconds intermission between sets
     default-penalty-duration-ms: 30000    # 30 seconds penalty phase
     sync-interval-ms: 100                 # 10 Hz authoritative clock sync
-  arenas:
-    - id: 1
-      name: "Arena 1 - Alpha Cage"
-    - id: 2
-      name: "Arena 2 - Bravo Cage"
-    - id: 3
-      name: "Arena 3 - Charlie Cage"
+  # arenas:
+  #   - id: 1
+  #     name: "Arena 1 - Alpha Cage"
+  #   - id: 2
+  #     name: "Arena 2 - Bravo Cage"
+  #   - id: 3
+  #     name: "Arena 3 - Charlie Cage"
 
 logging:
   level:

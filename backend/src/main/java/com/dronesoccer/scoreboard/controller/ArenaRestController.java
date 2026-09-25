@@ -42,7 +42,10 @@ public class ArenaRestController {
 
     @GetMapping("/{id}")
     public ResponseEntity<ArenaStateDTO> getArenaState(@PathVariable Long id) {
-        ArenaMatchEngine engine = arenaManagerService.getArena(id);
+        ArenaMatchEngine engine = arenaManagerService.findArena(id);
+        if (engine == null) {
+            return ResponseEntity.notFound().build();
+        }
         return ResponseEntity.ok(engine.toDTO());
     }
 

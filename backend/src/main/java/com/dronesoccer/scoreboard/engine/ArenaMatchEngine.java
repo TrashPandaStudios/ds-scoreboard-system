@@ -36,12 +36,12 @@ public class ArenaMatchEngine {
 
     // Match Metadata
     private Long currentMatchId;
-    private String matchNumber = "M-101";
-    private String tournamentName = "National Drone Soccer Cup";
+    private String matchNumber = "TBD";
+    private String tournamentName = "";
 
     // Teams
-    private String teamRed = "Red Phoenix";
-    private String teamBlue = "Blue Comets";
+    private String teamRed = "TBD";
+    private String teamBlue = "TBD";
     private String teamRedLogoUrl;
     private String teamBlueLogoUrl;
     private TeamLogoResolver teamLogoResolver;

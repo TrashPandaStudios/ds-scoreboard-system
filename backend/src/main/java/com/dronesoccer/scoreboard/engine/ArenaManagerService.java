@@ -1,6 +1,5 @@
 package com.dronesoccer.scoreboard.engine;
 
-import com.dronesoccer.scoreboard.model.dto.ArenaStateDTO;
 import com.dronesoccer.scoreboard.model.dto.ArenaSummaryDTO;
 import com.dronesoccer.scoreboard.model.dto.MatchControlCommand;
 import com.dronesoccer.scoreboard.repository.MatchRecordRepository;
@@ -17,7 +16,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -56,12 +54,8 @@ public class ArenaManagerService {
 
     @PostConstruct
     public void init() {
-        log.info("Initializing Drone Soccer Multi-Arena Engine at {}ms tick interval (10 Hz authoritative clock)...", syncIntervalMs);
-
-        // Register default arenas
-        registerArena(1L, "Arena 1 - Alpha Cage");
-        registerArena(2L, "Arena 2 - Bravo Cage");
-        registerArena(3L, "Arena 3 - Charlie Cage");
+        log.info("Initializing Drone Soccer Multi-Arena Engine at {}ms tick interval (10 Hz authoritative clock)...",
+                syncIntervalMs);
 
         // Start Authoritative 100ms Clock Engine
         tickExecutor = Executors.newSingleThreadScheduledExecutor(r -> {
@@ -90,8 +84,7 @@ public class ArenaManagerService {
                     setDurationMs > 0 ? setDurationMs : defaultSetDurationMs,
                     defaultTimeoutDurationMs,
                     defaultIntermissionDurationMs,
-                    defaultPenaltyDurationMs
-            );
+                    defaultPenaltyDurationMs);
             engine.setTeamLogoResolver(teamLogoResolver);
             arenas.put(id, engine);
             log.info("Registered Drone Soccer Arena [ID: {}, Name: '{}']", id, name);
@@ -119,9 +112,22 @@ public class ArenaManagerService {
         return false;
     }
 
+    /**
+     * Strict read: returns the arena only if it was explicitly created.
+     * Never creates — passive views (displays, OBS overlays, snapshots)
+     * must not conjure arenas into existence.
+     */
+    public ArenaMatchEngine findArena(Long id) {
+        return arenas.get(id);
+    }
+
+    /**
+     * Get-or-create: reserved for explicit write paths (commands,
+     * match loads, intermission updates) where the caller intends
+     * the arena to exist.
+     */
     public ArenaMatchEngine getArena(Long id) {
-        return arenas.computeIfAbsent(id, k -> {
-            ArenaMatchEngine engine = new ArenaMatchEngine(
+        return arenas.computeIfAbsent(id, k -> {            ArenaMatchEngine engine = new ArenaMatchEngine(
                     k,
                     "Arena " + k,
                     messagingTemplate,
@@ -132,8 +138,7 @@ public class ArenaManagerService {
                     defaultSetDurationMs,
                     defaultTimeoutDurationMs,
                     defaultIntermissionDurationMs,
-                    defaultPenaltyDurationMs
-            );
+                    defaultPenaltyDurationMs);
             engine.setTeamLogoResolver(teamLogoResolver);
             return engine;
         });
@@ -164,7 +169,8 @@ public class ArenaManagerService {
 
     @org.springframework.context.event.EventListener
     public void onTeamLogoUpdated(TeamLogoUpdatedEvent event) {
-        log.info("Received TeamLogoUpdatedEvent for '{}', updating active arenas with logo '{}'", event.getTeamName(), event.getNewLogoUrl());
+        log.info("Received TeamLogoUpdatedEvent for '{}', updating active arenas with logo '{}'", event.getTeamName(),
+                event.getNewLogoUrl());
         for (ArenaMatchEngine engine : arenas.values()) {
             engine.updateTeamLogoIfMatching(event.getTeamName(), event.getNewLogoUrl());
         }
@@ -198,9 +204,11 @@ public class ArenaManagerService {
     }
 
     public synchronized void updateGlobalDefaultIntermission(long durationMs, boolean overrideAllArenas) {
-        if (durationMs <= 0) return;
+        if (durationMs <= 0)
+            return;
         this.defaultIntermissionDurationMs = durationMs;
-        log.info("Global default intermission duration updated to {}ms (overrideAll={})", durationMs, overrideAllArenas);
+        log.info("Global default intermission duration updated to {}ms (overrideAll={})", durationMs,
+                overrideAllArenas);
         if (overrideAllArenas) {
             for (ArenaMatchEngine engine : arenas.values()) {
                 engine.setIntermissionDurationMs(durationMs, true);
