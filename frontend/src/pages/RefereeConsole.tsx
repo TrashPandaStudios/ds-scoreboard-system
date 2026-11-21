@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { useArenaStore } from '../store/arenaStore';
+import { useArenaStore, getPendingDeltas } from '../store/arenaStore';
 import { useArenaWebSocket } from '../hooks/useArenaWebSocket';
 import { useRefereeHotkeys } from '../hooks/useRefereeHotkeys';
 import { useAudioBuzzer } from '../hooks/useAudioBuzzer';
@@ -20,8 +20,9 @@ export const RefereeConsole: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const arenaId = parseInt(id || '1', 10);
 
-  const { sendCommand } = useArenaWebSocket(arenaId);
-  const { arenaStates } = useArenaStore();
+  const { sendCommand, clearOutboxForArena } = useArenaWebSocket(arenaId);
+  const { arenaStates, commandOutbox, transportMode, pendingCommands, commandError, setCommandError } =
+    useArenaStore();
   const { playBuzzer } = useAudioBuzzer();
 
   const [isOverrideOpen, setIsOverrideOpen] = useState(false);
@@ -57,10 +58,28 @@ export const RefereeConsole: React.FC = () => {
     completedSets: [],
   };
 
+  const queuedCommands = commandOutbox[arenaId] || [];
+  const pendingDeltas = getPendingDeltas(queuedCommands);
+
+  // Optimistic display values combine confirmed server state with any queued score/penalty deltas
+  const displayRedScore = Math.max(0, arenaState.redScore + pendingDeltas.redScoreDelta);
+  const displayBlueScore = Math.max(0, arenaState.blueScore + pendingDeltas.blueScoreDelta);
+  const displayRedPenalties = Math.max(0, arenaState.redPenalties + pendingDeltas.redPenaltyDelta);
+  const displayBluePenalties = Math.max(0, arenaState.bluePenalties + pendingDeltas.bluePenaltyDelta);
+
+  // Explicit START_TIMER / PAUSE_TIMER prevents double-taps or retries under RF congestion from inverting the clock
+  const handleExplicitToggleTimer = () => {
+    sendCommand(arenaState.timerRunning ? 'PAUSE_TIMER' : 'START_TIMER');
+  };
+
   // Register Global Referee Hotkeys (with automatic input guard suppression)
   useRefereeHotkeys({
     enabled: true,
     onCommand: (type: CommandType, payload) => {
+      if (type === 'TOGGLE_TIMER') {
+        handleExplicitToggleTimer();
+        return;
+      }
       sendCommand(type, payload);
     },
   });
@@ -124,6 +143,58 @@ export const RefereeConsole: React.FC = () => {
       <HeaderNav arenaId={arenaId} variant="referee" />
 
       <main className="max-w-7xl mx-auto px-4 lg:px-8 py-6 flex-1 flex flex-col gap-6 w-full">
+        {/* RF Interference / Durable Command Outbox Status Banner */}
+        {(commandError || transportMode === 'HTTP_FALLBACK' || queuedCommands.length > 0) && (
+          <div
+            className={`px-4 py-3 rounded-2xl border text-xs font-mono flex flex-wrap items-center justify-between gap-3 ${
+              commandError
+                ? 'bg-rose-950/70 border-rose-500/50 text-rose-200'
+                : 'bg-amber-950/60 border-amber-500/40 text-amber-200'
+            }`}
+          >
+            <div className="flex items-center gap-2">
+              <span
+                className={`w-2 h-2 rounded-full animate-pulse shrink-0 ${
+                  commandError ? 'bg-rose-400' : 'bg-amber-400'
+                }`}
+              />
+              <span>
+                {commandError
+                  ? commandError
+                  : queuedCommands.length > 0
+                  ? `${queuedCommands.length} score/penalty action${
+                      queuedCommands.length > 1 ? 's' : ''
+                    } queued for Set ${arenaState.currentSet} — syncing automatically when connection recovers.`
+                  : 'RF congestion detected — HTTP fallback active (scoring & timer commands remain live with automatic retry).'}
+              </span>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              {pendingCommands > 0 && (
+                <span className="px-2 py-0.5 rounded bg-slate-900/80 text-cyan-300">
+                  In flight: {pendingCommands}
+                </span>
+              )}
+              {queuedCommands.length > 0 && (
+                <button
+                  onClick={() => clearOutboxForArena(arenaId)}
+                  className="px-2.5 py-0.5 rounded bg-amber-900/80 hover:bg-amber-800 text-amber-100 border border-amber-600/50 transition-colors"
+                  title="Discard unsynced queued score/penalty taps"
+                >
+                  Clear Queue ({queuedCommands.length})
+                </button>
+              )}
+              {commandError && (
+                <button
+                  onClick={() => setCommandError(null)}
+                  className="px-2 py-0.5 rounded bg-rose-900/80 hover:bg-rose-800 text-white"
+                >
+                  Dismiss
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Top Control Bar: Match Title, Hotkey Help, Overrides */}
         <div className="flex flex-wrap items-center justify-between gap-4 p-5 rounded-3xl bg-slate-900/90 border border-slate-800 shadow-xl">
           <div className="flex flex-col gap-1">
@@ -271,7 +342,7 @@ export const RefereeConsole: React.FC = () => {
           intermissionDurationMs={arenaState.intermissionDurationMs || 90000}
           timerRunning={arenaState.timerRunning}
           phase={arenaState.phase}
-          onToggleTimer={() => sendCommand('TOGGLE_TIMER')}
+          onToggleTimer={handleExplicitToggleTimer}
           onResetTimer={() => sendCommand('RESET_SET_TIMER')}
           onAdjustTimer={(sec) => sendCommand('ADJUST_TIMER_SECONDS', { intValue: sec })}
           onSetExactMs={(exactMs) => sendCommand('SET_TIMER_EXACT_MS', { longValue: exactMs })}
@@ -295,7 +366,8 @@ export const RefereeConsole: React.FC = () => {
                 team="red"
                 teamName={arenaState.teamRed}
                 logoUrl={arenaState.teamRedLogoUrl}
-                score={arenaState.redScore}
+                score={displayRedScore}
+                pendingDelta={pendingDeltas.redScoreDelta}
                 onAddScore={() => sendCommand('ADD_RED_SCORE')}
                 onSubScore={() => sendCommand('SUB_RED_SCORE')}
                 onEditClick={() => setIsOverrideOpen(true)}
@@ -304,7 +376,8 @@ export const RefereeConsole: React.FC = () => {
               />
               <PenaltyControls
                 team="red"
-                penalties={arenaState.redPenalties}
+                penalties={displayRedPenalties}
+                pendingDelta={pendingDeltas.redPenaltyDelta}
                 onAddPenalty={() => sendCommand('ADD_RED_PENALTY')}
                 onSubPenalty={() => sendCommand('SUB_RED_PENALTY')}
                 hotkeyInfo="Shift + ↑ / Shift + ↓"
@@ -316,7 +389,8 @@ export const RefereeConsole: React.FC = () => {
                 team="blue"
                 teamName={arenaState.teamBlue}
                 logoUrl={arenaState.teamBlueLogoUrl}
-                score={arenaState.blueScore}
+                score={displayBlueScore}
+                pendingDelta={pendingDeltas.blueScoreDelta}
                 onAddScore={() => sendCommand('ADD_BLUE_SCORE')}
                 onSubScore={() => sendCommand('SUB_BLUE_SCORE')}
                 onEditClick={() => setIsOverrideOpen(true)}
@@ -325,7 +399,8 @@ export const RefereeConsole: React.FC = () => {
               />
               <PenaltyControls
                 team="blue"
-                penalties={arenaState.bluePenalties}
+                penalties={displayBluePenalties}
+                pendingDelta={pendingDeltas.bluePenaltyDelta}
                 onAddPenalty={() => sendCommand('ADD_BLUE_PENALTY')}
                 onSubPenalty={() => sendCommand('SUB_BLUE_PENALTY')}
                 hotkeyInfo="E / D"
@@ -340,7 +415,8 @@ export const RefereeConsole: React.FC = () => {
                 team="blue"
                 teamName={arenaState.teamBlue}
                 logoUrl={arenaState.teamBlueLogoUrl}
-                score={arenaState.blueScore}
+                score={displayBlueScore}
+                pendingDelta={pendingDeltas.blueScoreDelta}
                 onAddScore={() => sendCommand('ADD_BLUE_SCORE')}
                 onSubScore={() => sendCommand('SUB_BLUE_SCORE')}
                 onEditClick={() => setIsOverrideOpen(true)}
@@ -349,7 +425,8 @@ export const RefereeConsole: React.FC = () => {
               />
               <PenaltyControls
                 team="blue"
-                penalties={arenaState.bluePenalties}
+                penalties={displayBluePenalties}
+                pendingDelta={pendingDeltas.bluePenaltyDelta}
                 onAddPenalty={() => sendCommand('ADD_BLUE_PENALTY')}
                 onSubPenalty={() => sendCommand('SUB_BLUE_PENALTY')}
                 hotkeyInfo="E / D"
@@ -361,7 +438,8 @@ export const RefereeConsole: React.FC = () => {
                 team="red"
                 teamName={arenaState.teamRed}
                 logoUrl={arenaState.teamRedLogoUrl}
-                score={arenaState.redScore}
+                score={displayRedScore}
+                pendingDelta={pendingDeltas.redScoreDelta}
                 onAddScore={() => sendCommand('ADD_RED_SCORE')}
                 onSubScore={() => sendCommand('SUB_RED_SCORE')}
                 onEditClick={() => setIsOverrideOpen(true)}
@@ -370,7 +448,8 @@ export const RefereeConsole: React.FC = () => {
               />
               <PenaltyControls
                 team="red"
-                penalties={arenaState.redPenalties}
+                penalties={displayRedPenalties}
+                pendingDelta={pendingDeltas.redPenaltyDelta}
                 onAddPenalty={() => sendCommand('ADD_RED_PENALTY')}
                 onSubPenalty={() => sendCommand('SUB_RED_PENALTY')}
                 hotkeyInfo="Shift + ↑ / Shift + ↓"

@@ -7,6 +7,7 @@ interface ScoreButtonGridProps {
   teamName: string;
   logoUrl?: string | null;
   score: number;
+  pendingDelta?: number;
   onAddScore: () => void;
   onSubScore: () => void;
   onEditClick: () => void;
@@ -19,6 +20,7 @@ export const ScoreButtonGrid: React.FC<ScoreButtonGridProps> = ({
   teamName,
   logoUrl,
   score,
+  pendingDelta = 0,
   onAddScore,
   onSubScore,
   onEditClick,
@@ -66,7 +68,7 @@ export const ScoreButtonGrid: React.FC<ScoreButtonGridProps> = ({
       </div>
 
       {/* Large Score Indicator */}
-      <div className="my-2 flex items-center justify-center">
+      <div className="my-2 flex flex-col items-center justify-center">
         <span
           className={`font-display font-black text-7xl lg:text-8xl tabular-nums select-none ${
             isRed ? 'text-red-500 glow-red' : 'text-blue-400 glow-blue'
@@ -74,6 +76,11 @@ export const ScoreButtonGrid: React.FC<ScoreButtonGridProps> = ({
         >
           {score}
         </span>
+        {pendingDelta !== 0 && (
+          <span className="mt-1 px-2.5 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-300 text-[11px] font-mono font-bold animate-pulse">
+            {pendingDelta > 0 ? `+${pendingDelta}` : pendingDelta} syncing
+          </span>
+        )}
       </div>
 
       {/* Touch Buttons */}

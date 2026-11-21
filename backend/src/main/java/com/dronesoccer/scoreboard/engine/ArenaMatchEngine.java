@@ -15,7 +15,9 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.locks.ReentrantLock;
 
 @Slf4j
@@ -68,9 +70,23 @@ public class ArenaMatchEngine {
 
     private long timeRemainingMs;
     private long totalSetDurationMs;
-    private boolean timerRunning = false;
+    private volatile boolean timerRunning = false;
     private long timerStartNano = 0;
     private long timerInitialRemainingMs = 0;
+
+    // Event-driven sync versioning, command idempotency, and heartbeat throttling
+    private long stateVersion = 1L;
+    private String lastCommandId = null;
+    private final long runningBroadcastHeartbeatMs;
+    private final long idleBroadcastHeartbeatMs;
+    private volatile long lastBroadcastNano = 0L;
+    private static final int MAX_DEDUP_COMMAND_IDS = 256;
+    private final Map<String, Boolean> processedCommandIds = new LinkedHashMap<>(MAX_DEDUP_COMMAND_IDS, 0.75f, false) {
+        @Override
+        protected boolean removeEldestEntry(Map.Entry<String, Boolean> eldest) {
+            return size() > MAX_DEDUP_COMMAND_IDS;
+        }
+    };
 
     private MatchPhase phase = MatchPhase.IDLE;
     private boolean sideSwap = false;
@@ -89,6 +105,26 @@ public class ArenaMatchEngine {
                             long defaultTimeoutDurationMs,
                             long defaultIntermissionDurationMs,
                             long defaultPenaltyDurationMs) {
+        this(arenaId, arenaName, messagingTemplate, buzzerService,
+                matchRecordRepository, setRecordRepository, auditService,
+                defaultSetDurationMs, defaultTimeoutDurationMs,
+                defaultIntermissionDurationMs, defaultPenaltyDurationMs,
+                2000L, 5000L);
+    }
+
+    public ArenaMatchEngine(Long arenaId,
+                            String arenaName,
+                            SimpMessagingTemplate messagingTemplate,
+                            HardwareBuzzerService buzzerService,
+                            MatchRecordRepository matchRecordRepository,
+                            SetRecordRepository setRecordRepository,
+                            MatchAuditService auditService,
+                            long defaultSetDurationMs,
+                            long defaultTimeoutDurationMs,
+                            long defaultIntermissionDurationMs,
+                            long defaultPenaltyDurationMs,
+                            long runningBroadcastHeartbeatMs,
+                            long idleBroadcastHeartbeatMs) {
         this.arenaId = arenaId;
         this.arenaName = arenaName;
         this.messagingTemplate = messagingTemplate;
@@ -101,16 +137,33 @@ public class ArenaMatchEngine {
         this.defaultIntermissionDurationMs = defaultIntermissionDurationMs;
         this.defaultPenaltyDurationMs = defaultPenaltyDurationMs;
         this.intermissionDurationMs = defaultIntermissionDurationMs;
+        this.runningBroadcastHeartbeatMs = Math.max(250L, runningBroadcastHeartbeatMs);
+        this.idleBroadcastHeartbeatMs = Math.max(1000L, idleBroadcastHeartbeatMs);
 
         this.timeRemainingMs = defaultSetDurationMs;
         this.totalSetDurationMs = defaultSetDurationMs;
     }
 
+    public boolean isTimerRunning() {
+        return timerRunning;
+    }
+
     /**
-     * 10 Hz (100ms) authoritative tick called by ArenaManagerService.
+     * 10 Hz (100ms) internal authoritative tick called by ArenaManagerService.
+     * Evaluates exact 00:00 timer expiration at 100ms resolution while throttling
+     * redundant WebSocket broadcasts to lightweight heartbeats (event-driven push on mutations).
      */
     public void tick() {
-        boolean broadcastRequired = false;
+        tickWithBroadcastStatus();
+    }
+
+    /**
+     * Runs one 100ms authoritative clock tick and returns true if a state mutation
+     * (such as timer expiration / phase transition) occurred.
+     */
+    public boolean tickWithBroadcastStatus() {
+        boolean stateMutated = false;
+        boolean currentlyRunning;
         stateLock.lock();
         try {
             if (timerRunning) {
@@ -125,18 +178,29 @@ public class ArenaMatchEngine {
                         timeRemainingMs = 0;
                         timerRunning = false;
                         onTimerExpired();
-                        broadcastRequired = true;
+                        stateVersion++;
+                        stateMutated = true;
                     } else {
                         timeRemainingMs = updated;
                     }
                 }
             }
+            currentlyRunning = timerRunning;
         } finally {
             stateLock.unlock();
         }
 
-        // Broadcast authoritative state every 100ms
-        broadcastState();
+        long nowNano = System.nanoTime();
+        long elapsedSinceBroadcastMs = lastBroadcastNano == 0L
+                ? Long.MAX_VALUE
+                : (nowNano - lastBroadcastNano) / 1_000_000;
+        long heartbeatThresholdMs = currentlyRunning ? runningBroadcastHeartbeatMs : idleBroadcastHeartbeatMs;
+
+        if (stateMutated || elapsedSinceBroadcastMs >= heartbeatThresholdMs) {
+            broadcastState();
+        }
+
+        return stateMutated;
     }
 
     private void onTimerExpired() {
@@ -170,10 +234,38 @@ public class ArenaMatchEngine {
 
     /**
      * Executes commands sent from Referee Console or Master Dashboard.
+     * Supports idempotent deduplication via commandId so wireless retries never double-execute.
      */
     public void processCommand(MatchControlCommand command) {
+        boolean executed = false;
         stateLock.lock();
         try {
+            // Reject stale offline-replayed commands if the match or set has already moved on
+            if (command.getExpectedMatchNumber() != null
+                    && !command.getExpectedMatchNumber().isBlank()
+                    && !command.getExpectedMatchNumber().equals(this.matchNumber)) {
+                log.warn("Arena {} - Ignoring stale command '{}' ({}) from match '{}' (active match: '{}')",
+                        arenaId, command.getCommandId(), command.getType(),
+                        command.getExpectedMatchNumber(), this.matchNumber);
+                return;
+            }
+            if (command.getExpectedSet() != null && command.getExpectedSet() != this.currentSet) {
+                log.warn("Arena {} - Ignoring stale command '{}' ({}) from Set {} (active Set: {})",
+                        arenaId, command.getCommandId(), command.getType(),
+                        command.getExpectedSet(), this.currentSet);
+                return;
+            }
+
+            String cmdId = command.getCommandId();
+            if (cmdId != null && !cmdId.isBlank()) {
+                if (processedCommandIds.containsKey(cmdId)) {
+                    log.debug("Arena {} - Ignoring duplicate retried commandId '{}' ({})",
+                            arenaId, cmdId, command.getType());
+                    return;
+                }
+                processedCommandIds.put(cmdId, Boolean.TRUE);
+            }
+
             switch (command.getType()) {
                 case START_TIMER -> startTimer();
                 case PAUSE_TIMER -> pauseTimer();
@@ -238,12 +330,91 @@ public class ArenaMatchEngine {
                 case START_SUDDEN_DEATH -> startSuddenDeath();
                 case DISMISS_WINNER_BANNER -> dismissWinnerBanner();
             }
+            if (cmdId != null && !cmdId.isBlank()) {
+                this.lastCommandId = cmdId;
+            }
+            stateVersion++;
+            executed = true;
         } finally {
             stateLock.unlock();
         }
 
-        // Instant WebSocket push on mutation
+        if (executed) {
+            // Instant WebSocket push on mutation
+            broadcastState();
+        }
+    }
+
+    public void applyScoreOverride(ScoreOverrideRequest req) {
+        stateLock.lock();
+        try {
+            if (req.getRedScore() != null) setScore(true, req.getRedScore());
+            if (req.getBlueScore() != null) setScore(false, req.getBlueScore());
+            if (req.getRedPenalties() != null) setPenalty(true, req.getRedPenalties());
+            if (req.getBluePenalties() != null) setPenalty(false, req.getBluePenalties());
+            if (req.getTeamRed() != null || req.getTeamBlue() != null) {
+                updateTeams(req.getTeamRed(), req.getTeamBlue(), null);
+            }
+            stateVersion++;
+        } finally {
+            stateLock.unlock();
+        }
         broadcastState();
+    }
+
+    public void applyTimerControl(TimerControlRequest req) {
+        stateLock.lock();
+        try {
+            if (req.getExactMs() != null) {
+                setTimerExact(req.getExactMs());
+            }
+            if (req.getAdjustSeconds() != null) {
+                adjustTimer(req.getAdjustSeconds());
+            }
+            if (req.getPhase() != null) {
+                setPhase(req.getPhase());
+            }
+            stateVersion++;
+        } finally {
+            stateLock.unlock();
+        }
+        broadcastState();
+    }
+
+    public boolean emergencyPause() {
+        boolean changed = false;
+        stateLock.lock();
+        try {
+            if (timerRunning) {
+                pauseTimer();
+                stateVersion++;
+                changed = true;
+            }
+        } finally {
+            stateLock.unlock();
+        }
+        if (changed) {
+            broadcastState();
+        }
+        return changed;
+    }
+
+    public boolean emergencyResume() {
+        boolean changed = false;
+        stateLock.lock();
+        try {
+            if (!timerRunning && timeRemainingMs > 0) {
+                startTimer();
+                stateVersion++;
+                changed = true;
+            }
+        } finally {
+            stateLock.unlock();
+        }
+        if (changed) {
+            broadcastState();
+        }
+        return changed;
     }
 
     public void startTimer() {
@@ -417,6 +588,7 @@ public class ArenaMatchEngine {
         stateLock.lock();
         try {
             setIntermissionDurationInternal(durationMs, isAdminOverride);
+            stateVersion++;
         } finally {
             stateLock.unlock();
         }
@@ -636,6 +808,9 @@ public class ArenaMatchEngine {
                 this.teamBlueLogoUrl = newLogoUrl;
                 changed = true;
             }
+            if (changed) {
+                stateVersion++;
+            }
         } finally {
             stateLock.unlock();
         }
@@ -680,6 +855,7 @@ public class ArenaMatchEngine {
             resetMatchState();
             recentEvent = "Loaded Match " + this.matchNumber + " (" + this.teamRed + " vs " + this.teamBlue + ")";
             auditService.logEvent(arenaId, currentMatchId, "MATCH_LOAD", recentEvent, null);
+            stateVersion++;
         } finally {
             stateLock.unlock();
         }
@@ -763,6 +939,8 @@ public class ArenaMatchEngine {
                     .sideSwap(sideSwap)
                     .matchWinner(matchWinner)
                     .setWinnerBanner(setWinnerBanner)
+                    .stateVersion(stateVersion)
+                    .lastCommandId(lastCommandId)
                     .serverEpochMs(System.currentTimeMillis())
                     .recentEvent(recentEvent)
                     .completedSets(new ArrayList<>(completedSets))
@@ -795,12 +973,14 @@ public class ArenaMatchEngine {
                 .phase(full.getPhase())
                 .sideSwap(full.isSideSwap())
                 .setWinnerBanner(full.getSetWinnerBanner())
+                .stateVersion(full.getStateVersion())
                 .serverEpochMs(full.getServerEpochMs())
                 .build();
     }
 
     private void broadcastState() {
         try {
+            lastBroadcastNano = System.nanoTime();
             ArenaStateDTO state = toDTO();
             messagingTemplate.convertAndSend("/topic/arena/" + arenaId + "/state", state);
         } catch (Exception e) {

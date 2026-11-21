@@ -284,7 +284,9 @@ export const MasterDashboard: React.FC = () => {
               <ArenaTelemetryCard
                 key={arena.arenaId}
                 arena={arena}
-                onToggleTimer={(aId) => sendCommand('TOGGLE_TIMER', { arenaId: aId })}
+                onToggleTimer={(aId) =>
+                  sendCommand(arena.timerRunning ? 'PAUSE_TIMER' : 'START_TIMER', { arenaId: aId })
+                }
                 onTriggerBuzzer={(aId) => sendCommand('TRIGGER_BUZZER', { arenaId: aId })}
                 onConfigureIntermission={() => setIsIntermissionModalOpen(true)}
                 onDeleteArena={(arena) => setArenaToDelete(arena)}

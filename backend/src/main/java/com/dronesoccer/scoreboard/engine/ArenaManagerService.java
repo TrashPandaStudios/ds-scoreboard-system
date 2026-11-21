@@ -2,6 +2,8 @@ package com.dronesoccer.scoreboard.engine;
 
 import com.dronesoccer.scoreboard.model.dto.ArenaSummaryDTO;
 import com.dronesoccer.scoreboard.model.dto.MatchControlCommand;
+import com.dronesoccer.scoreboard.model.dto.ScoreOverrideRequest;
+import com.dronesoccer.scoreboard.model.dto.TimerControlRequest;
 import com.dronesoccer.scoreboard.repository.MatchRecordRepository;
 import com.dronesoccer.scoreboard.repository.SetRecordRepository;
 import com.dronesoccer.scoreboard.model.dto.TeamLogoUpdatedEvent;
@@ -49,13 +51,20 @@ public class ArenaManagerService {
     @Value("${scoreboard.match.sync-interval-ms:100}")
     private long syncIntervalMs;
 
+    @Value("${scoreboard.match.broadcast-heartbeat-ms:2000}")
+    private long broadcastHeartbeatMs;
+
+    @Value("${scoreboard.match.idle-broadcast-heartbeat-ms:5000}")
+    private long idleBroadcastHeartbeatMs;
+
     private final Map<Long, ArenaMatchEngine> arenas = new ConcurrentHashMap<>();
     private ScheduledExecutorService tickExecutor;
+    private volatile long lastSummaryBroadcastNano = 0L;
 
     @PostConstruct
     public void init() {
-        log.info("Initializing Drone Soccer Multi-Arena Engine at {}ms tick interval (10 Hz authoritative clock)...",
-                syncIntervalMs);
+        log.info("Initializing Drone Soccer Multi-Arena Engine ({}ms internal clock tick, event-driven push + {}ms/{}ms heartbeat)...",
+                syncIntervalMs, broadcastHeartbeatMs, idleBroadcastHeartbeatMs);
 
         // Start Authoritative 100ms Clock Engine
         tickExecutor = Executors.newSingleThreadScheduledExecutor(r -> {
@@ -84,7 +93,9 @@ public class ArenaManagerService {
                     setDurationMs > 0 ? setDurationMs : defaultSetDurationMs,
                     defaultTimeoutDurationMs,
                     defaultIntermissionDurationMs,
-                    defaultPenaltyDurationMs);
+                    defaultPenaltyDurationMs,
+                    broadcastHeartbeatMs,
+                    idleBroadcastHeartbeatMs);
             engine.setTeamLogoResolver(teamLogoResolver);
             arenas.put(id, engine);
             log.info("Registered Drone Soccer Arena [ID: {}, Name: '{}']", id, name);
@@ -138,7 +149,9 @@ public class ArenaManagerService {
                     defaultSetDurationMs,
                     defaultTimeoutDurationMs,
                     defaultIntermissionDurationMs,
-                    defaultPenaltyDurationMs);
+                    defaultPenaltyDurationMs,
+                    broadcastHeartbeatMs,
+                    idleBroadcastHeartbeatMs);
             engine.setTeamLogoResolver(teamLogoResolver);
             return engine;
         });
@@ -158,6 +171,20 @@ public class ArenaManagerService {
         ArenaMatchEngine engine = getArena(arenaId);
         engine.processCommand(command);
         broadcastSummary();
+    }
+
+    public ArenaMatchEngine overrideScore(Long arenaId, ScoreOverrideRequest req) {
+        ArenaMatchEngine engine = getArena(arenaId);
+        engine.applyScoreOverride(req);
+        broadcastSummary();
+        return engine;
+    }
+
+    public ArenaMatchEngine controlTimer(Long arenaId, TimerControlRequest req) {
+        ArenaMatchEngine engine = getArena(arenaId);
+        engine.applyTimerControl(req);
+        broadcastSummary();
+        return engine;
     }
 
     public void loadMatchIntoArena(Long arenaId, String red, String blue, String matchNumber, String tournamentName) {
@@ -180,7 +207,7 @@ public class ArenaManagerService {
     public void emergencyPauseAll() {
         log.warn("EMERGENCY: Pausing all active arena timers!");
         for (ArenaMatchEngine engine : arenas.values()) {
-            engine.pauseTimer();
+            engine.emergencyPause();
         }
         broadcastSummary();
     }
@@ -188,7 +215,7 @@ public class ArenaManagerService {
     public void emergencyResumeAll() {
         log.info("Resuming all paused arenas!");
         for (ArenaMatchEngine engine : arenas.values()) {
-            engine.startTimer();
+            engine.emergencyResume();
         }
         broadcastSummary();
     }
@@ -225,11 +252,27 @@ public class ArenaManagerService {
 
     private void tickAllArenas() {
         try {
+            boolean anyMutation = false;
+            boolean anyRunning = false;
             for (ArenaMatchEngine engine : arenas.values()) {
-                engine.tick();
+                if (engine.tickWithBroadcastStatus()) {
+                    anyMutation = true;
+                }
+                if (engine.isTimerRunning()) {
+                    anyRunning = true;
+                }
             }
-            // Send aggregated summary to /topic/arenas/summary
-            broadcastSummary();
+
+            // Broadcast multi-arena summary immediately on mutations, otherwise at a lightweight heartbeat
+            long nowNano = System.nanoTime();
+            long elapsedMs = lastSummaryBroadcastNano == 0L
+                    ? Long.MAX_VALUE
+                    : (nowNano - lastSummaryBroadcastNano) / 1_000_000;
+            long thresholdMs = anyRunning ? broadcastHeartbeatMs : idleBroadcastHeartbeatMs;
+
+            if (anyMutation || elapsedMs >= thresholdMs) {
+                broadcastSummary();
+            }
         } catch (Throwable t) {
             log.error("Error in clock tick cycle: {}", t.getMessage(), t);
         }
@@ -237,6 +280,7 @@ public class ArenaManagerService {
 
     private void broadcastSummary() {
         try {
+            lastSummaryBroadcastNano = System.nanoTime();
             List<ArenaSummaryDTO> summaries = getAllSummaries();
             messagingTemplate.convertAndSend("/topic/arenas/summary", summaries);
         } catch (Exception e) {

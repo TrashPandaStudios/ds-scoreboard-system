@@ -57,6 +57,8 @@ public class ArenaStateDTO {
     private SetWinnerBannerDTO setWinnerBanner;
 
     // Telemetry and Sync
+    private long stateVersion;
+    private String lastCommandId;
     private long serverEpochMs;
     private String recentEvent;
 

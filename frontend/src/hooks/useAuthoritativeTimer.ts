@@ -1,52 +1,93 @@
 import { useState, useEffect, useRef } from 'react';
+import { MatchPhase } from '../types/scoreboard';
 
 interface AuthoritativeTimerProps {
   serverRemainingMs: number;
   totalDurationMs?: number;
   timerRunning: boolean;
+  phase?: MatchPhase;
 }
+
+const DRIFT_SNAP_THRESHOLD_MS = 150;
 
 export function useAuthoritativeTimer({
   serverRemainingMs,
   totalDurationMs = 180000,
   timerRunning,
+  phase,
 }: AuthoritativeTimerProps) {
   const [currentMs, setCurrentMs] = useState(serverRemainingMs);
+  const isCountUp = phase === 'SUDDEN_DEATH';
+
   const syncStateRef = useRef({
     serverMs: serverRemainingMs,
     receiptPerfTime: performance.now(),
     isRunning: timerRunning,
+    isCountUp,
   });
 
-  // Whenever authoritative server ticks arrive (every 100ms), resync baseline anchor
+  // Re-anchor smoothly when server mutations or periodic heartbeats arrive
   useEffect(() => {
+    const now = performance.now();
+    const prev = syncStateRef.current;
+
+    if (timerRunning && prev.isRunning && prev.isCountUp === isCountUp) {
+      const elapsed = now - prev.receiptPerfTime;
+      const predictedLocal = isCountUp
+        ? prev.serverMs + elapsed
+        : Math.max(0, prev.serverMs - elapsed);
+
+      // Avoid visual micro-jitter on routine 2s heartbeats when local interpolation is already tight;
+      // snap immediately on larger drift or explicit referee adjustments (+/-10s, reset, exact set).
+      if (Math.abs(predictedLocal - serverRemainingMs) <= DRIFT_SNAP_THRESHOLD_MS) {
+        return;
+      }
+    }
+
     syncStateRef.current = {
       serverMs: serverRemainingMs,
-      receiptPerfTime: performance.now(),
+      receiptPerfTime: now,
       isRunning: timerRunning,
+      isCountUp,
     };
     setCurrentMs(serverRemainingMs);
-  }, [serverRemainingMs, timerRunning]);
+  }, [serverRemainingMs, timerRunning, isCountUp]);
 
-  // requestAnimationFrame local smooth interpolation loop
+  // Run requestAnimationFrame ONLY while timer is actively running, and bucket React updates
+  // to 50ms intervals (20Hz) so mobile phones & low-power displays stay silky-smooth without CPU burn.
   useEffect(() => {
+    if (!timerRunning) {
+      setCurrentMs(syncStateRef.current.serverMs);
+      return;
+    }
+
     let animFrameId: number;
+    let lastEmittedBucket = -1;
 
     const updateFrame = () => {
-      const { serverMs, receiptPerfTime, isRunning } = syncStateRef.current;
-      if (isRunning) {
-        const elapsedSinceSync = performance.now() - receiptPerfTime;
-        const remaining = Math.max(0, Math.round(serverMs - elapsedSinceSync));
-        setCurrentMs(remaining);
-      } else {
+      const { serverMs, receiptPerfTime, isRunning, isCountUp: countUp } = syncStateRef.current;
+      if (!isRunning) {
         setCurrentMs(serverMs);
+        return;
       }
+
+      const elapsedSinceSync = performance.now() - receiptPerfTime;
+      const computed = countUp
+        ? Math.max(0, Math.round(serverMs + elapsedSinceSync))
+        : Math.max(0, Math.round(serverMs - elapsedSinceSync));
+
+      const bucket = Math.floor(computed / 50);
+      if (bucket !== lastEmittedBucket) {
+        lastEmittedBucket = bucket;
+        setCurrentMs(computed);
+      }
+
       animFrameId = requestAnimationFrame(updateFrame);
     };
 
     animFrameId = requestAnimationFrame(updateFrame);
     return () => cancelAnimationFrame(animFrameId);
-  }, []);
+  }, [timerRunning, isCountUp]);
 
   const totalSeconds = Math.floor(currentMs / 1000);
   const minutes = Math.floor(totalSeconds / 60);
@@ -59,7 +100,9 @@ export function useAuthoritativeTimer({
   const formattedWithTenths = `${formattedMinutes}:${formattedSeconds}.${tenths}`;
 
   const safeTotalDuration = totalDurationMs > 0 ? totalDurationMs : 180000;
-  const progressPercent = Math.min(100, Math.max(0, (currentMs / safeTotalDuration) * 100));
+  const progressPercent = isCountUp
+    ? 100
+    : Math.min(100, Math.max(0, (currentMs / safeTotalDuration) * 100));
 
   return {
     currentMs,
@@ -71,6 +114,6 @@ export function useAuthoritativeTimer({
     formattedTime,
     formattedWithTenths,
     progressPercent,
-    isZero: currentMs <= 0,
+    isZero: !isCountUp && currentMs <= 0,
   };
 }

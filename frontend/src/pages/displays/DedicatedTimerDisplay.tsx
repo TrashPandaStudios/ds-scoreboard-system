@@ -45,6 +45,7 @@ export const DedicatedTimerDisplay: React.FC = () => {
     serverRemainingMs: state.timeRemainingMs,
     totalDurationMs: state.totalSetDurationMs,
     timerRunning: state.timerRunning,
+    phase: state.phase,
   });
 
   const isBuzzerFiring =

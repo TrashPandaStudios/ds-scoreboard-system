@@ -18,6 +18,11 @@ export default defineConfig({
         ws: true,
         changeOrigin: true,
       },
+      '/ws-scoreboard-raw': {
+        target: 'http://localhost:8080',
+        ws: true,
+        changeOrigin: true,
+      },
     },
   },
   build: {

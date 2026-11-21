@@ -24,6 +24,7 @@ export const TabularTimer: React.FC<TabularTimerProps> = ({
     serverRemainingMs,
     totalDurationMs,
     timerRunning,
+    phase,
   });
 
   const isSuddenDeath = phase === 'SUDDEN_DEATH';

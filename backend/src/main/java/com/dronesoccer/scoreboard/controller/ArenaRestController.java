@@ -5,6 +5,7 @@ import com.dronesoccer.scoreboard.engine.ArenaMatchEngine;
 import com.dronesoccer.scoreboard.model.dto.*;
 import com.dronesoccer.scoreboard.service.HardwareBuzzerService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.CacheControl;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -22,7 +23,9 @@ public class ArenaRestController {
 
     @GetMapping
     public ResponseEntity<List<ArenaSummaryDTO>> getAllArenas() {
-        return ResponseEntity.ok(arenaManagerService.getAllSummaries());
+        return ResponseEntity.ok()
+                .cacheControl(CacheControl.noStore())
+                .body(arenaManagerService.getAllSummaries());
     }
 
     @PostMapping
@@ -46,42 +49,34 @@ public class ArenaRestController {
         if (engine == null) {
             return ResponseEntity.notFound().build();
         }
-        return ResponseEntity.ok(engine.toDTO());
+        return ResponseEntity.ok()
+                .cacheControl(CacheControl.noStore())
+                .body(engine.toDTO());
     }
 
     @PostMapping("/{id}/command")
     public ResponseEntity<ArenaStateDTO> sendCommand(@PathVariable Long id, @RequestBody MatchControlCommand command) {
         command.setArenaId(id);
         arenaManagerService.processCommand(id, command);
-        return ResponseEntity.ok(arenaManagerService.getArena(id).toDTO());
+        return ResponseEntity.ok()
+                .cacheControl(CacheControl.noStore())
+                .body(arenaManagerService.getArena(id).toDTO());
     }
 
     @PostMapping("/{id}/override-score")
     public ResponseEntity<ArenaStateDTO> overrideScore(@PathVariable Long id, @RequestBody ScoreOverrideRequest req) {
-        ArenaMatchEngine engine = arenaManagerService.getArena(id);
-        if (req.getRedScore() != null) engine.setScore(true, req.getRedScore());
-        if (req.getBlueScore() != null) engine.setScore(false, req.getBlueScore());
-        if (req.getRedPenalties() != null) engine.setPenalty(true, req.getRedPenalties());
-        if (req.getBluePenalties() != null) engine.setPenalty(false, req.getBluePenalties());
-        if (req.getTeamRed() != null || req.getTeamBlue() != null) {
-            engine.updateTeams(req.getTeamRed(), req.getTeamBlue(), null);
-        }
-        return ResponseEntity.ok(engine.toDTO());
+        ArenaMatchEngine engine = arenaManagerService.overrideScore(id, req);
+        return ResponseEntity.ok()
+                .cacheControl(CacheControl.noStore())
+                .body(engine.toDTO());
     }
 
     @PostMapping("/{id}/timer")
     public ResponseEntity<ArenaStateDTO> controlTimer(@PathVariable Long id, @RequestBody TimerControlRequest req) {
-        ArenaMatchEngine engine = arenaManagerService.getArena(id);
-        if (req.getExactMs() != null) {
-            engine.setTimerExact(req.getExactMs());
-        }
-        if (req.getAdjustSeconds() != null) {
-            engine.adjustTimer(req.getAdjustSeconds());
-        }
-        if (req.getPhase() != null) {
-            engine.setPhase(req.getPhase());
-        }
-        return ResponseEntity.ok(engine.toDTO());
+        ArenaMatchEngine engine = arenaManagerService.controlTimer(id, req);
+        return ResponseEntity.ok()
+                .cacheControl(CacheControl.noStore())
+                .body(engine.toDTO());
     }
 
     @PostMapping("/{id}/buzzer")

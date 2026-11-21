@@ -30,5 +30,6 @@ public class ArenaSummaryDTO {
     private MatchPhase phase;
     private boolean sideSwap;
     private SetWinnerBannerDTO setWinnerBanner;
+    private long stateVersion;
     private long serverEpochMs;
 }

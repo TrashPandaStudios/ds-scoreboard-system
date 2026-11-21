@@ -58,6 +58,8 @@ export interface ArenaState {
   sideSwap: boolean; // false = Red on Left, true = Blue on Left
   matchWinner: string | null;
   setWinnerBanner?: SetWinnerBanner | null;
+  stateVersion?: number;
+  lastCommandId?: string | null;
   serverEpochMs: number;
   recentEvent: string;
   completedSets: SetSummary[];
@@ -84,6 +86,7 @@ export interface ArenaSummary {
   phase: MatchPhase;
   sideSwap: boolean;
   setWinnerBanner?: SetWinnerBanner | null;
+  stateVersion?: number;
   serverEpochMs: number;
 }
 
@@ -128,6 +131,9 @@ export type CommandType =
 export interface MatchControlCommand {
   type: CommandType;
   arenaId?: number;
+  commandId?: string;
+  expectedMatchNumber?: string;
+  expectedSet?: number;
   intValue?: number;
   longValue?: number;
   stringValue?: string;
@@ -136,6 +142,16 @@ export interface MatchControlCommand {
   teamBlue?: string;
   matchNumber?: string;
   tournamentName?: string;
+}
+
+export interface QueuedCommand {
+  commandId: string;
+  arenaId: number;
+  type: CommandType;
+  payload: MatchControlCommand;
+  enqueuedAt: number;
+  expectedMatchNumber?: string;
+  expectedSet?: number;
 }
 
 export interface Team {

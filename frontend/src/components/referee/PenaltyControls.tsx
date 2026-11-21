@@ -5,6 +5,7 @@ import { Plus, Minus } from 'lucide-react';
 interface PenaltyControlsProps {
   team: 'red' | 'blue';
   penalties: number;
+  pendingDelta?: number;
   onAddPenalty: () => void;
   onSubPenalty: () => void;
   hotkeyInfo: string;
@@ -13,6 +14,7 @@ interface PenaltyControlsProps {
 export const PenaltyControls: React.FC<PenaltyControlsProps> = ({
   team,
   penalties,
+  pendingDelta = 0,
   onAddPenalty,
   onSubPenalty,
   hotkeyInfo,
@@ -22,7 +24,14 @@ export const PenaltyControls: React.FC<PenaltyControlsProps> = ({
   return (
     <div className="flex items-center justify-between p-4 rounded-2xl bg-slate-900/90 border border-slate-800">
       <div className="flex flex-col gap-1">
-        <PenaltyPips count={penalties} team={team} size="sm" />
+        <div className="flex items-center gap-2">
+          <PenaltyPips count={penalties} team={team} size="sm" />
+          {pendingDelta !== 0 && (
+            <span className="px-2 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-300 text-[10px] font-mono font-bold animate-pulse">
+              {pendingDelta > 0 ? `+${pendingDelta}` : pendingDelta} syncing
+            </span>
+          )}
+        </div>
         <span className="text-[10px] font-mono text-slate-400">HOTKEY: [{hotkeyInfo}]</span>
       </div>
 

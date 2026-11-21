@@ -64,6 +64,9 @@ public class MatchControlCommand {
 
     private CommandType type;
     private Long arenaId;
+    private String commandId;
+    private String expectedMatchNumber;
+    private Integer expectedSet;
     private Integer intValue;
     private Long longValue;
     private String stringValue;
