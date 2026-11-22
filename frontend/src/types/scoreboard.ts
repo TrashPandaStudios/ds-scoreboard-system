@@ -70,6 +70,7 @@ export interface ArenaSummary {
   arenaName: string;
   matchId: number | null;
   matchNumber: string;
+  tournamentName?: string;
   teamRed: string;
   teamBlue: string;
   teamRedLogoUrl?: string | null;
@@ -78,16 +79,49 @@ export interface ArenaSummary {
   blueScore: number;
   redSetScore: number;
   blueSetScore: number;
+  redPenalties?: number;
+  bluePenalties?: number;
   currentSet: number;
   maxSets: number;
   timeRemainingMs: number;
+  totalSetDurationMs?: number;
   intermissionDurationMs?: number;
   timerRunning: boolean;
   phase: MatchPhase;
   sideSwap: boolean;
+  matchWinner?: string | null;
   setWinnerBanner?: SetWinnerBanner | null;
   stateVersion?: number;
   serverEpochMs: number;
+}
+
+export interface PublicPortalContext {
+  publicPortal: boolean;
+  portalMode: 'public' | 'staff';
+  serverEpochMs: number;
+}
+
+export interface PublicOverviewResponse {
+  arenas: ArenaSummary[];
+  recentMatches: MatchRecord[];
+  upcomingMatches: ScheduledMatch[];
+  sponsors: SponsorItem[];
+  serverEpochMs: number;
+}
+
+export interface PublicArenaDetailResponse {
+  arena: ArenaState;
+  upcomingMatches: ScheduledMatch[];
+  recentMatches: MatchRecord[];
+  serverEpochMs: number;
+}
+
+export interface PublicPortalSystemStatus {
+  publicPortEnabled: boolean;
+  publicPort: number;
+  tunnelConfigured: boolean;
+  publicSiteUrl: string;
+  lockdownCloudflareHeaders: boolean;
 }
 
 export type CommandType =

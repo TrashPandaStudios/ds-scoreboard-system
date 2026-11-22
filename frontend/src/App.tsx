@@ -1,9 +1,11 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { HubHome } from './pages/HubHome';
 import { CrowdDisplay } from './pages/CrowdDisplay';
 import { RefereeConsole } from './pages/RefereeConsole';
 import { MasterDashboard } from './pages/MasterDashboard';
+import { PublicLiveHub } from './pages/PublicLiveHub';
+import { PublicMatchDetail } from './pages/PublicMatchDetail';
 import { OBSLowerThird } from './pages/overlays/OBSLowerThird';
 import { OBSTopBar } from './pages/overlays/OBSTopBar';
 import { OBSPenaltyAlert } from './pages/overlays/OBSPenaltyAlert';
@@ -12,13 +14,74 @@ import { BlueTeamDisplay } from './pages/displays/BlueTeamDisplay';
 import { DedicatedTimerDisplay } from './pages/displays/DedicatedTimerDisplay';
 import { SplitTeamsDisplay } from './pages/displays/SplitTeamsDisplay';
 import { NotFound } from './pages/NotFound';
+import { PublicPortalContext } from './types/scoreboard';
 
 export const App: React.FC = () => {
+  const isExplicitLivePath =
+    typeof window !== 'undefined' &&
+    (window.location.pathname === '/live' || window.location.pathname.startsWith('/live/'));
+
+  const [portalMode, setPortalMode] = useState<'loading' | 'public' | 'staff'>(
+    isExplicitLivePath ? 'public' : 'loading'
+  );
+  const [isPublicPortalOrigin, setIsPublicPortalOrigin] = useState<boolean>(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch('/api/public/context', { cache: 'no-store' })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: PublicPortalContext | null) => {
+        if (cancelled) return;
+        const isPublic = Boolean(data?.publicPortal);
+        setIsPublicPortalOrigin(isPublic);
+        setPortalMode(isPublic ? 'public' : 'staff');
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setPortalMode(isExplicitLivePath ? 'public' : 'staff');
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isExplicitLivePath]);
+
+  // Brief dark loading shell only while resolving whether this origin is the locked-down public portal
+  if (portalMode === 'loading') {
+    return (
+      <div className="min-h-screen bg-[#080b11] text-slate-400 flex items-center justify-center font-mono text-xs">
+        <div className="flex items-center gap-2.5">
+          <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-ping" />
+          <span>CONNECTING TO DRONE SOCCER SCOREBOARD...</span>
+        </div>
+      </div>
+    );
+  }
+
+  // Strict Public Spectator Portal (served via Cloudflare Tunnel or dedicated PUBLIC_PORT)
+  if (isPublicPortalOrigin) {
+    return (
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<PublicLiveHub />} />
+          <Route path="/live" element={<PublicLiveHub />} />
+          <Route path="/live/arena/:id" element={<PublicMatchDetail publicPortalMode={true} />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </BrowserRouter>
+    );
+  }
+
+  // Full Staff / LAN Portal (also exposes /live & /live/arena/:id for previewing or LAN sharing)
   return (
     <BrowserRouter>
       <Routes>
         {/* Portal Home */}
         <Route path="/" element={<HubHome />} />
+
+        {/* Public Live Spectator Portal (Preview / LAN Share) */}
+        <Route path="/live" element={<PublicLiveHub />} />
+        <Route path="/live/arena/:id" element={<PublicMatchDetail publicPortalMode={false} />} />
 
         {/* Stadium Display */}
         <Route path="/arena/:id/display" element={<CrowdDisplay />} />

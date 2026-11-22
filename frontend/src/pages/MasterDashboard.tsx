@@ -12,8 +12,8 @@ import { AddArenaModal } from '../components/dashboard/AddArenaModal';
 import { DeleteArenaConfirmModal } from '../components/dashboard/DeleteArenaConfirmModal';
 import { PreloadScheduleModal } from '../components/dashboard/PreloadScheduleModal';
 import { TeamsManagementPanel } from '../components/dashboard/TeamsManagementPanel';
-import { MatchRecord, ScheduledMatch, SponsorItem, ArenaSummary } from '../types/scoreboard';
-import { AlertOctagon, Play, Layers, Radio, RefreshCw, Sparkles, Calendar, History, Coffee, Plus, UploadCloud, Users } from 'lucide-react';
+import { MatchRecord, ScheduledMatch, SponsorItem, ArenaSummary, PublicPortalSystemStatus } from '../types/scoreboard';
+import { AlertOctagon, Play, Layers, Radio, Sparkles, Calendar, History, Coffee, Plus, UploadCloud, Users, Globe, Copy, Check, ExternalLink } from 'lucide-react';
 
 export const MasterDashboard: React.FC = () => {
   const { sendCommand } = useArenaWebSocket();
@@ -27,6 +27,8 @@ export const MasterDashboard: React.FC = () => {
   const [isPreloadModalOpen, setIsPreloadModalOpen] = useState(false);
   const [arenaToDelete, setArenaToDelete] = useState<ArenaSummary | null>(null);
   const [activeTab, setActiveTab] = useState<'TELEMETRY' | 'HISTORY' | 'QUEUE' | 'SPONSORS' | 'TEAMS'>('TELEMETRY');
+  const [publicPortalStatus, setPublicPortalStatus] = useState<PublicPortalSystemStatus | null>(null);
+  const [copiedPublicUrl, setCopiedPublicUrl] = useState(false);
 
   const nextArenaId = arenaSummaries.reduce((max, a) => Math.max(max, a.arenaId), 0) + 1;
 
@@ -44,6 +46,11 @@ export const MasterDashboard: React.FC = () => {
     fetch('/api/sponsors/all')
       .then((res) => (res.ok ? res.json() : []))
       .then((data) => setSponsors(data))
+      .catch(() => {});
+
+    fetch('/api/system/public-portal')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => data && setPublicPortalStatus(data))
       .catch(() => {});
   };
 
@@ -195,6 +202,41 @@ export const MasterDashboard: React.FC = () => {
               <Layers className="w-4 h-4 text-purple-400" />
               <span>OBS DISCOVERY HUB</span>
             </button>
+
+            <a
+              href={publicPortalStatus?.publicSiteUrl || '/live'}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`px-4 py-2.5 rounded-xl border text-xs font-mono font-bold flex items-center gap-2 transition-colors ${
+                publicPortalStatus?.tunnelConfigured
+                  ? 'bg-emerald-600/25 hover:bg-emerald-600/40 text-emerald-300 border-emerald-500/50'
+                  : 'bg-cyan-950/50 hover:bg-cyan-900/60 text-cyan-300 border-cyan-500/40'
+              }`}
+              title={
+                publicPortalStatus?.tunnelConfigured
+                  ? `Cloudflare Tunnel Active — Public Portal on port ${publicPortalStatus.publicPort}`
+                  : `Open Public Live Spectator Portal (read-only port ${publicPortalStatus?.publicPort ?? 8081})`
+              }
+            >
+              <Globe className="w-4 h-4" />
+              <span>{publicPortalStatus?.tunnelConfigured ? 'PUBLIC LIVE (TUNNEL ON)' : 'PUBLIC LIVE PORTAL'}</span>
+              <ExternalLink className="w-3.5 h-3.5 opacity-75" />
+            </a>
+
+            {publicPortalStatus?.publicSiteUrl && (
+              <button
+                onClick={() => {
+                  navigator.clipboard?.writeText(publicPortalStatus.publicSiteUrl).catch(() => {});
+                  setCopiedPublicUrl(true);
+                  window.setTimeout(() => setCopiedPublicUrl(false), 2000);
+                }}
+                className="px-3 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 text-xs font-mono font-bold flex items-center gap-1.5 transition-colors"
+                title={`Copy public URL: ${publicPortalStatus.publicSiteUrl}`}
+              >
+                {copiedPublicUrl ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                <span>{copiedPublicUrl ? 'COPIED' : 'COPY URL'}</span>
+              </button>
+            )}
 
             <button
               onClick={handleEmergencyPauseAll}

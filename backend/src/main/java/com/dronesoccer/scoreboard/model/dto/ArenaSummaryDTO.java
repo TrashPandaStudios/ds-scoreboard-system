@@ -14,6 +14,7 @@ public class ArenaSummaryDTO {
     private String arenaName;
     private Long matchId;
     private String matchNumber;
+    private String tournamentName;
     private String teamRed;
     private String teamBlue;
     private String teamRedLogoUrl;
@@ -22,13 +23,17 @@ public class ArenaSummaryDTO {
     private int blueScore;
     private int redSetScore;
     private int blueSetScore;
+    private int redPenalties;
+    private int bluePenalties;
     private int currentSet;
     private int maxSets;
     private long timeRemainingMs;
+    private long totalSetDurationMs;
     private long intermissionDurationMs;
     private boolean timerRunning;
     private MatchPhase phase;
     private boolean sideSwap;
+    private String matchWinner;
     private SetWinnerBannerDTO setWinnerBanner;
     private long stateVersion;
     private long serverEpochMs;

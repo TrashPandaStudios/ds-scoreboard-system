@@ -1,5 +1,6 @@
 package com.dronesoccer.scoreboard.config;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.messaging.simp.config.ChannelRegistration;
@@ -9,7 +10,10 @@ import org.springframework.web.socket.config.annotation.*;
 
 @Configuration
 @EnableWebSocketMessageBroker
+@RequiredArgsConstructor
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
+
+    private final PublicPortalWebSocketInterceptor publicPortalWebSocketInterceptor;
 
     @Bean
     public ThreadPoolTaskScheduler stompHeartbeatScheduler() {
@@ -50,13 +54,20 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     }
 
     @Override
+    public void configureClientInboundChannel(ChannelRegistration registration) {
+        registration.interceptors(publicPortalWebSocketInterceptor);
+    }
+
+    @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
         // Dedicated low-overhead native WebSocket endpoint (no SockJS HTTP/XHR framing overhead)
         registry.addEndpoint("/ws-scoreboard-raw")
+                .addInterceptors(publicPortalWebSocketInterceptor)
                 .setAllowedOriginPatterns("*");
 
         // Backward-compatible SockJS fallback endpoint
         registry.addEndpoint("/ws-scoreboard")
+                .addInterceptors(publicPortalWebSocketInterceptor)
                 .setAllowedOriginPatterns("*")
                 .withSockJS();
     }

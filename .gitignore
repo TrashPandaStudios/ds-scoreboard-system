@@ -24,6 +24,8 @@ data/
 .DS_Store
 Thumbs.db
 *.log
+.env
+.env.local
 
 CONTEXT.md
 docs/adr

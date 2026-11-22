@@ -6,9 +6,20 @@ services:
     container_name: ds-scoreboard-engine
     restart: unless-stopped
     ports:
+      # Staff / Referee / Admin / Stadium Displays (LAN)
       - "8089:8080"
+      # Dedicated Read-Only Public Spectator Portal (local preview / LAN share)
+      - "8090:8081"
     environment:
       - SERVER_PORT=8080
+      - PUBLIC_ENABLED=true
+      - PUBLIC_PORT=8081
+      - PUBLIC_LOCKDOWN_CLOUDFLARE_HEADERS=true
+      # Optional: Pass a Cloudflare Tunnel token (via .env or shell env) to publish the live spectator portal publicly.
+      # In Cloudflare Zero Trust -> Networks -> Tunnels -> Public Hostname, point the service URL to: http://localhost:8081
+      - CLOUDFLARE_TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN:-}
+      # Optional: Public hostname URL (e.g. https://live.yourtournament.com) for quick-open/copy in the Admin Panel
+      - PUBLIC_SITE_URL=${PUBLIC_SITE_URL:-}
       - DATABASE_PATH=/data/scoreboard.db
       - SERIAL_ENABLED=true
       - SERIAL_PORT=/dev/ttyUSB0

@@ -54,6 +54,15 @@ Built with **Java 17 / Spring Boot 3**, **Spring WebSocket (STOMP)**, embedded *
 - Tournament Match Queuing & Arena assignment.
 - Sponsor partner banner manager.
 
+### 7. Public Live Spectator Portal (`/live` & Dedicated Port `8081` + Optional Cloudflare Tunnel)
+- Mobile-first, read-only public interface for spectators to browse all active flight cages, click into any match for a live scoreboard & set-by-set breakdown, view completed results, and check the upcoming schedule.
+- Served automatically on a dedicated read-only HTTP port (`PUBLIC_PORT=8081`, mapped to `8090` in Docker Compose) and also previewable on LAN at `/live`.
+- **Optional Cloudflare Tunnel**: Pass `CLOUDFLARE_TUNNEL_TOKEN` (via `.env` or environment variable) and `cloudflared` automatically starts inside the container — no extra container or open firewall ports required.
+- **Read-Only Security Lockdown**: All requests arriving on `PUBLIC_PORT` (`8081`) or via Cloudflare Tunnel headers (`CF-Ray` / `CF-Connecting-IP`) are strictly restricted at both the HTTP and WebSocket STOMP layers:
+  - Only `GET` / `HEAD` / `OPTIONS` to public spectator endpoints (`/api/public/**`, `/api/arenas`, `/api/matches`, `/api/queue`, `/api/sponsors`, `/api/teams/logos/**`) are permitted.
+  - All mutations (`POST`/`PUT`/`DELETE`/`PATCH`), internal audit/config APIs, and STOMP `SEND` commands (`/app/**`) are rejected (`403` / `MessageDeliveryException`).
+  - Admin and Referee routes (`/master`, `/admin`, `/referee`, `/arena/*/referee`) redirect cleanly to the public live home (`/`).
+
 ---
 
 ## 🚀 Quick Start & Deployment
@@ -69,7 +78,22 @@ cd ds-scoreboard-flash
 docker-compose up -d --build
 ```
 
-Access the system at **`http://localhost:8080`**.
+Access the staff/referee interface at **`http://localhost:8089`** and the read-only public spectator portal locally at **`http://localhost:8090`** (or `/live`).
+
+#### Publishing Live Results Publicly with Cloudflare Tunnel (Optional):
+1. Copy `.env.example` to `.env` and set your tunnel token (and optional public URL):
+   ```env
+   CLOUDFLARE_TUNNEL_TOKEN=eyJhIjoi...
+   PUBLIC_SITE_URL=https://live.yourtournament.com
+   ```
+2. In the **Cloudflare Zero Trust Dashboard** → **Networks** → **Tunnels** → your tunnel → **Public Hostname**, configure:
+   - **Service Type:** `HTTP`
+   - **URL:** `localhost:8081`
+3. Start or restart the container:
+   ```bash
+   docker-compose up -d --build
+   ```
+   When `CLOUDFLARE_TUNNEL_TOKEN` is blank or omitted, the container runs normally without starting `cloudflared`.
 
 #### Hardware Buzzer Passthrough in Docker:
 To connect a physical USB relay or Arduino buzzer to the container on Linux:

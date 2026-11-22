@@ -62,7 +62,12 @@ async function fetchJsonWithTimeout<T>(
   }
 }
 
-export function useArenaWebSocket(arenaId?: number) {
+export interface UseArenaWebSocketOptions {
+  readOnly?: boolean;
+}
+
+export function useArenaWebSocket(arenaId?: number, options: UseArenaWebSocketOptions = {}) {
+  const readOnly = Boolean(options.readOnly);
   const clientRef = useRef<Client | null>(null);
   const lastWsActivityRef = useRef<number>(0);
   const wsConnectedRef = useRef<boolean>(false);
@@ -294,7 +299,9 @@ export function useArenaWebSocket(arenaId?: number) {
             setTransportMode('HTTP_FALLBACK');
           }
           // Connectivity is alive over HTTP — flush any queued offline referee commands immediately
-          drainOutbox(arenaId);
+          if (!readOnly) {
+            drainOutbox(arenaId);
+          }
           return true;
         }
       } else {
@@ -316,7 +323,7 @@ export function useArenaWebSocket(arenaId?: number) {
     } finally {
       httpPollInFlightRef.current = false;
     }
-  }, [arenaId, setArenaState, setArenaSummaries, setTransportMode, drainOutbox]);
+  }, [arenaId, readOnly, setArenaState, setArenaSummaries, setTransportMode, drainOutbox]);
 
   useEffect(() => {
     setConnectionStatus(false, true, null, 'OFFLINE');
@@ -420,7 +427,7 @@ export function useArenaWebSocket(arenaId?: number) {
 
       if (!wsConnectedRef.current || isWsStale) {
         fetchSnapshot();
-      } else if (arenaId && (useArenaStore.getState().commandOutbox[arenaId]?.length ?? 0) > 0) {
+      } else if (!readOnly && arenaId && (useArenaStore.getState().commandOutbox[arenaId]?.length ?? 0) > 0) {
         drainOutbox(arenaId);
       }
     }, HTTP_POLL_INTERVAL_MS);
@@ -458,6 +465,7 @@ export function useArenaWebSocket(arenaId?: number) {
     };
   }, [
     arenaId,
+    readOnly,
     fetchSnapshot,
     drainOutbox,
     handleStateMessage,
@@ -473,6 +481,7 @@ export function useArenaWebSocket(arenaId?: number) {
   // - Other commands (buzzer, phase, awards, overrides) -> WS + immediate HTTP fallback with commandId dedup
   const sendCommand = useCallback(
     async (type: CommandType, payload: Partial<MatchControlCommand> = {}) => {
+      if (readOnly) return;
       const targetArenaId = payload.arenaId ?? arenaId;
       if (!targetArenaId) return;
 
@@ -605,6 +614,7 @@ export function useArenaWebSocket(arenaId?: number) {
     },
     [
       arenaId,
+      readOnly,
       enqueueOutboxCommand,
       drainOutbox,
       isWsHealthyNow,

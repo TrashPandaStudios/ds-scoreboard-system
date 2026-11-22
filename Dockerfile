@@ -35,15 +35,20 @@ COPY --from=frontend-builder /app/frontend/dist ./src/main/resources/static
 RUN mvn clean package -DskipTests
 
 # ------------------------------------------------------------------------------
-# Stage 3: Lightweight Alpine JRE Runtime Image
+# Stage 3: Extract Official cloudflared Binary for Optional Public Tunneling
+# ------------------------------------------------------------------------------
+FROM cloudflare/cloudflared:latest AS cloudflared-bin
+
+# ------------------------------------------------------------------------------
+# Stage 4: Lightweight Alpine JRE Runtime Image
 # ------------------------------------------------------------------------------
 FROM eclipse-temurin:17-jre-alpine AS runner
 
 LABEL maintainer="Drone Soccer Systems Engineering"
 LABEL description="Drone Soccer Multi-Arena Scoreboard, Authoritative Clock Engine & OBS Overlays"
 
-# Install udev / native serial libraries and tools
-RUN apk add --no-cache tzdata udev
+# Install udev / native serial libraries, timezone data, and CA certs for Cloudflare Tunnel TLS
+RUN apk add --no-cache tzdata udev ca-certificates
 
 WORKDIR /app
 
@@ -52,6 +57,10 @@ RUN mkdir -p /data /app/logs && chmod 777 /data
 
 # Default environment variables
 ENV SERVER_PORT=8080 \
+    PUBLIC_ENABLED=true \
+    PUBLIC_PORT=8081 \
+    PUBLIC_LOCKDOWN_CLOUDFLARE_HEADERS=true \
+    PUBLIC_SITE_URL="" \
     DATABASE_PATH=/data/scoreboard.db \
     SERIAL_ENABLED=true \
     SERIAL_PORT=/dev/ttyUSB0 \
@@ -60,11 +69,14 @@ ENV SERVER_PORT=8080 \
     SPRING_PROFILES_ACTIVE=prod \
     JAVA_OPTS="-Xms256m -Xmx512m -XX:+UseG1GC"
 
-# Copy built JAR from builder stage
+# Copy built JAR from builder stage and cloudflared binary
 COPY --from=backend-builder /app/backend/target/scoreboard-engine-*.jar /app/scoreboard-engine.jar
+COPY --from=cloudflared-bin /usr/local/bin/cloudflared /usr/local/bin/cloudflared
+COPY docker-entrypoint.sh /app/docker-entrypoint.sh
+RUN sed -i 's/\r$//' /app/docker-entrypoint.sh && chmod +x /app/docker-entrypoint.sh
 
-# Expose Web & WebSocket STOMP Port
-EXPOSE 8080
+# Expose Staff/Admin Web & WebSocket Port (8080) and Dedicated Read-Only Public Spectator Port (8081)
+EXPOSE 8080 8081
 
 # Persistent volume for SQLite database
 VOLUME ["/data"]
@@ -73,5 +85,5 @@ VOLUME ["/data"]
 HEALTHCHECK --interval=15s --timeout=5s --start-period=20s --retries=3 \
   CMD wget --no-verbose --tries=1 --spider http://localhost:8080/api/arenas || exit 1
 
-# Launch Application
-ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -Djava.security.egd=file:/dev/./urandom -jar /app/scoreboard-engine.jar"]
+# Launch Application (and optional Cloudflare Tunnel if CLOUDFLARE_TUNNEL_TOKEN is provided)
+ENTRYPOINT ["/app/docker-entrypoint.sh"]

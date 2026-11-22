@@ -24,6 +24,12 @@ scoreboard:
     port: ${SERIAL_PORT:/dev/ttyUSB0}
     baud-rate: ${SERIAL_BAUD_RATE:9600}
     pulse-ms: ${SERIAL_PULSE_MS:800}
+  public-portal:
+    enabled: ${PUBLIC_ENABLED:true}
+    port: ${PUBLIC_PORT:8081}
+    lockdown-cloudflare-headers: ${PUBLIC_LOCKDOWN_CLOUDFLARE_HEADERS:true}
+    public-site-url: ${PUBLIC_SITE_URL:}
+    tunnel-token: ${CLOUDFLARE_TUNNEL_TOKEN:}
   match:
     default-set-duration-ms: 180000       # 3 minutes standard Drone Soccer set
     default-timeout-duration-ms: 60000    # 1 minute referee/team timeout

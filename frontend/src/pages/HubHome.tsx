@@ -6,7 +6,7 @@ import { HeaderNav } from '../components/common/HeaderNav';
 import { AddArenaModal } from '../components/dashboard/AddArenaModal';
 import { DeleteArenaConfirmModal, DeletableArenaInfo } from '../components/dashboard/DeleteArenaConfirmModal';
 import { ArenaSummary } from '../types/scoreboard';
-import { Tv, Sliders, Zap, Plus, Trash2, LayoutDashboard } from 'lucide-react';
+import { Tv, Sliders, Zap, Plus, Trash2, LayoutDashboard, Globe } from 'lucide-react';
 
 export const HubHome: React.FC = () => {
   useArenaWebSocket();
@@ -72,7 +72,17 @@ export const HubHome: React.FC = () => {
             </h2>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <Link
+              to="/live"
+              target="_blank"
+              className="px-3.5 py-2 rounded-xl bg-emerald-950/60 hover:bg-emerald-900/70 text-emerald-300 hover:text-white border border-emerald-700/60 text-xs font-mono font-bold flex items-center gap-2 transition-colors"
+              title="Open the public read-only live matches & results portal"
+            >
+              <Globe className="w-4 h-4 text-emerald-400" />
+              <span>PUBLIC LIVE</span>
+            </Link>
+
             <Link
               to="/master"
               className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 text-xs font-mono font-bold flex items-center gap-2 transition-colors"
