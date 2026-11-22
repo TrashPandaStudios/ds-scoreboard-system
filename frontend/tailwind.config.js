@@ -39,6 +39,8 @@ export default {
         sans: ['Inter', 'system-ui', 'sans-serif'],
         mono: ['JetBrains Mono', 'Fira Code', 'monospace'],
         display: ['Outfit', 'Inter', 'sans-serif'],
+        scoreboard: ['Barlow Condensed', 'Outfit', 'sans-serif'],
+        spectator: ['Plus Jakarta Sans', 'Inter', 'system-ui', 'sans-serif'],
       },
       animation: {
         'pulse-fast': 'pulse 0.8s cubic-bezier(0.4, 0, 0.6, 1) infinite',

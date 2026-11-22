@@ -2,31 +2,45 @@ import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useArenaStore } from '../store/arenaStore';
 import { useArenaWebSocket } from '../hooks/useArenaWebSocket';
+import { useAuthoritativeTimer } from '../hooks/useAuthoritativeTimer';
+import { useSpectatorTheme } from '../hooks/useSpectatorTheme';
 import { TeamBadge } from '../components/common/TeamBadge';
-import { TabularTimer } from '../components/common/TabularTimer';
-import { PhaseAlertBanner } from '../components/display/PhaseAlertBanner';
+import { getSpectatorPhaseMeta } from '../components/public/PublicLiveCard';
 import {
   ArenaSummary,
   MatchRecord,
   PublicArenaDetailResponse,
   ScheduledMatch,
 } from '../types/scoreboard';
-import {
-  ArrowLeft,
-  Radio,
-  Trophy,
-  Calendar,
-  Wifi,
-  WifiOff,
-  RefreshCw,
-  AlertTriangle,
-  Activity,
-  History,
-} from 'lucide-react';
+import { ArrowLeft, Trophy, AlertTriangle, Clock, Sun, Moon } from 'lucide-react';
 
 interface PublicMatchDetailProps {
   publicPortalMode?: boolean;
 }
+
+const SetPips: React.FC<{ won: number; needed: number; color: 'red' | 'blue' }> = ({
+  won,
+  needed,
+  color,
+}) => {
+  const count = Math.max(2, needed);
+  const activeColor = color === 'red' ? 'var(--drone-red)' : 'var(--drone-blue)';
+  return (
+    <div className="inline-flex items-center gap-1.5" aria-label={`${won} sets won`}>
+      {Array.from({ length: count }, (_, idx) => (
+        <span
+          key={idx}
+          className="w-3 h-3 rounded-sm border"
+          style={
+            idx < won
+              ? { backgroundColor: activeColor, borderColor: activeColor }
+              : { backgroundColor: 'var(--court-surface)', borderColor: 'var(--court-line)' }
+          }
+        />
+      ))}
+    </div>
+  );
+};
 
 export const PublicMatchDetail: React.FC<PublicMatchDetailProps> = ({ publicPortalMode = false }) => {
   const { id } = useParams<{ id: string }>();
@@ -34,6 +48,7 @@ export const PublicMatchDetail: React.FC<PublicMatchDetailProps> = ({ publicPort
 
   useArenaWebSocket(Number.isFinite(arenaId) ? arenaId : undefined, { readOnly: true });
   const { arenaStates, setArenaState, isConnected, transportMode } = useArenaStore();
+  const { theme, toggleTheme } = useSpectatorTheme();
 
   const [allArenas, setAllArenas] = useState<ArenaSummary[]>([]);
   const [upcomingMatches, setUpcomingMatches] = useState<ScheduledMatch[]>([]);
@@ -75,7 +90,7 @@ export const PublicMatchDetail: React.FC<PublicMatchDetailProps> = ({ publicPort
         }
       }
     } catch {
-      // Keep existing live state on transient hiccup
+      // Keep live state on brief connectivity drop
     } finally {
       setLoading(false);
     }
@@ -91,11 +106,18 @@ export const PublicMatchDetail: React.FC<PublicMatchDetailProps> = ({ publicPort
 
   const arenaState = arenaStates[arenaId];
 
+  const { formattedTime, formattedWithTenths, progressPercent, currentMs } = useAuthoritativeTimer({
+    serverRemainingMs: arenaState?.timeRemainingMs ?? 180000,
+    totalDurationMs: arenaState?.totalSetDurationMs ?? 180000,
+    timerRunning: arenaState?.timerRunning ?? false,
+    phase: arenaState?.phase ?? 'IDLE',
+  });
+
   useEffect(() => {
     if (arenaState) {
-      document.title = `${arenaState.teamRed} vs ${arenaState.teamBlue} — ${arenaState.arenaName} Live`;
+      document.title = `${arenaState.teamRed} vs ${arenaState.teamBlue} — ${arenaState.arenaName}`;
     } else {
-      document.title = `Arena ${arenaId} — Live Match`;
+      document.title = `Cage ${arenaId} — Drone Soccer Live`;
     }
   }, [arenaState, arenaId]);
 
@@ -104,281 +126,421 @@ export const PublicMatchDetail: React.FC<PublicMatchDetailProps> = ({ publicPort
     return Array.from({ length: maxSets }, (_, idx) => idx + 1);
   }, [arenaState?.maxSets]);
 
+  const connectionBadge =
+    isConnected || transportMode === 'WS'
+      ? {
+          text: 'Live',
+          dotColor: 'var(--signal-live)',
+          style: {
+            backgroundColor: 'var(--signal-live-tint)',
+            color: 'var(--signal-live-text)',
+            borderColor: 'var(--signal-live-border)',
+          },
+        }
+      : transportMode === 'HTTP_FALLBACK'
+      ? {
+          text: 'Auto-updating',
+          dotColor: 'var(--signal-info)',
+          style: {
+            backgroundColor: 'var(--signal-info-tint)',
+            color: 'var(--signal-info-text)',
+            borderColor: 'var(--signal-info-border)',
+          },
+        }
+      : {
+          text: 'Reconnecting',
+          dotColor: 'var(--signal-amber)',
+          style: {
+            backgroundColor: 'var(--signal-amber-tint)',
+            color: 'var(--signal-amber-text)',
+            borderColor: 'var(--signal-amber-border)',
+          },
+        };
+
   if (notFound && !arenaState) {
     return (
-      <div className="min-h-screen bg-[#080b11] text-slate-100 flex flex-col items-center justify-center p-6 text-center">
-        <Radio className="w-12 h-12 text-slate-600 mb-4" />
-        <h1 className="text-2xl font-display font-black text-white mb-2">Arena Not Found</h1>
-        <p className="text-xs font-mono text-slate-400 max-w-sm mb-6">
-          Arena #{arenaId} is not currently active. Return to the live overview to pick an active flight cage.
-        </p>
-        <Link
-          to={liveHomePath}
-          className="px-5 py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-mono font-bold inline-flex items-center gap-2 transition-colors"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          <span>BACK TO LIVE MATCHES</span>
-        </Link>
+      <div
+        className="spectator-shell min-h-screen flex flex-col items-center justify-center p-6 text-center"
+        data-spectator-theme={theme}
+      >
+        <div className="max-w-sm rounded-2xl bg-[var(--court-surface)] border border-[var(--court-line)] p-8">
+          <h1 className="spectator-numeral text-3xl font-extrabold text-[var(--court-ink)]">
+            Cage {arenaId} is not active
+          </h1>
+          <p className="text-sm text-[var(--court-muted)] mt-2">
+            Choose an active flight cage from the live board to follow ongoing scores.
+          </p>
+          <Link
+            to={liveHomePath}
+            className="mt-6 inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-opacity hover:opacity-90"
+            style={{
+              backgroundColor: 'var(--court-active-pill-bg)',
+              color: 'var(--court-active-pill-fg)',
+            }}
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span>Back to matches</span>
+          </Link>
+        </div>
       </div>
     );
   }
 
+  const phaseMeta = arenaState
+    ? getSpectatorPhaseMeta(arenaState.phase, arenaState.timerRunning)
+    : getSpectatorPhaseMeta('IDLE', false);
+  const isLowTime =
+    arenaState && arenaState.phase !== 'SUDDEN_DEATH' && currentMs > 0 && currentMs <= 10000;
+  const displayClock =
+    isLowTime || arenaState?.phase === 'COUNTDOWN' ? formattedWithTenths : formattedTime;
+  const setsNeeded = Math.ceil((arenaState?.maxSets || 3) / 2);
+
   return (
-    <div className="min-h-screen bg-[#080b11] text-slate-100 flex flex-col">
-      {/* Top Spectator Navigation Bar */}
-      <header className="sticky top-0 z-40 bg-[#080b11]/95 backdrop-blur-md border-b border-slate-800/90 px-4 lg:px-8 py-3">
-        <div className="max-w-6xl mx-auto flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
+    <div className="spectator-shell min-h-screen flex flex-col" data-spectator-theme={theme}>
+      {/* Top Bar */}
+      <header className="sticky top-0 z-40 bg-[var(--court-surface)] border-b border-[var(--court-line)]">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
             <Link
               to={liveHomePath}
-              className="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-xs font-mono font-bold text-slate-200 hover:text-white inline-flex items-center gap-1.5 transition-colors"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--court-control-bg)] hover:bg-[var(--court-control-hover)] text-sm font-semibold text-[var(--court-ink)] transition-colors shrink-0"
             >
-              <ArrowLeft className="w-3.5 h-3.5 text-cyan-400" />
-              <span>ALL MATCHES</span>
+              <ArrowLeft className="w-4 h-4" />
+              <span>Back to matches</span>
             </Link>
 
-            {/* Quick Arena Switcher Pills */}
             {allArenas.length > 1 && (
-              <div className="hidden md:flex items-center gap-1 pl-2 border-l border-slate-800">
-                {allArenas.map((a) => (
-                  <Link
-                    key={a.arenaId}
-                    to={`/live/arena/${a.arenaId}`}
-                    className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold transition-colors ${
-                      a.arenaId === arenaId
-                        ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40'
-                        : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
-                    }`}
-                  >
-                    Cage {a.arenaId}
-                  </Link>
-                ))}
-              </div>
+              <nav
+                className="hidden md:flex items-center gap-1 pl-3 border-l border-[var(--court-line-soft)]"
+                aria-label="Switch cage"
+              >
+                {allArenas.map((a) => {
+                  const active = a.arenaId === arenaId;
+                  return (
+                    <Link
+                      key={a.arenaId}
+                      to={`/live/arena/${a.arenaId}`}
+                      className="px-2.5 py-1 rounded-md text-xs font-semibold transition-colors"
+                      style={
+                        active
+                          ? {
+                              backgroundColor: 'var(--court-active-pill-bg)',
+                              color: 'var(--court-active-pill-fg)',
+                            }
+                          : { color: 'var(--court-muted)' }
+                      }
+                    >
+                      Cage {a.arenaId}
+                    </Link>
+                  );
+                })}
+              </nav>
             )}
           </div>
 
           <div className="flex items-center gap-2">
-            {isConnected || transportMode === 'WS' ? (
-              <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-[11px] font-mono font-bold">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-                <Wifi className="w-3.5 h-3.5" />
-                <span>LIVE</span>
-              </div>
-            ) : transportMode === 'HTTP_FALLBACK' ? (
-              <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-[11px] font-mono font-bold">
-                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                <span>POLLING</span>
-              </div>
-            ) : (
-              <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300 text-[11px] font-mono font-bold">
-                <WifiOff className="w-3.5 h-3.5" />
-                <span>SYNCING</span>
-              </div>
-            )}
+            <div
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-semibold"
+              style={connectionBadge.style}
+              role="status"
+              aria-live="polite"
+            >
+              <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: connectionBadge.dotColor }} />
+              <span>{connectionBadge.text}</span>
+            </div>
+
+            <button
+              type="button"
+              onClick={toggleTheme}
+              aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-[var(--court-line)] bg-[var(--court-control-bg)] hover:bg-[var(--court-control-hover)] text-xs font-semibold text-[var(--court-ink-secondary)] transition-colors"
+            >
+              {theme === 'dark' ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
+              <span>{theme === 'dark' ? 'Light' : 'Dark'}</span>
+            </button>
           </div>
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-4 lg:px-8 py-6 flex-1 w-full flex flex-col gap-6">
+      <main className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-8 flex-1 w-full flex flex-col gap-6">
+        {/* Mobile Cage Switcher */}
+        {allArenas.length > 1 && (
+          <div className="flex md:hidden items-center gap-1.5 overflow-x-auto pb-1">
+            {allArenas.map((a) => {
+              const active = a.arenaId === arenaId;
+              return (
+                <Link
+                  key={a.arenaId}
+                  to={`/live/arena/${a.arenaId}`}
+                  className="px-3 py-1.5 rounded-lg text-xs font-semibold shrink-0 border"
+                  style={
+                    active
+                      ? {
+                          backgroundColor: 'var(--court-active-pill-bg)',
+                          color: 'var(--court-active-pill-fg)',
+                          borderColor: 'var(--court-active-pill-bg)',
+                        }
+                      : {
+                          backgroundColor: 'var(--court-surface)',
+                          color: 'var(--court-ink-secondary)',
+                          borderColor: 'var(--court-line)',
+                        }
+                  }
+                >
+                  {a.arenaName}
+                </Link>
+              );
+            })}
+          </div>
+        )}
+
         {!arenaState ? (
-          <div className="p-12 rounded-3xl bg-slate-900/70 border border-slate-800 text-center">
-            <RefreshCw className="w-8 h-8 text-cyan-400 mx-auto mb-3 animate-spin" />
-            <p className="text-sm font-mono text-slate-300">
-              {loading ? `Connecting to Arena ${arenaId} live telemetry...` : 'Waiting for match data...'}
+          <div className="rounded-2xl bg-[var(--court-surface)] border border-[var(--court-line)] p-10 text-center">
+            <p className="text-sm font-semibold text-[var(--court-ink)]">
+              {loading ? `Loading Cage ${arenaId}` : 'Waiting for live telemetry'}
+            </p>
+            <p className="text-xs text-[var(--court-muted)] mt-1">
+              Scores update automatically as soon as the cage connects.
             </p>
           </div>
         ) : (
           <>
-            {/* Mobile Arena Switcher */}
-            {allArenas.length > 1 && (
-              <div className="flex md:hidden items-center gap-1.5 overflow-x-auto pb-1">
-                {allArenas.map((a) => (
-                  <Link
-                    key={a.arenaId}
-                    to={`/live/arena/${a.arenaId}`}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-mono font-bold shrink-0 ${
-                      a.arenaId === arenaId
-                        ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40'
-                        : 'bg-slate-900 text-slate-400 border border-slate-800'
-                    }`}
-                  >
-                    {a.arenaName}
-                  </Link>
-                ))}
-              </div>
-            )}
-
-            {/* Match Header & Phase Banner */}
-            <section className="rounded-3xl bg-slate-900/90 border-2 border-slate-800 p-5 sm:p-7 shadow-2xl flex flex-col gap-5">
-              <div className="flex flex-col items-center text-center gap-2">
-                <span className="text-xs font-mono font-bold uppercase tracking-widest text-cyan-400">
-                  {arenaState.arenaName}
-                  {arenaState.tournamentName ? ` • ${arenaState.tournamentName}` : ''} • MATCH {arenaState.matchNumber}
-                </span>
-                <div className="w-full max-w-2xl">
-                  <PhaseAlertBanner phase={arenaState.phase} currentSet={arenaState.currentSet} />
-                </div>
-              </div>
-
-              {/* Inline Winner Callout Banner (Non-blocking for mobile spectators) */}
-              {arenaState.setWinnerBanner?.active && (
-                <div className="p-4 rounded-2xl bg-gradient-to-r from-amber-500/20 via-amber-400/15 to-amber-500/20 border-2 border-amber-400/60 flex flex-col sm:flex-row items-center justify-center gap-3 text-center">
-                  <Trophy className="w-6 h-6 text-amber-400 shrink-0" />
-                  <div>
-                    <span className="text-[11px] font-mono font-bold uppercase tracking-widest text-amber-300 block">
-                      {arenaState.setWinnerBanner.isMatchWinner || arenaState.setWinnerBanner.matchWinner
-                        ? 'MATCH WINNER'
-                        : `SET ${arenaState.setWinnerBanner.currentSet} WINNER`}
-                    </span>
-                    <span className="text-xl font-display font-black text-white">
-                      {arenaState.setWinnerBanner.winnerName}
-                    </span>
-                    <span className="text-xs font-mono text-amber-200/90 ml-2">
-                      (Sets: {arenaState.setWinnerBanner.redSetScore} - {arenaState.setWinnerBanner.blueSetScore})
+            {/* =============================================================== */}
+            {/* HERO LIVE SCOREBOARD STAGE                                      */}
+            {/* =============================================================== */}
+            <section className="rounded-2xl bg-[var(--court-surface)] border border-[var(--court-line)] overflow-hidden">
+              {/* Match Identity Bar */}
+              <div className="px-5 sm:px-6 py-4 border-b border-[var(--court-line-soft)] flex flex-wrap items-center justify-between gap-3 bg-[var(--court-subtle)]">
+                <div>
+                  <h1 className="text-base sm:text-lg font-bold text-[var(--court-ink)] leading-tight">
+                    {arenaState.arenaName}
+                  </h1>
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-[var(--court-muted)] mt-0.5">
+                    {arenaState.tournamentName && <span>{arenaState.tournamentName}</span>}
+                    <span>Match {arenaState.matchNumber}</span>
+                    <span>
+                      Set {arenaState.currentSet} of {arenaState.maxSets}
                     </span>
                   </div>
                 </div>
+
+                <span
+                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border"
+                  style={phaseMeta.pillStyle}
+                >
+                  <span
+                    className={`w-2 h-2 rounded-full ${phaseMeta.pulse ? 'animate-pulse' : ''}`}
+                    style={{ backgroundColor: phaseMeta.dotColor }}
+                  />
+                  {phaseMeta.label}
+                </span>
+              </div>
+
+              {/* Phase Alert Strip */}
+              {(arenaState.phase === 'SUDDEN_DEATH' ||
+                arenaState.phase === 'PENALTY_PHASE' ||
+                arenaState.phase === 'TIMEOUT' ||
+                arenaState.phase === 'INTERMISSION') && (
+                <div
+                  className="px-5 sm:px-6 py-2.5 border-b text-xs sm:text-sm font-semibold flex items-center justify-center gap-2 text-center"
+                  style={{
+                    backgroundColor: 'var(--signal-amber-tint)',
+                    borderColor: 'var(--signal-amber-border)',
+                    color: 'var(--signal-amber-text)',
+                  }}
+                >
+                  <AlertTriangle className="w-4 h-4 shrink-0" style={{ color: 'var(--signal-amber)' }} />
+                  <span>
+                    {arenaState.phase === 'SUDDEN_DEATH'
+                      ? 'Sudden death overtime: next goal wins the set'
+                      : arenaState.phase === 'PENALTY_PHASE'
+                      ? 'Penalty shootout in progress'
+                      : arenaState.phase === 'TIMEOUT'
+                      ? 'Official timeout in progress'
+                      : 'Intermission break before the next set'}
+                  </span>
+                </div>
               )}
 
-              {/* Live Scoreboard Grid */}
-              <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto_1fr] items-stretch gap-4 sm:gap-6">
-                {/* Red Team Panel */}
+              {/* Inline Non-Blocking Winner Banner */}
+              {arenaState.setWinnerBanner?.active && (
                 <div
-                  className={`flex flex-col items-center justify-between p-5 sm:p-6 rounded-3xl border-2 text-center transition-all ${
-                    arenaState.redScore > arenaState.blueScore
-                      ? 'bg-red-950/45 border-red-500/60 shadow-lg shadow-red-600/10'
-                      : 'bg-red-950/20 border-red-500/25'
-                  }`}
+                  className="px-5 sm:px-6 py-3 border-b flex flex-wrap items-center justify-center gap-2 text-sm font-semibold text-center"
+                  style={{
+                    backgroundColor: 'var(--signal-live-tint)',
+                    borderColor: 'var(--signal-live-border)',
+                    color: 'var(--signal-live-text)',
+                  }}
                 >
-                  <div className="flex flex-col items-center gap-2">
-                    <span className="text-[10px] font-mono uppercase tracking-widest text-red-400 font-bold">
-                      RED TEAM
-                    </span>
+                  <Trophy className="w-4 h-4 shrink-0" style={{ color: 'var(--signal-live)' }} />
+                  <span>
+                    {arenaState.setWinnerBanner.isMatchWinner || arenaState.setWinnerBanner.matchWinner
+                      ? 'Match winner'
+                      : `Set ${arenaState.setWinnerBanner.currentSet} winner`}
+                    : {arenaState.setWinnerBanner.winnerName}
+                  </span>
+                  <span className="text-xs font-medium opacity-85 tabular-nums">
+                    (Sets {arenaState.setWinnerBanner.redSetScore} – {arenaState.setWinnerBanner.blueSetScore})
+                  </span>
+                </div>
+              )}
+
+              {/* Main Red / Clock / Blue Stage */}
+              <div className="grid grid-cols-1 md:grid-cols-[1fr_230px_1fr] divide-y md:divide-y-0 md:divide-x divide-[var(--court-line-soft)]">
+                {/* Red Team Bay */}
+                <div className="spectator-red-bay p-6 sm:p-7 border-l-4 border-l-[var(--drone-red)] flex flex-col justify-between gap-5">
+                  <div className="flex items-center gap-3.5">
                     <TeamBadge
                       teamName={arenaState.teamRed}
                       logoUrl={arenaState.teamRedLogoUrl}
                       side="red"
-                      size="xl"
+                      size="lg"
                     />
-                    <h2 className="text-xl sm:text-2xl font-display font-black text-white leading-tight mt-1">
-                      {arenaState.teamRed}
-                    </h2>
+                    <div className="min-w-0">
+                      <span className="text-xs font-semibold text-[var(--drone-red-text)]">Red team</span>
+                      <h2 className="spectator-numeral text-3xl sm:text-4xl font-extrabold text-[var(--court-ink)] leading-tight truncate">
+                        {arenaState.teamRed}
+                      </h2>
+                    </div>
                   </div>
 
-                  <div className="my-4">
-                    <span className="font-display font-black text-6xl sm:text-7xl text-red-400 tabular-nums leading-none">
+                  <div className="flex items-end justify-between gap-4">
+                    <div className="flex flex-col gap-2">
+                      <div className="flex items-center gap-2 text-xs text-[var(--court-muted)]">
+                        <SetPips won={arenaState.redSetScore} needed={setsNeeded} color="red" />
+                        <span className="font-semibold text-[var(--court-ink)] tabular-nums">
+                          {arenaState.redSetScore} {arenaState.redSetScore === 1 ? 'set' : 'sets'}
+                        </span>
+                      </div>
+                      <span
+                        className="inline-flex items-center gap-1 text-xs font-medium w-fit"
+                        style={
+                          arenaState.redPenalties > 0
+                            ? {
+                                padding: '2px 8px',
+                                borderRadius: '4px',
+                                backgroundColor: 'var(--signal-amber-tint)',
+                                color: 'var(--signal-amber-text)',
+                                border: '1px solid var(--signal-amber-border)',
+                                fontWeight: 600,
+                              }
+                            : { color: 'var(--court-muted)' }
+                        }
+                      >
+                        {arenaState.redPenalties > 0 && <AlertTriangle className="w-3 h-3" />}
+                        Penalties: {arenaState.redPenalties}
+                      </span>
+                    </div>
+
+                    <div className="spectator-numeral text-7xl sm:text-8xl font-black text-[var(--drone-red)] leading-none">
                       {arenaState.redScore}
-                    </span>
-                  </div>
-
-                  <div className="w-full flex items-center justify-center gap-2 pt-3 border-t border-red-500/20 text-xs font-mono">
-                    <span className="px-3 py-1 rounded-xl bg-slate-950/80 border border-slate-800 text-slate-200">
-                      Sets Won: <strong className="text-red-300">{arenaState.redSetScore}</strong>
-                    </span>
-                    <span
-                      className={`px-3 py-1 rounded-xl border inline-flex items-center gap-1 ${
-                        arenaState.redPenalties > 0
-                          ? 'bg-amber-950/70 border-amber-500/40 text-amber-300 font-bold'
-                          : 'bg-slate-950/60 border-slate-800 text-slate-400'
-                      }`}
-                    >
-                      {arenaState.redPenalties > 0 && <AlertTriangle className="w-3 h-3" />}
-                      Penalties: {arenaState.redPenalties}
-                    </span>
+                    </div>
                   </div>
                 </div>
 
-                {/* Center Clock Panel */}
-                <div className="flex flex-col items-center justify-center p-5 sm:p-6 rounded-3xl bg-slate-950/80 border border-slate-800 lg:min-w-[260px]">
-                  <span className="text-[11px] font-mono font-bold tracking-widest uppercase text-cyan-400 mb-2">
-                    SET {arenaState.currentSet} OF {arenaState.maxSets}
+                {/* Authoritative Clock Column */}
+                <div className="p-6 flex flex-col items-center justify-center gap-3 bg-[var(--court-subtle)]">
+                  <span className="text-xs font-semibold text-[var(--court-muted)]">
+                    Set {arenaState.currentSet} of {arenaState.maxSets}
                   </span>
-                  <TabularTimer
-                    serverRemainingMs={arenaState.timeRemainingMs}
-                    totalDurationMs={arenaState.totalSetDurationMs}
-                    timerRunning={arenaState.timerRunning}
-                    phase={arenaState.phase}
-                    size="hero"
-                    showProgressBar={true}
-                  />
+                  <div
+                    className="spectator-numeral text-6xl sm:text-7xl font-black leading-none"
+                    style={{
+                      color:
+                        arenaState.phase === 'SUDDEN_DEATH' || arenaState.phase === 'PENALTY_PHASE'
+                          ? 'var(--signal-amber-text)'
+                          : isLowTime
+                          ? 'var(--drone-red)'
+                          : 'var(--court-ink)',
+                    }}
+                  >
+                    {displayClock}
+                  </div>
+                  <div className="w-full max-w-[180px] h-2 rounded-full bg-[var(--court-line-soft)] overflow-hidden">
+                    <div
+                      className="h-full transition-all duration-150"
+                      style={{
+                        width: `${progressPercent}%`,
+                        backgroundColor: isLowTime ? 'var(--drone-red)' : phaseMeta.accentColor,
+                      }}
+                    />
+                  </div>
+                  <span className="text-xs font-medium text-[var(--court-muted)]">
+                    {arenaState.timerRunning ? 'Clock running' : 'Clock stopped'}
+                  </span>
                 </div>
 
-                {/* Blue Team Panel */}
-                <div
-                  className={`flex flex-col items-center justify-between p-5 sm:p-6 rounded-3xl border-2 text-center transition-all ${
-                    arenaState.blueScore > arenaState.redScore
-                      ? 'bg-blue-950/45 border-blue-500/60 shadow-lg shadow-blue-600/10'
-                      : 'bg-blue-950/20 border-blue-500/25'
-                  }`}
-                >
-                  <div className="flex flex-col items-center gap-2">
-                    <span className="text-[10px] font-mono uppercase tracking-widest text-blue-400 font-bold">
-                      BLUE TEAM
-                    </span>
+                {/* Blue Team Bay */}
+                <div className="spectator-blue-bay p-6 sm:p-7 border-l-4 md:border-l-0 md:border-r-4 border-l-[var(--drone-blue)] md:border-r-[var(--drone-blue)] flex flex-col justify-between gap-5">
+                  <div className="flex items-center md:flex-row-reverse gap-3.5">
                     <TeamBadge
                       teamName={arenaState.teamBlue}
                       logoUrl={arenaState.teamBlueLogoUrl}
                       side="blue"
-                      size="xl"
+                      size="lg"
                     />
-                    <h2 className="text-xl sm:text-2xl font-display font-black text-white leading-tight mt-1">
-                      {arenaState.teamBlue}
-                    </h2>
+                    <div className="min-w-0 md:text-right">
+                      <span className="text-xs font-semibold text-[var(--drone-blue-text)]">Blue team</span>
+                      <h2 className="spectator-numeral text-3xl sm:text-4xl font-extrabold text-[var(--court-ink)] leading-tight truncate">
+                        {arenaState.teamBlue}
+                      </h2>
+                    </div>
                   </div>
 
-                  <div className="my-4">
-                    <span className="font-display font-black text-6xl sm:text-7xl text-blue-400 tabular-nums leading-none">
+                  <div className="flex items-end justify-between md:flex-row-reverse gap-4">
+                    <div className="flex flex-col md:items-end gap-2">
+                      <div className="flex items-center gap-2 text-xs text-[var(--court-muted)]">
+                        <span className="font-semibold text-[var(--court-ink)] tabular-nums">
+                          {arenaState.blueSetScore} {arenaState.blueSetScore === 1 ? 'set' : 'sets'}
+                        </span>
+                        <SetPips won={arenaState.blueSetScore} needed={setsNeeded} color="blue" />
+                      </div>
+                      <span
+                        className="inline-flex items-center gap-1 text-xs font-medium w-fit"
+                        style={
+                          arenaState.bluePenalties > 0
+                            ? {
+                                padding: '2px 8px',
+                                borderRadius: '4px',
+                                backgroundColor: 'var(--signal-amber-tint)',
+                                color: 'var(--signal-amber-text)',
+                                border: '1px solid var(--signal-amber-border)',
+                                fontWeight: 600,
+                              }
+                            : { color: 'var(--court-muted)' }
+                        }
+                      >
+                        {arenaState.bluePenalties > 0 && <AlertTriangle className="w-3 h-3" />}
+                        Penalties: {arenaState.bluePenalties}
+                      </span>
+                    </div>
+
+                    <div className="spectator-numeral text-7xl sm:text-8xl font-black text-[var(--drone-blue)] leading-none">
                       {arenaState.blueScore}
-                    </span>
-                  </div>
-
-                  <div className="w-full flex items-center justify-center gap-2 pt-3 border-t border-blue-500/20 text-xs font-mono">
-                    <span className="px-3 py-1 rounded-xl bg-slate-950/80 border border-slate-800 text-slate-200">
-                      Sets Won: <strong className="text-blue-300">{arenaState.blueSetScore}</strong>
-                    </span>
-                    <span
-                      className={`px-3 py-1 rounded-xl border inline-flex items-center gap-1 ${
-                        arenaState.bluePenalties > 0
-                          ? 'bg-amber-950/70 border-amber-500/40 text-amber-300 font-bold'
-                          : 'bg-slate-950/60 border-slate-800 text-slate-400'
-                      }`}
-                    >
-                      {arenaState.bluePenalties > 0 && <AlertTriangle className="w-3 h-3" />}
-                      Penalties: {arenaState.bluePenalties}
-                    </span>
+                    </div>
                   </div>
                 </div>
               </div>
 
-              {/* Recent Event Telemetry Strip */}
+              {/* Latest Event Status Footer */}
               {arenaState.recentEvent && (
-                <div className="px-4 py-2.5 rounded-2xl bg-slate-950/70 border border-slate-800 flex items-center justify-between gap-3 text-xs font-mono text-slate-400">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <Activity className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
-                    <span className="truncate text-slate-300">{arenaState.recentEvent}</span>
-                  </div>
-                  <span className="text-[10px] text-slate-500 uppercase shrink-0">
-                    MATCH {arenaState.matchNumber}
-                  </span>
+                <div className="px-5 sm:px-6 py-2.5 bg-[var(--court-subtle)] border-t border-[var(--court-line-soft)] flex items-center justify-between gap-3 text-xs text-[var(--court-muted)]">
+                  <span className="truncate">Latest update: {arenaState.recentEvent}</span>
+                  <span className="shrink-0 font-medium">Best of {arenaState.maxSets}</span>
                 </div>
               )}
             </section>
 
-            {/* Set-by-Set Live Results Breakdown */}
-            <section className="p-5 sm:p-6 rounded-3xl bg-slate-900/85 border border-slate-800">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <Trophy className="w-4 h-4 text-amber-400" />
-                  <h3 className="text-sm sm:text-base font-display font-black text-white uppercase tracking-wide">
-                    Match Set Results
-                  </h3>
-                </div>
-                <span className="text-xs font-mono text-slate-400">
-                  Best of {arenaState.maxSets} Sets
-                </span>
+            {/* =============================================================== */}
+            {/* SET-BY-SET RESULTS LEDGER                                       */}
+            {/* =============================================================== */}
+            <section className="rounded-xl bg-[var(--court-surface)] border border-[var(--court-line)] overflow-hidden">
+              <div className="px-5 py-3 bg-[var(--court-subtle)] border-b border-[var(--court-line-soft)] flex items-center justify-between">
+                <h2 className="text-sm font-bold text-[var(--court-ink)]">Set breakdown</h2>
+                <span className="text-xs text-[var(--court-muted)]">First to {setsNeeded} sets wins</span>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-[var(--court-line-soft)]">
                 {setsArray.map((setNum) => {
                   const completed = (arenaState.completedSets || []).find((s) => s.setNumber === setNum);
                   const isCurrent = setNum === arenaState.currentSet && arenaState.phase !== 'MATCH_ENDED';
@@ -386,69 +548,102 @@ export const PublicMatchDetail: React.FC<PublicMatchDetailProps> = ({ publicPort
                   return (
                     <div
                       key={setNum}
-                      className={`p-4 rounded-2xl border ${
-                        isCurrent
-                          ? 'bg-cyan-950/25 border-cyan-500/50 shadow-md shadow-cyan-500/10'
-                          : completed
-                          ? 'bg-slate-950/80 border-slate-700'
-                          : 'bg-slate-950/40 border-slate-800/80 opacity-70'
-                      }`}
+                      className="p-4 sm:p-5 flex flex-col gap-2"
+                      style={{
+                        backgroundColor: isCurrent ? 'var(--drone-blue-tint)' : 'var(--court-surface)',
+                      }}
                     >
-                      <div className="flex items-center justify-between text-xs font-mono mb-2">
-                        <span className="font-bold text-white">SET {setNum}</span>
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="font-bold text-[var(--court-ink)]">Set {setNum}</span>
                         {completed ? (
                           <span
-                            className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                            className="px-2 py-0.5 rounded-full font-semibold border"
+                            style={
                               completed.winner === 'RED'
-                                ? 'bg-red-500/20 text-red-300 border border-red-500/40'
+                                ? {
+                                    backgroundColor: 'var(--drone-red-tint)',
+                                    color: 'var(--drone-red-text)',
+                                    borderColor: 'var(--drone-red-border)',
+                                  }
                                 : completed.winner === 'BLUE'
-                                ? 'bg-blue-500/20 text-blue-300 border border-blue-500/40'
-                                : 'bg-slate-800 text-slate-300'
-                            }`}
+                                ? {
+                                    backgroundColor: 'var(--drone-blue-tint)',
+                                    color: 'var(--drone-blue-text)',
+                                    borderColor: 'var(--drone-blue-border)',
+                                  }
+                                : {
+                                    backgroundColor: 'var(--court-control-bg)',
+                                    color: 'var(--court-ink-secondary)',
+                                    borderColor: 'var(--court-line)',
+                                  }
+                            }
                           >
                             {completed.winner === 'RED'
-                              ? 'RED WON'
+                              ? 'Red won'
                               : completed.winner === 'BLUE'
-                              ? 'BLUE WON'
-                              : completed.winner}
+                              ? 'Blue won'
+                              : 'Draw'}
                           </span>
                         ) : isCurrent ? (
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/40">
-                            LIVE NOW
+                          <span
+                            className="px-2 py-0.5 rounded-full font-semibold border"
+                            style={{
+                              backgroundColor: 'var(--signal-live-tint)',
+                              color: 'var(--signal-live-text)',
+                              borderColor: 'var(--signal-live-border)',
+                            }}
+                          >
+                            In progress
                           </span>
                         ) : (
-                          <span className="text-[10px] text-slate-500 uppercase">UPCOMING</span>
+                          <span className="text-[var(--court-muted)]">Scheduled</span>
                         )}
                       </div>
 
                       {completed ? (
-                        <div className="flex items-center justify-between font-mono text-lg font-black">
-                          <div className="flex flex-col">
-                            <span className="text-red-400">{completed.redScore}</span>
+                        <div className="flex items-baseline justify-between pt-1">
+                          <div>
+                            <span className="spectator-numeral text-3xl font-black text-[var(--drone-red)]">
+                              {completed.redScore}
+                            </span>
                             {completed.redPenalties > 0 && (
-                              <span className="text-[10px] text-amber-400 font-normal">
-                                {completed.redPenalties} pen
+                              <span
+                                className="text-xs ml-1.5"
+                                style={{ color: 'var(--signal-amber-text)' }}
+                              >
+                                {completed.redPenalties}P
                               </span>
                             )}
                           </div>
-                          <span className="text-slate-600 text-xs">VS</span>
-                          <div className="flex flex-col text-right">
-                            <span className="text-blue-400">{completed.blueScore}</span>
+                          <span className="text-xs text-[var(--court-muted)]">to</span>
+                          <div className="text-right">
                             {completed.bluePenalties > 0 && (
-                              <span className="text-[10px] text-amber-400 font-normal">
-                                {completed.bluePenalties} pen
+                              <span
+                                className="text-xs mr-1.5"
+                                style={{ color: 'var(--signal-amber-text)' }}
+                              >
+                                {completed.bluePenalties}P
                               </span>
                             )}
+                            <span className="spectator-numeral text-3xl font-black text-[var(--drone-blue)]">
+                              {completed.blueScore}
+                            </span>
                           </div>
                         </div>
                       ) : isCurrent ? (
-                        <div className="flex items-center justify-between font-mono text-lg font-black">
-                          <span className="text-red-400">{arenaState.redScore}</span>
-                          <span className="text-slate-600 text-xs">LIVE</span>
-                          <span className="text-blue-400">{arenaState.blueScore}</span>
+                        <div className="flex items-baseline justify-between pt-1">
+                          <span className="spectator-numeral text-3xl font-black text-[var(--drone-red)]">
+                            {arenaState.redScore}
+                          </span>
+                          <span className="text-xs font-medium text-[var(--court-muted)]">Live score</span>
+                          <span className="spectator-numeral text-3xl font-black text-[var(--drone-blue)]">
+                            {arenaState.blueScore}
+                          </span>
                         </div>
                       ) : (
-                        <div className="text-center font-mono text-sm text-slate-600 py-1">- : -</div>
+                        <div className="spectator-numeral text-2xl font-bold text-[var(--court-muted)] pt-1">
+                          – : –
+                        </div>
                       )}
                     </div>
                   );
@@ -456,82 +651,105 @@ export const PublicMatchDetail: React.FC<PublicMatchDetailProps> = ({ publicPort
               </div>
             </section>
 
-            {/* Bottom Two-Column: Up Next + Recent Results on This Arena */}
+            {/* =============================================================== */}
+            {/* BOTTOM TWO-COLUMN LEDGERS: UP NEXT & EARLIER ON THIS CAGE       */}
+            {/* =============================================================== */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Up Next on This Arena */}
-              <section className="p-5 rounded-3xl bg-slate-900/80 border border-slate-800">
-                <div className="flex items-center gap-2 mb-4">
-                  <Calendar className="w-4 h-4 text-cyan-400" />
-                  <h3 className="text-sm font-display font-black text-white uppercase tracking-wide">
-                    Up Next on {arenaState.arenaName}
-                  </h3>
+              {/* Up Next */}
+              <section className="rounded-xl bg-[var(--court-surface)] border border-[var(--court-line)] overflow-hidden">
+                <div className="px-5 py-3 bg-[var(--court-subtle)] border-b border-[var(--court-line-soft)]">
+                  <h2 className="text-sm font-bold text-[var(--court-ink)]">
+                    Up next on {arenaState.arenaName}
+                  </h2>
                 </div>
-
-                <div className="flex flex-col gap-2.5">
+                <div className="divide-y divide-[var(--court-line-soft)]">
                   {upcomingMatches.map((m) => (
-                    <div
-                      key={m.id}
-                      className="p-3 rounded-2xl bg-slate-950/80 border border-slate-800 flex items-center justify-between gap-2 text-xs font-mono"
-                    >
-                      <span className="font-bold text-cyan-400 shrink-0">{m.matchNumber}</span>
-                      <span className="text-center truncate">
-                        <strong className="text-red-400">{m.teamRed}</strong>
-                        <span className="text-slate-600 mx-1.5">vs</span>
-                        <strong className="text-blue-400">{m.teamBlue}</strong>
-                      </span>
-                      <span className="text-[10px] text-slate-400 uppercase shrink-0">{m.status}</span>
+                    <div key={m.id} className="px-5 py-3 flex items-center justify-between gap-3 text-sm">
+                      <span className="font-bold text-[var(--court-ink)] shrink-0">{m.matchNumber}</span>
+                      <div className="truncate text-center">
+                        <span className="font-semibold" style={{ color: 'var(--drone-red-text)' }}>
+                          {m.teamRed}
+                        </span>
+                        <span className="text-xs text-[var(--court-muted)] mx-1.5">vs</span>
+                        <span className="font-semibold" style={{ color: 'var(--drone-blue-text)' }}>
+                          {m.teamBlue}
+                        </span>
+                      </div>
+                      {m.scheduledTime ? (
+                        <span className="inline-flex items-center gap-1 text-xs text-[var(--court-muted)] tabular-nums shrink-0">
+                          <Clock className="w-3 h-3" />
+                          {new Date(m.scheduledTime).toLocaleTimeString([], {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
+                        </span>
+                      ) : (
+                        <span className="text-xs text-[var(--court-muted)] shrink-0">Queued</span>
+                      )}
                     </div>
                   ))}
                   {upcomingMatches.length === 0 && (
-                    <p className="text-xs font-mono text-slate-500 py-4 text-center">
-                      No additional matches queued for this cage.
+                    <p className="px-5 py-6 text-xs text-[var(--court-muted)] text-center">
+                      No additional matches queued on this cage.
                     </p>
                   )}
                 </div>
               </section>
 
-              {/* Recent Results on This Arena */}
-              <section className="p-5 rounded-3xl bg-slate-900/80 border border-slate-800">
-                <div className="flex items-center gap-2 mb-4">
-                  <History className="w-4 h-4 text-amber-400" />
-                  <h3 className="text-sm font-display font-black text-white uppercase tracking-wide">
-                    Recent Results on {arenaState.arenaName}
-                  </h3>
+              {/* Earlier Results on This Cage */}
+              <section className="rounded-xl bg-[var(--court-surface)] border border-[var(--court-line)] overflow-hidden">
+                <div className="px-5 py-3 bg-[var(--court-subtle)] border-b border-[var(--court-line-soft)]">
+                  <h2 className="text-sm font-bold text-[var(--court-ink)]">
+                    Earlier on {arenaState.arenaName}
+                  </h2>
                 </div>
-
-                <div className="flex flex-col gap-2.5">
+                <div className="divide-y divide-[var(--court-line-soft)]">
                   {recentMatches.slice(0, 6).map((m) => (
-                    <div
-                      key={m.id}
-                      className="p-3 rounded-2xl bg-slate-950/80 border border-slate-800 flex items-center justify-between gap-2 text-xs font-mono"
-                    >
-                      <span className="font-bold text-cyan-400 shrink-0">{m.matchNumber}</span>
-                      <span className="truncate text-center">
-                        <strong className="text-red-400">{m.teamRed}</strong>
-                        <span className="mx-2 px-1.5 py-0.5 rounded bg-slate-900 text-white">
-                          {m.redSetScore}-{m.blueSetScore}
+                    <div key={m.id} className="px-5 py-3 flex items-center justify-between gap-3 text-sm">
+                      <span className="font-bold text-[var(--court-ink)] shrink-0">{m.matchNumber}</span>
+                      <div className="truncate text-center">
+                        <span className="font-semibold" style={{ color: 'var(--drone-red-text)' }}>
+                          {m.teamRed}
                         </span>
-                        <strong className="text-blue-400">{m.teamBlue}</strong>
-                      </span>
+                        <span className="spectator-numeral text-lg font-extrabold text-[var(--court-ink)] mx-2">
+                          {m.redSetScore}–{m.blueSetScore}
+                        </span>
+                        <span className="font-semibold" style={{ color: 'var(--drone-blue-text)' }}>
+                          {m.teamBlue}
+                        </span>
+                      </div>
                       {m.winner ? (
                         <span
-                          className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${
+                          className="text-xs font-semibold px-2 py-0.5 rounded-full border shrink-0"
+                          style={
                             m.winner === 'RED'
-                              ? 'bg-red-500/20 text-red-300'
+                              ? {
+                                  backgroundColor: 'var(--drone-red-tint)',
+                                  color: 'var(--drone-red-text)',
+                                  borderColor: 'var(--drone-red-border)',
+                                }
                               : m.winner === 'BLUE'
-                              ? 'bg-blue-500/20 text-blue-300'
-                              : 'bg-slate-800 text-slate-300'
-                          }`}
+                              ? {
+                                  backgroundColor: 'var(--drone-blue-tint)',
+                                  color: 'var(--drone-blue-text)',
+                                  borderColor: 'var(--drone-blue-border)',
+                                }
+                              : {
+                                  backgroundColor: 'var(--court-control-bg)',
+                                  color: 'var(--court-ink-secondary)',
+                                  borderColor: 'var(--court-line)',
+                                }
+                          }
                         >
-                          {m.winner}
+                          {m.winner === 'RED' ? 'Red' : m.winner === 'BLUE' ? 'Blue' : 'Draw'}
                         </span>
                       ) : (
-                        <span className="text-slate-600 shrink-0">-</span>
+                        <span className="text-xs text-[var(--court-muted)] shrink-0">–</span>
                       )}
                     </div>
                   ))}
                   {recentMatches.length === 0 && (
-                    <p className="text-xs font-mono text-slate-500 py-4 text-center">
+                    <p className="px-5 py-6 text-xs text-[var(--court-muted)] text-center">
                       No completed matches recorded on this cage yet.
                     </p>
                   )}

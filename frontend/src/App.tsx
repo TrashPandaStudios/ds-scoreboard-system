@@ -46,14 +46,11 @@ export const App: React.FC = () => {
     };
   }, [isExplicitLivePath]);
 
-  // Brief dark loading shell only while resolving whether this origin is the locked-down public portal
+  // Brief loading shell only while resolving whether this origin is the locked-down public portal
   if (portalMode === 'loading') {
     return (
-      <div className="min-h-screen bg-[#080b11] text-slate-400 flex items-center justify-center font-mono text-xs">
-        <div className="flex items-center gap-2.5">
-          <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-ping" />
-          <span>CONNECTING TO DRONE SOCCER SCOREBOARD...</span>
-        </div>
+      <div className="min-h-screen bg-[#080b11] text-slate-400 flex items-center justify-center text-sm font-medium">
+        <span>Loading scoreboard...</span>
       </div>
     );
   }

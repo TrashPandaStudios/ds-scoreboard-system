@@ -93,3 +93,143 @@
 ::-webkit-scrollbar-thumb:hover {
   background: #475569;
 }
+
+/* Public Spectator Portal: Dual-Theme Athletic Timing Board Tokens (Dark Default + Light Toggle) */
+.spectator-shell {
+  --court-canvas: #0D1117;
+  --court-surface: #151B23;
+  --court-subtle: #1C232D;
+  --court-hover: #1E2632;
+  --court-ink: #F0F6FC;
+  --court-ink-secondary: #C9D1D9;
+  --court-muted: #8B949E;
+  --court-line: #30363D;
+  --court-line-soft: #242B35;
+  --court-accent-link: #58A6FF;
+  --court-control-bg: #21262D;
+  --court-control-hover: #2C333D;
+  --court-active-pill-bg: #F0F6FC;
+  --court-active-pill-fg: #0D1117;
+  --court-emblem-bg: #21262D;
+
+  --drone-red: #F85149;
+  --drone-red-text: #FF7B72;
+  --drone-red-tint: rgba(248, 81, 73, 0.14);
+  --drone-red-border: rgba(248, 81, 73, 0.38);
+  --drone-red-wash: rgba(248, 81, 73, 0.10);
+
+  --drone-blue: #388BFD;
+  --drone-blue-text: #79C0FF;
+  --drone-blue-tint: rgba(56, 139, 253, 0.15);
+  --drone-blue-border: rgba(56, 139, 253, 0.38);
+  --drone-blue-wash: rgba(56, 139, 253, 0.10);
+
+  --signal-amber: #D29922;
+  --signal-amber-text: #F2CC60;
+  --signal-amber-tint: rgba(210, 153, 34, 0.14);
+  --signal-amber-border: rgba(210, 153, 34, 0.38);
+
+  --signal-live: #2EA043;
+  --signal-live-text: #56D364;
+  --signal-live-tint: rgba(46, 160, 67, 0.14);
+  --signal-live-border: rgba(46, 160, 67, 0.38);
+
+  --signal-info: #58A6FF;
+  --signal-info-text: #79C0FF;
+  --signal-info-tint: rgba(56, 139, 253, 0.14);
+  --signal-info-border: rgba(56, 139, 253, 0.35);
+
+  --signal-intermission: #A371F7;
+  --signal-intermission-text: #D2A8FF;
+  --signal-intermission-tint: rgba(163, 113, 247, 0.14);
+  --signal-intermission-border: rgba(163, 113, 247, 0.35);
+
+  background-color: var(--court-canvas);
+  color: var(--court-ink);
+  font-family: 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif;
+}
+
+.spectator-shell[data-spectator-theme="light"] {
+  --court-canvas: #F2F4F7;
+  --court-surface: #FFFFFF;
+  --court-subtle: #F9FAFB;
+  --court-hover: #F9FAFB;
+  --court-ink: #101828;
+  --court-ink-secondary: #344054;
+  --court-muted: #475467;
+  --court-line: #D0D5DD;
+  --court-line-soft: #E4E7EC;
+  --court-accent-link: #155EEF;
+  --court-control-bg: #F2F4F7;
+  --court-control-hover: #E4E7EC;
+  --court-active-pill-bg: #101828;
+  --court-active-pill-fg: #FFFFFF;
+  --court-emblem-bg: #101828;
+
+  --drone-red: #D92D20;
+  --drone-red-text: #B42318;
+  --drone-red-tint: #FEF3F2;
+  --drone-red-border: #FECDCA;
+  --drone-red-wash: rgba(254, 243, 242, 0.72);
+
+  --drone-blue: #155EEF;
+  --drone-blue-text: #155EEF;
+  --drone-blue-tint: #EFF4FF;
+  --drone-blue-border: #C7D7FE;
+  --drone-blue-wash: rgba(239, 244, 255, 0.72);
+
+  --signal-amber: #DC6803;
+  --signal-amber-text: #B54708;
+  --signal-amber-tint: #FFFAEB;
+  --signal-amber-border: #FEDF89;
+
+  --signal-live: #17B26A;
+  --signal-live-text: #067647;
+  --signal-live-tint: #ECFDF3;
+  --signal-live-border: #ABEFC6;
+
+  --signal-info: #1570EF;
+  --signal-info-text: #175CD3;
+  --signal-info-tint: #EFF8FF;
+  --signal-info-border: #B2DDFF;
+
+  --signal-intermission: #6938EF;
+  --signal-intermission-text: #5925DC;
+  --signal-intermission-tint: #F4F3FF;
+  --signal-intermission-border: #D9D6FE;
+}
+
+.spectator-shell .spectator-red-bay {
+  background: linear-gradient(90deg, var(--drone-red-wash) 0%, var(--court-surface) 75%);
+}
+
+.spectator-shell .spectator-blue-bay {
+  background: linear-gradient(90deg, var(--drone-blue-wash) 0%, var(--court-surface) 75%);
+}
+
+@media (min-width: 768px) {
+  .spectator-shell .spectator-blue-bay {
+    background: linear-gradient(270deg, var(--drone-blue-wash) 0%, var(--court-surface) 75%);
+  }
+}
+
+.spectator-shell :is(a, button, input, select):focus-visible {
+  outline: 2px solid var(--drone-blue);
+  outline-offset: 2px;
+}
+
+.spectator-numeral {
+  font-family: 'Barlow Condensed', 'Outfit', sans-serif;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spectator-shell *,
+  .spectator-shell *::before,
+  .spectator-shell *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
