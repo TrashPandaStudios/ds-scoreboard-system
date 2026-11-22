@@ -57,17 +57,18 @@ RUN mkdir -p /data /app/logs && chmod 777 /data
 
 # Default environment variables
 ENV SERVER_PORT=8080 \
-    PUBLIC_ENABLED=true \
-    PUBLIC_PORT=8081 \
-    PUBLIC_LOCKDOWN_CLOUDFLARE_HEADERS=true \
-    PUBLIC_SITE_URL="" \
-    DATABASE_PATH=/data/scoreboard.db \
-    SERIAL_ENABLED=true \
-    SERIAL_PORT=/dev/ttyUSB0 \
-    SERIAL_BAUD_RATE=9600 \
-    SERIAL_PULSE_MS=800 \
-    SPRING_PROFILES_ACTIVE=prod \
-    JAVA_OPTS="-Xms256m -Xmx512m -XX:+UseG1GC"
+  PUBLIC_ENABLED=true \
+  PUBLIC_PORT=8081 \
+  PUBLIC_LOCKDOWN_CLOUDFLARE_HEADERS=true \
+  CLOUDFLARE_TUNNEL_TOKEN="" \
+  PUBLIC_SITE_URL="" \
+  DATABASE_PATH=/data/scoreboard.db \
+  SERIAL_ENABLED=true \
+  SERIAL_PORT=/dev/ttyUSB0 \
+  SERIAL_BAUD_RATE=9600 \
+  SERIAL_PULSE_MS=800 \
+  SPRING_PROFILES_ACTIVE=prod \
+  JAVA_OPTS="-Xms256m -Xmx512m -XX:+UseG1GC"
 
 # Copy built JAR from builder stage and cloudflared binary
 COPY --from=backend-builder /app/backend/target/scoreboard-engine-*.jar /app/scoreboard-engine.jar
