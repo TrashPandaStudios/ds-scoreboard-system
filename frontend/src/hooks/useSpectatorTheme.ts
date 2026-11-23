@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from 'react';
 export type SpectatorTheme = 'dark' | 'light';
 
 const STORAGE_KEY = 'ds-public-theme';
+const THEME_EVENT = 'ds-theme-change';
 
 function readInitialTheme(): SpectatorTheme {
   if (typeof window === 'undefined') return 'dark';
@@ -17,8 +18,22 @@ function readInitialTheme(): SpectatorTheme {
   return 'dark';
 }
 
+function applyThemeToDocument(theme: SpectatorTheme) {
+  if (typeof document !== 'undefined') {
+    document.documentElement.setAttribute('data-theme', theme);
+  }
+}
+
 export function useSpectatorTheme() {
-  const [theme, setTheme] = useState<SpectatorTheme>(readInitialTheme);
+  const [theme, setTheme] = useState<SpectatorTheme>(() => {
+    const initial = readInitialTheme();
+    applyThemeToDocument(initial);
+    return initial;
+  });
+
+  useEffect(() => {
+    applyThemeToDocument(theme);
+  }, [theme]);
 
   const toggleTheme = useCallback(() => {
     setTheme((prev) => {
@@ -28,6 +43,8 @@ export function useSpectatorTheme() {
       } catch {
         // Ignore storage errors
       }
+      applyThemeToDocument(next);
+      window.dispatchEvent(new CustomEvent<SpectatorTheme>(THEME_EVENT, { detail: next }));
       return next;
     });
   }, []);
@@ -38,8 +55,18 @@ export function useSpectatorTheme() {
         setTheme(e.newValue);
       }
     };
+    const handleCustom = (e: Event) => {
+      const detail = (e as CustomEvent<SpectatorTheme>).detail;
+      if (detail === 'dark' || detail === 'light') {
+        setTheme(detail);
+      }
+    };
     window.addEventListener('storage', handleStorage);
-    return () => window.removeEventListener('storage', handleStorage);
+    window.addEventListener(THEME_EVENT, handleCustom);
+    return () => {
+      window.removeEventListener('storage', handleStorage);
+      window.removeEventListener(THEME_EVENT, handleCustom);
+    };
   }, []);
 
   return { theme, toggleTheme };

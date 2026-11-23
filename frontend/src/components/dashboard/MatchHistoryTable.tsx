@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { MatchRecord } from '../../types/scoreboard';
-import { Search, Download, Trophy, ChevronDown, ChevronUp, History } from 'lucide-react';
+import { Search, Download, Trophy, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface MatchHistoryTableProps {
   matches: MatchRecord[];
@@ -11,6 +11,8 @@ export const MatchHistoryTable: React.FC<MatchHistoryTableProps> = ({ matches })
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedArena, setSelectedArena] = useState<string>('ALL');
   const [expandedMatchId, setExpandedMatchId] = useState<number | null>(null);
+
+  const arenaIds = Array.from(new Set(matches.map((m) => m.arenaId))).sort((a, b) => a - b);
 
   const filteredMatches = matches.filter((m) => {
     const matchesSearch =
@@ -25,7 +27,18 @@ export const MatchHistoryTable: React.FC<MatchHistoryTableProps> = ({ matches })
   });
 
   const exportCSV = () => {
-    const headers = ['Match ID', 'Match Number', 'Arena ID', 'Team Red', 'Team Blue', 'Red Sets', 'Blue Sets', 'Winner', 'Status', 'Date'];
+    const headers = [
+      'Match ID',
+      'Match Number',
+      'Arena ID',
+      'Team Red',
+      'Team Blue',
+      'Red Sets',
+      'Blue Sets',
+      'Winner',
+      'Status',
+      'Date',
+    ];
     const rows = filteredMatches.map((m) => [
       m.id,
       m.matchNumber,
@@ -50,144 +63,167 @@ export const MatchHistoryTable: React.FC<MatchHistoryTableProps> = ({ matches })
   };
 
   return (
-    <div className="flex flex-col gap-4 p-6 rounded-3xl bg-slate-900/90 border-2 border-slate-800 shadow-xl">
+    <div className="flex flex-col rounded-2xl bg-[var(--court-surface)] border border-[var(--court-line)] overflow-hidden">
       {/* Header & Controls */}
-      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-800 pb-4">
-        <div className="flex items-center gap-2.5">
-          <History className="w-5 h-5 text-cyan-400" />
-          <h3 className="text-lg font-display font-bold text-white">Match History &amp; Auditing Log</h3>
-        </div>
+      <div className="px-5 py-4 bg-[var(--court-subtle)] border-b border-[var(--court-line-soft)] flex flex-wrap items-center justify-between gap-3">
+        <h3 className="text-base font-bold text-[var(--court-ink)]">Match history &amp; audit log</h3>
 
-        <div className="flex flex-wrap items-center gap-3">
-          {/* Search Box */}
+        <div className="flex flex-wrap items-center gap-2">
           <div className="relative">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <Search className="w-4 h-4 text-[var(--court-muted)] absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
-              placeholder="Search team or match..."
+              placeholder="Search team or match"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-9 pr-4 py-1.5 rounded-xl bg-slate-950 border border-slate-700 text-xs font-mono text-white focus:outline-none focus:border-cyan-500 w-52"
+              className="pl-9 pr-3 py-1.5 rounded-lg bg-[var(--court-surface)] border border-[var(--court-line)] text-xs text-[var(--court-ink)] placeholder:text-[var(--court-muted)] w-52"
             />
           </div>
 
-          {/* Arena Filter */}
           <select
             value={selectedArena}
             onChange={(e) => setSelectedArena(e.target.value)}
-            className="px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-700 text-xs font-mono text-slate-300 focus:outline-none focus:border-cyan-500"
+            className="px-3 py-1.5 rounded-lg bg-[var(--court-surface)] border border-[var(--court-line)] text-xs text-[var(--court-ink)]"
           >
-            <option value="ALL">All Arenas</option>
-            <option value="1">Arena 1</option>
-            <option value="2">Arena 2</option>
-            <option value="3">Arena 3</option>
+            <option value="ALL">All cages</option>
+            {(arenaIds.length > 0 ? arenaIds : [1, 2, 3]).map((id) => (
+              <option key={id} value={String(id)}>
+                Cage {id}
+              </option>
+            ))}
           </select>
 
-          {/* CSV Export */}
           <button
+            type="button"
             onClick={exportCSV}
-            className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 text-xs font-mono font-bold flex items-center gap-1.5 transition-colors"
+            className="px-3 py-1.5 rounded-lg bg-[var(--court-control-bg)] hover:bg-[var(--court-control-hover)] text-[var(--court-ink)] border border-[var(--court-line)] text-xs font-semibold inline-flex items-center gap-1.5 transition-colors"
           >
             <Download className="w-3.5 h-3.5" />
-            <span>EXPORT CSV</span>
+            <span>Export CSV</span>
           </button>
         </div>
       </div>
 
       {/* Matches Table */}
       <div className="overflow-x-auto">
-        <table className="w-full text-left text-xs font-mono">
+        <table className="w-full text-left text-xs">
           <thead>
-            <tr className="border-b border-slate-800 text-slate-400 uppercase tracking-wider">
-              <th className="py-3 px-4">Match #</th>
-              <th className="py-3 px-4">Arena</th>
-              <th className="py-3 px-4">Red Team</th>
-              <th className="py-3 px-4">Sets</th>
-              <th className="py-3 px-4">Blue Team</th>
-              <th className="py-3 px-4">Winner</th>
-              <th className="py-3 px-4">Status</th>
-              <th className="py-3 px-4 text-right">Details</th>
+            <tr className="border-b border-[var(--court-line-soft)] text-[var(--court-muted)] bg-[var(--court-subtle)]">
+              <th className="py-3 px-4 font-semibold">Match</th>
+              <th className="py-3 px-4 font-semibold">Cage</th>
+              <th className="py-3 px-4 font-semibold">Red team</th>
+              <th className="py-3 px-4 font-semibold">Sets</th>
+              <th className="py-3 px-4 font-semibold">Blue team</th>
+              <th className="py-3 px-4 font-semibold">Winner</th>
+              <th className="py-3 px-4 font-semibold">Status</th>
+              <th className="py-3 px-4 font-semibold text-right">Sets detail</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-800/60">
+          <tbody className="divide-y divide-[var(--court-line-soft)]">
             {filteredMatches.map((m) => {
               const isExpanded = expandedMatchId === m.id;
 
               return (
                 <React.Fragment key={m.id}>
-                  <tr className="hover:bg-slate-800/40 transition-colors">
-                    <td className="py-3.5 px-4 font-bold text-cyan-400">{m.matchNumber}</td>
-                    <td className="py-3.5 px-4 text-slate-300">Cage {m.arenaId}</td>
-                    <td className="py-3.5 px-4 font-bold text-red-400">{m.teamRed}</td>
-                    <td className="py-3.5 px-4 font-bold text-white">
-                      {m.redSetScore} - {m.blueSetScore}
+                  <tr className="hover:bg-[var(--court-hover)] transition-colors">
+                    <td className="py-3 px-4 font-bold text-[var(--court-ink)]">{m.matchNumber}</td>
+                    <td className="py-3 px-4 text-[var(--court-muted)]">Cage {m.arenaId}</td>
+                    <td className="py-3 px-4 font-semibold" style={{ color: 'var(--drone-red-text)' }}>
+                      {m.teamRed}
                     </td>
-                    <td className="py-3.5 px-4 font-bold text-blue-400">{m.teamBlue}</td>
-                    <td className="py-3.5 px-4">
+                    <td className="py-3 px-4 spectator-numeral text-lg font-extrabold text-[var(--court-ink)]">
+                      {m.redSetScore} – {m.blueSetScore}
+                    </td>
+                    <td className="py-3 px-4 font-semibold" style={{ color: 'var(--drone-blue-text)' }}>
+                      {m.teamBlue}
+                    </td>
+                    <td className="py-3 px-4">
                       {m.winner ? (
                         <span
-                          className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                          className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold border"
+                          style={
                             m.winner === 'RED'
-                              ? 'bg-red-500/20 text-red-400 border border-red-500/40'
+                              ? {
+                                  backgroundColor: 'var(--drone-red-tint)',
+                                  color: 'var(--drone-red-text)',
+                                  borderColor: 'var(--drone-red-border)',
+                                }
                               : m.winner === 'BLUE'
-                              ? 'bg-blue-500/20 text-blue-400 border border-blue-500/40'
-                              : 'bg-slate-800 text-slate-300'
-                          }`}
+                              ? {
+                                  backgroundColor: 'var(--drone-blue-tint)',
+                                  color: 'var(--drone-blue-text)',
+                                  borderColor: 'var(--drone-blue-border)',
+                                }
+                              : {
+                                  backgroundColor: 'var(--court-control-bg)',
+                                  color: 'var(--court-ink-secondary)',
+                                  borderColor: 'var(--court-line)',
+                                }
+                          }
                         >
                           <Trophy className="w-3 h-3" />
-                          <span>{m.winner}</span>
+                          <span>{m.winner === 'RED' ? 'Red' : m.winner === 'BLUE' ? 'Blue' : m.winner}</span>
                         </span>
                       ) : (
-                        <span className="text-slate-500">-</span>
+                        <span className="text-[var(--court-muted)]">–</span>
                       )}
                     </td>
-                    <td className="py-3.5 px-4">
-                      <span className="px-2 py-0.5 rounded text-[10px] bg-slate-800 text-slate-300">
+                    <td className="py-3 px-4">
+                      <span className="px-2 py-0.5 rounded-md text-[11px] font-medium bg-[var(--court-control-bg)] text-[var(--court-ink-secondary)]">
                         {m.status}
                       </span>
                     </td>
-                    <td className="py-3.5 px-4 text-right">
+                    <td className="py-3 px-4 text-right">
                       <button
+                        type="button"
                         onClick={() => setExpandedMatchId(isExpanded ? null : m.id)}
-                        className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors"
+                        className="p-1.5 rounded-lg bg-[var(--court-control-bg)] hover:bg-[var(--court-control-hover)] text-[var(--court-ink-secondary)] transition-colors"
                       >
                         {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                       </button>
                     </td>
                   </tr>
 
-                  {/* Expanded Set Breakdown Row */}
                   {isExpanded && m.setRecords && m.setRecords.length > 0 && (
-                    <tr className="bg-slate-950/60">
+                    <tr className="bg-[var(--court-subtle)]">
                       <td colSpan={8} className="p-4">
-                        <div className="bg-slate-900/80 p-4 rounded-2xl border border-slate-800">
-                          <h4 className="text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
-                            Set-by-Set Granular Breakdown:
-                          </h4>
-                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                            {m.setRecords.map((set) => (
-                              <div
-                                key={set.id}
-                                className="p-3 rounded-xl bg-slate-950 border border-slate-800 text-xs"
-                              >
-                                <div className="flex justify-between items-center mb-1 text-slate-400">
-                                  <span className="font-bold">SET {set.setNumber}</span>
-                                  <span>Winner: {set.winner}</span>
-                                </div>
-                                <div className="flex justify-between items-center font-bold text-sm">
-                                  <span className="text-red-400">
-                                    {set.redScore} pts ({set.redPenalties} penalties)
-                                  </span>
-                                  <span className="text-slate-600">vs</span>
-                                  <span className="text-blue-400">
-                                    {set.blueScore} pts ({set.bluePenalties} penalties)
-                                  </span>
-                                </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                          {m.setRecords.map((set) => (
+                            <div
+                              key={set.id}
+                              className="p-3 rounded-lg bg-[var(--court-surface)] border border-[var(--court-line-soft)]"
+                            >
+                              <div className="flex justify-between items-center mb-1.5 text-xs text-[var(--court-muted)]">
+                                <span className="font-bold text-[var(--court-ink)]">Set {set.setNumber}</span>
+                                <span>
+                                  {set.winner === 'RED'
+                                    ? 'Red won'
+                                    : set.winner === 'BLUE'
+                                    ? 'Blue won'
+                                    : 'Draw'}
+                                </span>
                               </div>
-                            ))}
-                          </div>
-                          {m.notes && <p className="text-xs text-slate-400 mt-2 italic">Notes: {m.notes}</p>}
+                              <div className="flex justify-between items-baseline">
+                                <span className="spectator-numeral text-2xl font-extrabold text-[var(--drone-red)]">
+                                  {set.redScore}
+                                  <span className="text-xs font-sans text-[var(--court-muted)] ml-1">
+                                    ({set.redPenalties}P)
+                                  </span>
+                                </span>
+                                <span className="text-xs text-[var(--court-muted)]">to</span>
+                                <span className="spectator-numeral text-2xl font-extrabold text-[var(--drone-blue)]">
+                                  {set.blueScore}
+                                  <span className="text-xs font-sans text-[var(--court-muted)] ml-1">
+                                    ({set.bluePenalties}P)
+                                  </span>
+                                </span>
+                              </div>
+                            </div>
+                          ))}
                         </div>
+                        {m.notes && (
+                          <p className="text-xs text-[var(--court-muted)] mt-2.5">Notes: {m.notes}</p>
+                        )}
                       </td>
                     </tr>
                   )}
@@ -197,8 +233,8 @@ export const MatchHistoryTable: React.FC<MatchHistoryTableProps> = ({ matches })
 
             {filteredMatches.length === 0 && (
               <tr>
-                <td colSpan={8} className="py-8 text-center text-slate-500">
-                  No match records matching your filter criteria.
+                <td colSpan={8} className="py-10 text-center text-[var(--court-muted)]">
+                  No match records match your filter.
                 </td>
               </tr>
             )}

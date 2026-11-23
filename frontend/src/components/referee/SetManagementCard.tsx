@@ -1,5 +1,5 @@
 import React from 'react';
-import { Trophy, ArrowLeftRight, ChevronRight, ChevronLeft, RefreshCw, CheckCircle } from 'lucide-react';
+import { ArrowLeftRight, ChevronRight, ChevronLeft, RefreshCw, CheckCircle } from 'lucide-react';
 
 interface SetManagementCardProps {
   currentSet: number;
@@ -35,130 +35,164 @@ export const SetManagementCard: React.FC<SetManagementCardProps> = ({
   onConfirmMatchEnd,
 }) => {
   return (
-    <div className="flex flex-col gap-6 p-6 rounded-3xl bg-slate-900/90 border-2 border-slate-800 shadow-xl">
+    <div className="flex flex-col gap-5 p-6 rounded-2xl bg-[var(--court-surface)] border border-[var(--court-line)]">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-slate-800 pb-4">
-        <div className="flex items-center gap-2.5">
-          <Trophy className="w-5 h-5 text-amber-400" />
-          <h3 className="text-lg font-display font-bold text-white">
-            Set &amp; Side Management (Set {currentSet} of {maxSets})
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--court-line-soft)] pb-4">
+        <div>
+          <h3 className="text-base font-bold text-[var(--court-ink)]">
+            Set &amp; side management (Set {currentSet} of {maxSets})
           </h3>
         </div>
 
-        <div className="flex items-center gap-3 text-sm font-mono font-black">
-          <span className="text-red-400">RED: {redSetScore}</span>
-          <span className="text-slate-600">-</span>
-          <span className="text-blue-400">BLUE: {blueSetScore}</span>
+        <div className="flex items-center gap-2 text-sm font-bold tabular-nums">
+          <span style={{ color: 'var(--drone-red-text)' }}>Red: {redSetScore}</span>
+          <span className="text-[var(--court-muted)]">–</span>
+          <span style={{ color: 'var(--drone-blue-text)' }}>Blue: {blueSetScore}</span>
         </div>
       </div>
 
-      {/* Award Current Set Winner Buttons */}
-      <div className="flex flex-col gap-2">
-        <div className="flex items-center justify-between">
-          <span className="text-xs font-mono font-bold uppercase tracking-wider text-slate-400">
-            AWARD WINNER FOR SET {currentSet}:
+      {/* Award Set Winner */}
+      <div className="flex flex-col gap-2.5">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <span className="text-xs font-semibold text-[var(--court-muted)]">
+            Award winner for Set {currentSet}
           </span>
           {isMatchEnded ? (
-            <span className="text-xs font-mono text-amber-400 font-bold bg-amber-950/60 px-2.5 py-0.5 rounded border border-amber-800">
-              MATCH CONCLUDED
+            <span
+              className="text-xs font-semibold px-2.5 py-0.5 rounded-full border"
+              style={{
+                backgroundColor: 'var(--signal-amber-tint)',
+                borderColor: 'var(--signal-amber-border)',
+                color: 'var(--signal-amber-text)',
+              }}
+            >
+              Match concluded
             </span>
           ) : isSetAlreadyAwarded ? (
-            <span className="text-xs font-mono text-emerald-400 font-bold bg-emerald-950/60 px-2.5 py-0.5 rounded border border-emerald-800 flex items-center gap-1">
-              <span>✓ SET {currentSet} AWARDED ({currentSetWinner || 'CONFIRMED'})</span>
+            <span
+              className="text-xs font-semibold px-2.5 py-0.5 rounded-full border"
+              style={{
+                backgroundColor: 'var(--signal-live-tint)',
+                borderColor: 'var(--signal-live-border)',
+                color: 'var(--signal-live-text)',
+              }}
+            >
+              Set {currentSet} awarded ({currentSetWinner || 'Confirmed'})
             </span>
           ) : null}
         </div>
 
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
           <button
+            type="button"
             onClick={() => onAwardSet('RED')}
             disabled={isSetAlreadyAwarded || isMatchEnded}
-            className="py-3 px-4 rounded-xl bg-red-600 hover:bg-red-500 disabled:opacity-30 disabled:cursor-not-allowed text-white font-display font-bold text-sm shadow-md shadow-red-600/20 active:scale-95 transition-all"
+            className="py-3 px-4 rounded-xl text-white font-bold text-sm disabled:opacity-35 disabled:cursor-not-allowed transition-opacity hover:opacity-95"
+            style={{ backgroundColor: 'var(--drone-red-solid)' }}
           >
-            AWARD RED (+1 SET)
+            Award Red (+1 set)
           </button>
 
           <button
+            type="button"
             onClick={() => onAwardSet('BLUE')}
             disabled={isSetAlreadyAwarded || isMatchEnded}
-            className="py-3 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-30 disabled:cursor-not-allowed text-white font-display font-bold text-sm shadow-md shadow-blue-600/20 active:scale-95 transition-all"
+            className="py-3 px-4 rounded-xl text-white font-bold text-sm disabled:opacity-35 disabled:cursor-not-allowed transition-opacity hover:opacity-95"
+            style={{ backgroundColor: 'var(--drone-blue-solid)' }}
           >
-            AWARD BLUE (+1 SET)
+            Award Blue (+1 set)
           </button>
 
           <button
+            type="button"
             onClick={() => onAwardSet('TIE')}
             disabled={isSetAlreadyAwarded || isMatchEnded}
-            className="py-3 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed text-slate-300 font-display font-bold text-sm border border-slate-700 active:scale-95 transition-all"
+            className="py-3 px-4 rounded-xl bg-[var(--court-control-bg)] hover:bg-[var(--court-control-hover)] disabled:opacity-35 disabled:cursor-not-allowed text-[var(--court-ink)] font-bold text-sm border border-[var(--court-line)] transition-colors"
           >
-            RECORD TIE SET
+            Record tie set
           </button>
         </div>
 
         {isSetAlreadyAwarded && !isMatchEnded && (
-          <p className="text-[11px] font-mono text-slate-400 mt-0.5">
-            Set {currentSet} is already recorded. Click <strong className="text-cyan-400">Start Intermission Break</strong> above or <strong className="text-white">Next Set</strong> below to prepare Set {currentSet + 1}.
+          <p className="text-xs text-[var(--court-muted)]">
+            Set {currentSet} is recorded. Start intermission above or advance to Set {currentSet + 1} below.
           </p>
         )}
       </div>
 
-      {/* Set Controls & Side Swap */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2 border-t border-slate-800">
-        {/* Swap Arena Sides */}
+      {/* Navigation & Side Swap */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-4 border-t border-[var(--court-line-soft)]">
         <button
+          type="button"
           onClick={onSwapSides}
-          className={`py-2.5 px-3 rounded-xl text-xs font-mono font-bold flex items-center justify-center gap-2 border transition-all active:scale-95 ${
+          className="py-2.5 px-3 rounded-lg text-xs font-semibold inline-flex items-center justify-center gap-1.5 border transition-colors"
+          style={
             sideSwap
-              ? 'bg-purple-600/30 text-purple-300 border-purple-500/50 shadow-sm shadow-purple-500/20'
-              : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700'
-          }`}
+              ? {
+                  backgroundColor: 'var(--signal-intermission-tint)',
+                  borderColor: 'var(--signal-intermission-border)',
+                  color: 'var(--signal-intermission-text)',
+                }
+              : {
+                  backgroundColor: 'var(--court-control-bg)',
+                  borderColor: 'var(--court-line)',
+                  color: 'var(--court-ink)',
+                }
+          }
         >
-          <ArrowLeftRight className="w-4 h-4 text-purple-400" />
-          <span>SWAP SIDES ({sideSwap ? 'BLUE/RED' : 'RED/BLUE'})</span>
+          <ArrowLeftRight className="w-3.5 h-3.5" />
+          <span>Swap sides ({sideSwap ? 'Blue/Red' : 'Red/Blue'})</span>
         </button>
 
-        {/* Previous Set */}
         <button
+          type="button"
           onClick={onPrevSet}
           disabled={currentSet <= 1}
-          className="py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-mono font-bold flex items-center justify-center gap-1 border border-slate-700 disabled:opacity-40 transition-colors"
+          className="py-2.5 px-3 rounded-lg bg-[var(--court-control-bg)] hover:bg-[var(--court-control-hover)] text-[var(--court-ink)] text-xs font-semibold inline-flex items-center justify-center gap-1 border border-[var(--court-line)] disabled:opacity-40 transition-colors"
         >
           <ChevronLeft className="w-4 h-4" />
-          <span>PREV SET</span>
+          <span>Previous set</span>
         </button>
 
-        {/* Next Set */}
         <button
+          type="button"
           onClick={onNextSet}
           disabled={currentSet >= maxSets}
-          className="py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-mono font-bold flex items-center justify-center gap-1 border border-slate-700 disabled:opacity-40 transition-colors"
+          className="py-2.5 px-3 rounded-lg bg-[var(--court-control-bg)] hover:bg-[var(--court-control-hover)] text-[var(--court-ink)] text-xs font-semibold inline-flex items-center justify-center gap-1 border border-[var(--court-line)] disabled:opacity-40 transition-colors"
         >
-          <span>NEXT SET</span>
+          <span>Next set</span>
           <ChevronRight className="w-4 h-4" />
         </button>
 
-        {/* End & Save Match */}
         <button
+          type="button"
           onClick={onConfirmMatchEnd}
-          className="py-2.5 px-3 rounded-xl bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-300 text-xs font-mono font-bold flex items-center justify-center gap-1.5 border border-emerald-500/40 transition-colors"
+          className="py-2.5 px-3 rounded-lg border text-xs font-semibold inline-flex items-center justify-center gap-1.5 transition-colors"
+          style={{
+            backgroundColor: 'var(--signal-live-tint)',
+            borderColor: 'var(--signal-live-border)',
+            color: 'var(--signal-live-text)',
+          }}
         >
-          <CheckCircle className="w-4 h-4 text-emerald-400" />
-          <span>CONCLUDE &amp; SAVE</span>
+          <CheckCircle className="w-3.5 h-3.5" />
+          <span>Conclude &amp; save</span>
         </button>
       </div>
 
       {/* Full Match Reset */}
-      <div className="flex justify-end pt-2 border-t border-slate-800/80">
+      <div className="flex justify-end pt-3 border-t border-[var(--court-line-soft)]">
         <button
+          type="button"
           onClick={() => {
             if (window.confirm('Reset this entire match back to Set 1 and clear scores?')) {
               onResetMatch();
             }
           }}
-          className="text-xs font-mono text-rose-400 hover:text-rose-300 flex items-center gap-1 hover:underline"
+          className="text-xs font-semibold inline-flex items-center gap-1.5 hover:underline"
+          style={{ color: 'var(--drone-red-text)' }}
         >
           <RefreshCw className="w-3.5 h-3.5" />
-          <span>Reset Match to Set 1</span>
+          <span>Reset match to Set 1</span>
         </button>
       </div>
     </div>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Coffee, Clock, Check, X, Play, RotateCcw } from 'lucide-react';
+import { Clock, Check, X, Play } from 'lucide-react';
 
 interface IntermissionConfigModalProps {
   isOpen: boolean;
@@ -13,21 +13,19 @@ interface IntermissionConfigModalProps {
 }
 
 const PRESETS = [
-  { label: '45 SEC', seconds: 45 },
-  { label: '60 SEC (1 MIN)', seconds: 60 },
-  { label: '90 SEC (1.5 MIN)', seconds: 90 },
-  { label: '120 SEC (2 MIN)', seconds: 120 },
-  { label: '180 SEC (3 MIN)', seconds: 180 },
-  { label: '300 SEC (5 MIN)', seconds: 300 },
+  { label: '45s', seconds: 45 },
+  { label: '60s (1m)', seconds: 60 },
+  { label: '90s (1.5m)', seconds: 90 },
+  { label: '120s (2m)', seconds: 120 },
+  { label: '180s (3m)', seconds: 180 },
+  { label: '300s (5m)', seconds: 300 },
 ];
 
 export const IntermissionConfigModal: React.FC<IntermissionConfigModalProps> = ({
   isOpen,
   onClose,
-  arenaId,
   arenaName,
   currentDurationMs,
-  isIntermissionActive = false,
   onSaveDuration,
   onStartIntermission,
 }) => {
@@ -76,55 +74,51 @@ export const IntermissionConfigModal: React.FC<IntermissionConfigModalProps> = (
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn select-none">
-      <div className="relative w-full max-w-lg p-6 lg:p-8 rounded-3xl bg-slate-900/95 border-2 border-slate-700/80 shadow-2xl flex flex-col gap-6 text-slate-100">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm select-none"
+      style={{ backgroundColor: 'var(--court-overlay-backdrop)' }}
+    >
+      <div className="relative w-full max-w-lg p-6 rounded-2xl bg-[var(--court-surface)] border border-[var(--court-line)] shadow-2xl flex flex-col gap-5">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-800 pb-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 shadow-md shadow-amber-500/10">
-              <Coffee className="w-5 h-5" />
-            </div>
-            <div>
-              <span className="text-[10px] font-mono font-bold tracking-widest text-amber-400 uppercase block">
-                REFEREE ARENA CONFIGURATION
-              </span>
-              <h2 className="text-xl font-display font-black text-white">
-                Intermission Break Time — {arenaName}
-              </h2>
-            </div>
+        <div className="flex items-center justify-between border-b border-[var(--court-line-soft)] pb-4">
+          <div>
+            <h2 className="text-xl font-bold text-[var(--court-ink)]">Intermission break</h2>
+            <p className="text-xs text-[var(--court-muted)] mt-0.5">{arenaName}</p>
           </div>
           <button
+            type="button"
             onClick={onClose}
-            className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/80 transition-colors"
+            className="p-1.5 rounded-lg text-[var(--court-muted)] hover:text-[var(--court-ink)] hover:bg-[var(--court-control-bg)]"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Current & Target Duration Display */}
-        <div className="flex items-center justify-between p-4 rounded-2xl bg-slate-950/70 border border-slate-800">
-          <div className="flex flex-col">
-            <span className="text-xs font-mono text-slate-400">Current Arena Setting:</span>
-            <span className="text-sm font-mono font-bold text-slate-200">
+        {/* Summary */}
+        <div className="flex items-center justify-between p-4 rounded-xl bg-[var(--court-subtle)] border border-[var(--court-line-soft)]">
+          <div>
+            <span className="text-xs text-[var(--court-muted)] block">Current setting</span>
+            <span className="text-sm font-bold text-[var(--court-ink)] tabular-nums">
               {currentTotalSeconds}s ({formatDisplayTime(currentTotalSeconds)})
             </span>
           </div>
 
           <div className="text-right">
-            <span className="text-xs font-mono text-amber-400">Selected Break Duration:</span>
-            <div className="text-2xl font-mono font-black text-amber-300 tabular-nums">
+            <span className="text-xs text-[var(--court-muted)] block">Selected break</span>
+            <div
+              className="spectator-numeral text-3xl font-black leading-none mt-0.5"
+              style={{ color: 'var(--signal-amber-text)' }}
+            >
               {formatDisplayTime(selectedSeconds)}{' '}
-              <span className="text-xs text-slate-400 font-normal">({selectedSeconds}s)</span>
+              <span className="text-xs font-sans font-medium text-[var(--court-muted)]">({selectedSeconds}s)</span>
             </div>
           </div>
         </div>
 
-        {/* Presets Grid */}
+        {/* Presets */}
         <div className="flex flex-col gap-2">
-          <span className="text-xs font-mono text-slate-400 uppercase font-bold tracking-wider">
-            Quick Duration Presets:
-          </span>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+          <span className="text-xs font-semibold text-[var(--court-muted)]">Quick presets</span>
+          <div className="grid grid-cols-3 gap-2">
             {PRESETS.map((preset) => {
               const isSelected = selectedSeconds === preset.seconds;
               return (
@@ -132,11 +126,20 @@ export const IntermissionConfigModal: React.FC<IntermissionConfigModalProps> = (
                   key={preset.seconds}
                   type="button"
                   onClick={() => handleSelectPreset(preset.seconds)}
-                  className={`py-3 px-3 rounded-xl font-mono text-xs font-bold flex items-center justify-center gap-1.5 border transition-all active:scale-95 ${
+                  className="py-2.5 px-3 rounded-lg text-xs font-semibold inline-flex items-center justify-center gap-1.5 border tabular-nums transition-colors"
+                  style={
                     isSelected
-                      ? 'bg-amber-500/20 text-amber-300 border-amber-500/60 shadow-md shadow-amber-500/20'
-                      : 'bg-slate-800/80 hover:bg-slate-800 text-slate-300 hover:text-white border-slate-700/80'
-                  }`}
+                      ? {
+                          backgroundColor: 'var(--signal-amber-tint)',
+                          borderColor: 'var(--signal-amber-border)',
+                          color: 'var(--signal-amber-text)',
+                        }
+                      : {
+                          backgroundColor: 'var(--court-control-bg)',
+                          borderColor: 'var(--court-line)',
+                          color: 'var(--court-ink-secondary)',
+                        }
+                  }
                 >
                   <Clock className="w-3.5 h-3.5 opacity-70" />
                   <span>{preset.label}</span>
@@ -146,43 +149,39 @@ export const IntermissionConfigModal: React.FC<IntermissionConfigModalProps> = (
           </div>
         </div>
 
-        {/* Custom Input */}
-        <div className="flex flex-col gap-2 pt-2 border-t border-slate-800">
-          <span className="text-xs font-mono text-slate-400 uppercase font-bold tracking-wider">
-            Custom Intermission Time:
-          </span>
+        {/* Custom Time */}
+        <div className="flex flex-col gap-2 pt-3 border-t border-[var(--court-line-soft)]">
+          <span className="text-xs font-semibold text-[var(--court-muted)]">Custom duration</span>
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-1.5 bg-slate-950 px-3 py-2 rounded-xl border border-slate-700 focus-within:border-amber-500">
+            <div className="inline-flex items-center gap-1.5 bg-[var(--court-subtle)] px-3 py-2 rounded-lg border border-[var(--court-line)]">
               <input
                 type="number"
                 min="0"
                 max="59"
                 value={customMin}
                 onChange={(e) => handleCustomChange(e.target.value, customSec)}
-                className="w-12 bg-transparent text-center font-mono font-bold text-sm text-white focus:outline-none"
+                className="w-12 bg-transparent text-center font-bold text-sm text-[var(--court-ink)] tabular-nums focus:outline-none"
                 placeholder="0"
               />
-              <span className="text-slate-500 font-mono font-bold">m</span>
-              <span className="text-slate-600 font-bold">:</span>
+              <span className="text-xs text-[var(--court-muted)]">m</span>
+              <span className="text-[var(--court-muted)]">:</span>
               <input
                 type="number"
                 min="0"
                 max="59"
                 value={customSec}
                 onChange={(e) => handleCustomChange(customMin, e.target.value)}
-                className="w-12 bg-transparent text-center font-mono font-bold text-sm text-white focus:outline-none"
+                className="w-12 bg-transparent text-center font-bold text-sm text-[var(--court-ink)] tabular-nums focus:outline-none"
                 placeholder="00"
               />
-              <span className="text-slate-500 font-mono font-bold">s</span>
+              <span className="text-xs text-[var(--court-muted)]">s</span>
             </div>
-            <span className="text-xs font-mono text-slate-500">
-              Applies to upcoming set transitions &amp; break phases
-            </span>
+            <span className="text-xs text-[var(--court-muted)]">Applies to upcoming breaks on this cage.</span>
           </div>
         </div>
 
         {/* Actions */}
-        <div className="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-slate-800">
+        <div className="flex flex-wrap items-center justify-between gap-2 pt-4 border-t border-[var(--court-line-soft)]">
           {onStartIntermission && (
             <button
               type="button"
@@ -191,10 +190,15 @@ export const IntermissionConfigModal: React.FC<IntermissionConfigModalProps> = (
                 onStartIntermission();
                 onClose();
               }}
-              className="px-4 py-2.5 rounded-xl bg-amber-600/30 hover:bg-amber-600/50 text-amber-300 border border-amber-500/40 text-xs font-mono font-bold flex items-center gap-2 transition-all active:scale-95"
+              className="px-3.5 py-2 rounded-lg border text-xs font-semibold inline-flex items-center gap-1.5"
+              style={{
+                backgroundColor: 'var(--signal-intermission-tint)',
+                borderColor: 'var(--signal-intermission-border)',
+                color: 'var(--signal-intermission-text)',
+              }}
             >
               <Play className="w-3.5 h-3.5 fill-current" />
-              <span>SAVE &amp; START BREAK NOW</span>
+              <span>Save &amp; start break</span>
             </button>
           )}
 
@@ -202,17 +206,18 @@ export const IntermissionConfigModal: React.FC<IntermissionConfigModalProps> = (
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-mono font-bold transition-colors"
+              className="px-4 py-2 rounded-lg bg-[var(--court-control-bg)] hover:bg-[var(--court-control-hover)] text-[var(--court-ink-secondary)] text-xs font-semibold"
             >
-              CANCEL
+              Cancel
             </button>
             <button
               type="button"
               onClick={handleSave}
-              className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-mono font-black text-xs flex items-center gap-2 shadow-lg shadow-amber-500/20 transition-all active:scale-95"
+              className="px-4 py-2 rounded-lg text-white text-xs font-semibold inline-flex items-center gap-1.5"
+              style={{ backgroundColor: 'var(--signal-amber-solid)' }}
             >
-              <Check className="w-4 h-4 stroke-[3]" />
-              <span>APPLY SETTING</span>
+              <Check className="w-4 h-4" />
+              <span>Apply setting</span>
             </button>
           </div>
         </div>

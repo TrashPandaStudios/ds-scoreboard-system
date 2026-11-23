@@ -4,12 +4,13 @@ import { useArenaStore } from '../../store/arenaStore';
 import { useArenaWebSocket } from '../../hooks/useArenaWebSocket';
 import { useAuthoritativeTimer } from '../../hooks/useAuthoritativeTimer';
 import { useAudioBuzzer } from '../../hooks/useAudioBuzzer';
+import { useSpectatorTheme } from '../../hooks/useSpectatorTheme';
 import { HeaderNav } from '../../components/common/HeaderNav';
 import { PenaltyPips } from '../../components/display/PenaltyPips';
 import { SetTracker } from '../../components/display/SetTracker';
 import { PhaseAlertBanner } from '../../components/display/PhaseAlertBanner';
 import { SetWinnerTakeoverModal } from '../../components/display/SetWinnerTakeoverModal';
-import { Shield, Target, Trophy, Maximize, Minimize } from 'lucide-react';
+import { Trophy, Maximize, Minimize, Sun, Moon } from 'lucide-react';
 import { TeamBadge } from '../../components/common/TeamBadge';
 
 export const SplitTeamsDisplay: React.FC = () => {
@@ -19,6 +20,7 @@ export const SplitTeamsDisplay: React.FC = () => {
   useArenaWebSocket(arenaId);
   const { arenaStates, activeBuzzerArenaId, buzzerTriggerTimestamp } = useArenaStore();
   const { playBuzzer } = useAudioBuzzer();
+  const { theme, toggleTheme } = useSpectatorTheme();
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   const state = arenaStates[arenaId] || {
@@ -39,7 +41,7 @@ export const SplitTeamsDisplay: React.FC = () => {
     timeRemainingMs: 180000,
     totalSetDurationMs: 180000,
     timerRunning: false,
-    phase: 'NORMAL_PHASE',
+    phase: 'NORMAL_PHASE' as const,
     sideSwap: false,
     completedSets: [],
   };
@@ -48,6 +50,7 @@ export const SplitTeamsDisplay: React.FC = () => {
     serverRemainingMs: state.timeRemainingMs,
     totalDurationMs: state.totalSetDurationMs,
     timerRunning: state.timerRunning,
+    phase: state.phase,
   });
 
   const isBuzzerFiring =
@@ -61,140 +64,147 @@ export const SplitTeamsDisplay: React.FC = () => {
 
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen().catch(() => { });
+      document.documentElement.requestFullscreen().catch(() => {});
       setIsFullscreen(true);
     } else {
-      document.exitFullscreen().catch(() => { });
+      document.exitFullscreen().catch(() => {});
       setIsFullscreen(false);
     }
   };
 
-  const isPenaltyPhase = state.phase === 'PENALTY_PHASE';
-  const isLowTime = currentMs <= 10000 && currentMs > 0;
+  const isPenaltyPhase = state.phase === 'PENALTY_PHASE' || state.phase === 'SUDDEN_DEATH';
+  const isLowTime = state.phase !== 'SUDDEN_DEATH' && currentMs <= 10000 && currentMs > 0;
 
   const leftTeam = state.sideSwap ? 'blue' : 'red';
   const rightTeam = state.sideSwap ? 'red' : 'blue';
-  const leftTeamName = leftTeam === 'red' ? state.teamRed : state.teamBlue;
-  const rightTeamName = rightTeam === 'red' ? state.teamRed : state.teamBlue;
-  const leftTeamLogo = leftTeam === 'red' ? state.teamRedLogoUrl : state.teamBlueLogoUrl;
-  const rightTeamLogo = rightTeam === 'red' ? state.teamRedLogoUrl : state.teamBlueLogoUrl;
 
-  return (
-    <div
-      className={`h-screen max-h-screen w-full bg-[#080b11] text-slate-100 flex flex-col select-none overflow-hidden ${isBuzzerFiring ? 'buzzer-active-flash' : ''
+  const renderSidePanel = (side: 'red' | 'blue') => {
+    const isRed = side === 'red';
+    const name = isRed ? state.teamRed : state.teamBlue;
+    const logo = isRed ? state.teamRedLogoUrl : state.teamBlueLogoUrl;
+    const score = isRed ? state.redScore : state.blueScore;
+    const penalties = isRed ? state.redPenalties : state.bluePenalties;
+    const sets = isRed ? state.redSetScore : state.blueSetScore;
+
+    return (
+      <div
+        className={`flex-[1.1] min-w-0 h-full flex flex-col justify-between p-5 sm:p-6 rounded-2xl border border-[var(--court-line)] overflow-hidden ${
+          isRed
+            ? 'spectator-red-vertical border-t-4 border-t-[var(--drone-red)]'
+            : 'spectator-blue-vertical border-t-4 border-t-[var(--drone-blue)]'
         }`}
-    >
-      <HeaderNav arenaId={arenaId} variant="display" />
-
-      <main className="flex-1 min-h-0 h-full flex flex-col justify-between px-3 sm:px-6 lg:px-8 py-2 sm:py-3 w-full relative overflow-hidden">
-        {/* Fullscreen Button */}
-        <button
-          onClick={toggleFullscreen}
-          className="absolute top-2 right-3 sm:top-3 sm:right-6 z-40 p-2 sm:p-2.5 rounded-2xl bg-slate-900/80 hover:bg-slate-800 text-slate-400 hover:text-white border border-slate-700 transition-colors shadow-lg"
-          title="Toggle Fullscreen Split View"
-        >
-          {isFullscreen ? <Minimize className="w-4 h-4 sm:w-5 sm:h-5" /> : <Maximize className="w-4 h-4 sm:w-5 sm:h-5" />}
-        </button>
-
-        {/* Top Header: Phase & Cage Info */}
-        <div className="flex flex-col items-center gap-1 shrink-0 mb-1 sm:mb-2">
-          <div className="text-center">
-            <span className="text-[10px] sm:text-xs font-mono tracking-widest text-cyan-400 font-bold uppercase">
-              {state.arenaName} • MATCH {state.matchNumber}
-            </span>
+      >
+        <div className="flex items-center justify-between border-b border-[var(--court-line-soft)] pb-3 shrink-0">
+          <div className="flex items-center gap-3 min-w-0">
+            <TeamBadge teamName={name} logoUrl={logo} side={side} size="lg" />
+            <div className="min-w-0">
+              <span
+                className="text-xs font-bold block"
+                style={{ color: isRed ? 'var(--drone-red-text)' : 'var(--drone-blue-text)' }}
+              >
+                {isRed ? 'Red team' : 'Blue team'}
+              </span>
+              <h2 className="spectator-numeral text-3xl lg:text-4xl font-black text-[var(--court-ink)] leading-tight truncate">
+                {name}
+              </h2>
+            </div>
           </div>
-          <div className="w-full max-w-2xl">
-            <PhaseAlertBanner phase={state.phase} currentSet={state.currentSet} />
+
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[var(--court-subtle)] border border-[var(--court-line)] shrink-0">
+            <Trophy className="w-4 h-4" style={{ color: 'var(--signal-amber)' }} />
+            <span className="spectator-numeral text-2xl font-black text-[var(--court-ink)] leading-none">
+              {sets} {sets === 1 ? 'set' : 'sets'}
+            </span>
           </div>
         </div>
 
-        {/* Center: High-Impact Side-by-Side Dual Team Monitor */}
-        <div className="flex flex-col lg:flex-row gap-3 sm:gap-4 lg:gap-6 items-stretch justify-center w-full h-full flex-1 min-h-0 my-1 sm:my-2">
-          {/* Left Team Side */}
+        <div className="flex-1 min-h-0 flex items-center justify-center my-auto w-full py-2">
           <div
-            className={`flex-[1.1] min-w-0 h-full flex flex-col justify-between p-4 sm:p-6 lg:p-7 rounded-3xl border-2 transition-all ${leftTeam === 'red'
-                ? 'bg-gradient-to-b from-red-950/50 via-slate-900/90 to-slate-950/95 border-red-500/40 box-glow-red'
-                : 'bg-gradient-to-b from-blue-950/50 via-slate-900/90 to-slate-950/95 border-blue-500/40 box-glow-blue'
-              }`}
+            className="spectator-numeral font-black text-[clamp(7rem,16vw,22rem)] leading-none select-none"
+            style={{ color: isRed ? 'var(--drone-red)' : 'var(--drone-blue)' }}
           >
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3 sm:pb-4 shrink-0">
-              <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
-                <TeamBadge
-                  teamName={leftTeamName}
-                  logoUrl={leftTeamLogo}
-                  side={leftTeam}
-                  size="lg"
-                  className="rounded-2xl shrink-0"
-                />
-                <div className="min-w-0">
-                  <span
-                    className={`text-[10px] sm:text-xs font-mono font-black uppercase tracking-wider ${leftTeam === 'red' ? 'text-red-400' : 'text-blue-400'
-                      }`}
-                  >
-                    {leftTeam === 'red' ? 'RED TEAM' : 'BLUE TEAM'}
-                  </span>
-                  <h2 className="text-xl sm:text-2xl lg:text-3xl font-display font-black text-white truncate">
-                    {leftTeam === 'red' ? state.teamRed : state.teamBlue}
-                  </h2>
-                </div>
-              </div>
+            {score}
+          </div>
+        </div>
 
-              <div className="flex items-center gap-1.5 text-[10px] sm:text-xs font-mono bg-slate-900 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl border border-slate-800 shrink-0">
-                <Target className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-cyan-400" />
-                <span>STRIKER #1</span>
-              </div>
-            </div>
+        <div className="flex items-center justify-between border-t border-[var(--court-line-soft)] pt-3 shrink-0">
+          <PenaltyPips count={penalties} team={side} size="xl" label="Penalties" />
+        </div>
+      </div>
+    );
+  };
 
-            {/* Score */}
-            <div className="flex-1 min-h-0 flex items-center justify-center my-auto w-full py-2">
-              <div
-                className={`font-display font-black text-[clamp(6rem,14vw,22rem)] leading-none tabular-nums select-none ${leftTeam === 'red' ? 'text-red-500 glow-red' : 'text-blue-400 glow-blue'
-                  }`}
-              >
-                {leftTeam === 'red' ? state.redScore : state.blueScore}
-              </div>
-            </div>
+  return (
+    <div
+      className={`app-shell h-screen max-h-screen w-full flex flex-col select-none overflow-hidden ${
+        isBuzzerFiring ? 'buzzer-active-flash' : ''
+      }`}
+    >
+      <HeaderNav arenaId={arenaId} variant="display" />
 
-            {/* Footer: Penalties & Sets Won */}
-            <div className="flex items-center justify-between border-t border-slate-800 pt-3 sm:pt-4 shrink-0 flex-wrap gap-2">
-              <PenaltyPips
-                count={leftTeam === 'red' ? state.redPenalties : state.bluePenalties}
-                team={leftTeam}
-                size="xl"
-              />
-              <div className="flex items-center gap-2 sm:gap-2.5 text-lg sm:text-2xl lg:text-3xl font-mono text-amber-300 font-black bg-amber-950/30 px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl border-2 border-amber-500/40 shadow-[0_0_18px_rgba(245,158,11,0.25)]">
-                <Trophy className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-amber-400 shrink-0" />
-                <span className="tabular-nums tracking-wider">SETS: {leftTeam === 'red' ? state.redSetScore : state.blueSetScore}</span>
-              </div>
-            </div>
+      <main className="flex-1 min-h-0 h-full flex flex-col justify-between px-3 sm:px-6 lg:px-8 py-3 w-full relative overflow-hidden gap-3">
+        {/* Top Bar */}
+        <div className="flex flex-wrap items-center justify-between gap-3 shrink-0">
+          <div className="flex items-center gap-2.5">
+            <span className="text-sm font-bold text-[var(--court-ink)]">{state.arenaName}</span>
+            <span className="text-xs font-bold px-2.5 py-0.5 rounded-md bg-[var(--court-surface)] border border-[var(--court-line)]">
+              Match {state.matchNumber}
+            </span>
           </div>
 
-          {/* Center Dividing HUD: Clock & Set Tracker */}
-          <div className="flex-[0.9] lg:flex-1 min-w-0 h-full flex flex-col justify-between items-center p-4 sm:p-6 rounded-3xl bg-slate-900/90 border-2 border-slate-800 shadow-2xl">
-            <div className="w-full flex items-center justify-between border-b border-slate-800 pb-2 shrink-0">
-              <span className="text-[10px] sm:text-xs font-mono font-black text-cyan-400 tracking-widest uppercase">
-                MATCH CLOCK
-              </span>
-              <span className="text-[10px] sm:text-xs font-mono text-slate-400 font-bold uppercase">
-                SET {state.currentSet} OF {state.maxSets}
+          <div className="flex-1 max-w-xl mx-auto">
+            <PhaseAlertBanner phase={state.phase} currentSet={state.currentSet} maxSets={state.maxSets} />
+          </div>
+
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button
+              type="button"
+              onClick={toggleTheme}
+              aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
+              className="p-2 rounded-lg bg-[var(--court-surface)] hover:bg-[var(--court-control-hover)] text-[var(--court-ink-secondary)] border border-[var(--court-line)]"
+            >
+              {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            </button>
+            <button
+              type="button"
+              onClick={toggleFullscreen}
+              className="p-2 rounded-lg bg-[var(--court-surface)] hover:bg-[var(--court-control-hover)] text-[var(--court-ink-secondary)] border border-[var(--court-line)]"
+              title="Toggle fullscreen"
+            >
+              {isFullscreen ? <Minimize className="w-4 h-4" /> : <Maximize className="w-4 h-4" />}
+            </button>
+          </div>
+        </div>
+
+        {/* Side-by-Side Dual Team Monitor */}
+        <div className="flex flex-col lg:flex-row gap-3 sm:gap-4 items-stretch justify-center w-full h-full flex-1 min-h-0">
+          {renderSidePanel(leftTeam)}
+
+          {/* Center Clock Column */}
+          <div className="flex-[0.9] lg:flex-1 min-w-0 h-full flex flex-col justify-between items-center p-5 rounded-2xl bg-[var(--court-surface)] border border-[var(--court-line)]">
+            <div className="w-full flex items-center justify-between border-b border-[var(--court-line-soft)] pb-2 text-xs font-semibold shrink-0">
+              <span className="text-[var(--court-ink)]">Match clock</span>
+              <span className="text-[var(--court-muted)]">
+                Set {state.currentSet} of {state.maxSets}
               </span>
             </div>
 
             <div className="flex-1 min-h-0 flex items-center justify-center my-auto w-full py-2">
               <span
-                className={`font-mono font-black text-[clamp(3.5rem,6.5vw,9.5rem)] tabular-nums leading-none whitespace-nowrap ${isPenaltyPhase
-                    ? 'text-amber-400 glow-amber'
+                className="spectator-numeral font-black text-[clamp(4rem,8vw,10rem)] leading-none whitespace-nowrap"
+                style={{
+                  color: isPenaltyPhase
+                    ? 'var(--signal-amber-text)'
                     : isLowTime
-                      ? 'text-rose-400 glow-red animate-pulse'
-                      : 'text-white'
-                  }`}
+                    ? 'var(--drone-red)'
+                    : 'var(--court-ink)',
+                }}
               >
                 {isLowTime ? formattedWithTenths : formattedTime}
               </span>
             </div>
 
-            {/* Set Progression */}
-            <div className="w-full pt-3 border-t border-slate-800 flex flex-col items-center gap-1.5 shrink-0">
+            <div className="w-full pt-3 border-t border-[var(--court-line-soft)] flex justify-center shrink-0">
               <SetTracker
                 currentSet={state.currentSet}
                 maxSets={state.maxSets}
@@ -205,78 +215,16 @@ export const SplitTeamsDisplay: React.FC = () => {
             </div>
           </div>
 
-          {/* Right Team Side */}
-          <div
-            className={`flex-[1.1] min-w-0 h-full flex flex-col justify-between p-4 sm:p-6 lg:p-7 rounded-3xl border-2 transition-all ${rightTeam === 'red'
-                ? 'bg-gradient-to-b from-red-950/50 via-slate-900/90 to-slate-950/95 border-red-500/40 box-glow-red'
-                : 'bg-gradient-to-b from-blue-950/50 via-slate-900/90 to-slate-950/95 border-blue-500/40 box-glow-blue'
-              }`}
-          >
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3 sm:pb-4 shrink-0">
-              <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
-                <TeamBadge
-                  teamName={rightTeamName}
-                  logoUrl={rightTeamLogo}
-                  side={rightTeam}
-                  size="lg"
-                  className="rounded-2xl shrink-0"
-                />
-                <div className="min-w-0">
-                  <span
-                    className={`text-[10px] sm:text-xs font-mono font-black uppercase tracking-wider ${rightTeam === 'red' ? 'text-red-400' : 'text-blue-400'
-                      }`}
-                  >
-                    {rightTeam === 'red' ? 'RED TEAM' : 'BLUE TEAM'}
-                  </span>
-                  <h2 className="text-xl sm:text-2xl lg:text-3xl font-display font-black text-white truncate">
-                    {rightTeam === 'red' ? state.teamRed : state.teamBlue}
-                  </h2>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-1.5 text-[10px] sm:text-xs font-mono bg-slate-900 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl border border-slate-800 shrink-0">
-                <Target className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-cyan-400" />
-                <span>STRIKER #1</span>
-              </div>
-            </div>
-
-            {/* Score */}
-            <div className="flex-1 min-h-0 flex items-center justify-center my-auto w-full py-2">
-              <div
-                className={`font-display font-black text-[clamp(6rem,14vw,22rem)] leading-none tabular-nums select-none ${rightTeam === 'red' ? 'text-red-500 glow-red' : 'text-blue-400 glow-blue'
-                  }`}
-              >
-                {rightTeam === 'red' ? state.redScore : state.blueScore}
-              </div>
-            </div>
-
-            {/* Footer: Penalties & Sets Won */}
-            <div className="flex items-center justify-between border-t border-slate-800 pt-3 sm:pt-4 shrink-0 flex-wrap gap-2">
-              <PenaltyPips
-                count={rightTeam === 'red' ? state.redPenalties : state.bluePenalties}
-                team={rightTeam}
-                size="xl"
-              />
-              <div className="flex items-center gap-2 sm:gap-2.5 text-lg sm:text-2xl lg:text-3xl font-mono text-amber-300 font-black bg-amber-950/30 px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl border-2 border-amber-500/40 shadow-[0_0_18px_rgba(245,158,11,0.25)]">
-                <Trophy className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-amber-400 shrink-0" />
-                <span className="tabular-nums tracking-wider">SETS: {rightTeam === 'red' ? state.redSetScore : state.blueSetScore}</span>
-              </div>
-            </div>
-          </div>
+          {renderSidePanel(rightTeam)}
         </div>
 
-        {/* Bottom Status Info */}
-        <div className="flex items-center justify-between border-t border-slate-800/80 pt-2 shrink-0 text-[10px] sm:text-xs font-mono text-slate-500">
+        <div className="flex items-center justify-between border-t border-[var(--court-line-soft)] pt-2 shrink-0 text-xs text-[var(--court-muted)]">
           <span>{state.recentEvent}</span>
-          <span>•</span>
-          <span>{state.sideSwap ? 'ORIENTATION: BLUE ON LEFT / RED ON RIGHT' : 'ORIENTATION: RED ON LEFT / BLUE ON RIGHT'}</span>
+          <span>{state.sideSwap ? 'Orientation: Blue left / Red right' : 'Orientation: Red left / Blue right'}</span>
         </div>
       </main>
 
-      {/* Authoritative Set & Match Winner Takeover Popup */}
-      {state.setWinnerBanner?.active && (
-        <SetWinnerTakeoverModal banner={state.setWinnerBanner} />
-      )}
+      {state.setWinnerBanner?.active && <SetWinnerTakeoverModal banner={state.setWinnerBanner} />}
     </div>
   );
 };

@@ -13,8 +13,9 @@ import { TeamOverrideModal } from '../components/referee/TeamOverrideModal';
 import { HotkeyLegendModal } from '../components/referee/HotkeyLegendModal';
 import { IntermissionConfigModal } from '../components/referee/IntermissionConfigModal';
 import { SetEndResolutionModal } from '../components/referee/SetEndResolutionModal';
+import { getSpectatorPhaseMeta } from '../components/public/PublicLiveCard';
 import { CommandType } from '../types/scoreboard';
-import { Keyboard, Edit3, Volume2, ShieldAlert, Coffee, Trophy, Swords } from 'lucide-react';
+import { Keyboard, Edit3, ShieldAlert, Coffee, Trophy } from 'lucide-react';
 
 export const RefereeConsole: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -50,7 +51,7 @@ export const RefereeConsole: React.FC = () => {
     totalSetDurationMs: 180000,
     intermissionDurationMs: 90000,
     timerRunning: false,
-    phase: 'IDLE',
+    phase: 'IDLE' as const,
     sideSwap: false,
     matchWinner: null,
     serverEpochMs: Date.now(),
@@ -61,18 +62,15 @@ export const RefereeConsole: React.FC = () => {
   const queuedCommands = commandOutbox[arenaId] || [];
   const pendingDeltas = getPendingDeltas(queuedCommands);
 
-  // Optimistic display values combine confirmed server state with any queued score/penalty deltas
   const displayRedScore = Math.max(0, arenaState.redScore + pendingDeltas.redScoreDelta);
   const displayBlueScore = Math.max(0, arenaState.blueScore + pendingDeltas.blueScoreDelta);
   const displayRedPenalties = Math.max(0, arenaState.redPenalties + pendingDeltas.redPenaltyDelta);
   const displayBluePenalties = Math.max(0, arenaState.bluePenalties + pendingDeltas.bluePenaltyDelta);
 
-  // Explicit START_TIMER / PAUSE_TIMER prevents double-taps or retries under RF congestion from inverting the clock
   const handleExplicitToggleTimer = () => {
     sendCommand(arenaState.timerRunning ? 'PAUSE_TIMER' : 'START_TIMER');
   };
 
-  // Register Global Referee Hotkeys (with automatic input guard suppression)
   useRefereeHotkeys({
     enabled: true,
     onCommand: (type: CommandType, payload) => {
@@ -125,7 +123,6 @@ export const RefereeConsole: React.FC = () => {
     }
   };
 
-  // Auto-open Set End Resolution Modal when time reaches 00:00 in NORMAL_PHASE
   React.useEffect(() => {
     if (
       arenaState.timeRemainingMs === 0 &&
@@ -138,25 +135,35 @@ export const RefereeConsole: React.FC = () => {
     }
   }, [arenaState.timeRemainingMs, arenaState.phase, arenaState.setWinnerBanner, arenaState.currentSet]);
 
+  const phaseMeta = getSpectatorPhaseMeta(arenaState.phase, arenaState.timerRunning);
+
   return (
-    <div className="min-h-screen bg-[#080b11] text-slate-100 flex flex-col select-none">
+    <div className="app-shell min-h-screen flex flex-col select-none">
       <HeaderNav arenaId={arenaId} variant="referee" />
 
-      <main className="max-w-7xl mx-auto px-4 lg:px-8 py-6 flex-1 flex flex-col gap-6 w-full">
-        {/* RF Interference / Durable Command Outbox Status Banner */}
+      <main className="max-w-7xl mx-auto px-4 lg:px-8 py-6 flex-1 flex flex-col gap-5 w-full">
+        {/* RF Interference / Durable Command Outbox Banner */}
         {(commandError || transportMode === 'HTTP_FALLBACK' || queuedCommands.length > 0) && (
           <div
-            className={`px-4 py-3 rounded-2xl border text-xs font-mono flex flex-wrap items-center justify-between gap-3 ${
+            className="px-4 py-3 rounded-xl border text-xs font-semibold flex flex-wrap items-center justify-between gap-3"
+            style={
               commandError
-                ? 'bg-rose-950/70 border-rose-500/50 text-rose-200'
-                : 'bg-amber-950/60 border-amber-500/40 text-amber-200'
-            }`}
+                ? {
+                    backgroundColor: 'var(--drone-red-tint)',
+                    borderColor: 'var(--drone-red-border)',
+                    color: 'var(--drone-red-text)',
+                  }
+                : {
+                    backgroundColor: 'var(--signal-amber-tint)',
+                    borderColor: 'var(--signal-amber-border)',
+                    color: 'var(--signal-amber-text)',
+                  }
+            }
           >
             <div className="flex items-center gap-2">
               <span
-                className={`w-2 h-2 rounded-full animate-pulse shrink-0 ${
-                  commandError ? 'bg-rose-400' : 'bg-amber-400'
-                }`}
+                className="w-2 h-2 rounded-full animate-pulse shrink-0"
+                style={{ backgroundColor: commandError ? 'var(--drone-red)' : 'var(--signal-amber)' }}
               />
               <span>
                 {commandError
@@ -165,28 +172,29 @@ export const RefereeConsole: React.FC = () => {
                   ? `${queuedCommands.length} score/penalty action${
                       queuedCommands.length > 1 ? 's' : ''
                     } queued for Set ${arenaState.currentSet} — syncing automatically when connection recovers.`
-                  : 'RF congestion detected — HTTP fallback active (scoring & timer commands remain live with automatic retry).'}
+                  : 'RF congestion detected — HTTP fallback active (scoring and timer commands remain live).'}
               </span>
             </div>
             <div className="flex items-center gap-2 shrink-0">
               {pendingCommands > 0 && (
-                <span className="px-2 py-0.5 rounded bg-slate-900/80 text-cyan-300">
+                <span className="px-2 py-0.5 rounded bg-[var(--court-surface)] text-[var(--court-ink)]">
                   In flight: {pendingCommands}
                 </span>
               )}
               {queuedCommands.length > 0 && (
                 <button
+                  type="button"
                   onClick={() => clearOutboxForArena(arenaId)}
-                  className="px-2.5 py-0.5 rounded bg-amber-900/80 hover:bg-amber-800 text-amber-100 border border-amber-600/50 transition-colors"
-                  title="Discard unsynced queued score/penalty taps"
+                  className="px-2.5 py-1 rounded-md bg-[var(--court-surface)] border border-[var(--court-line)] text-[var(--court-ink)]"
                 >
-                  Clear Queue ({queuedCommands.length})
+                  Clear queue ({queuedCommands.length})
                 </button>
               )}
               {commandError && (
                 <button
+                  type="button"
                   onClick={() => setCommandError(null)}
-                  className="px-2 py-0.5 rounded bg-rose-900/80 hover:bg-rose-800 text-white"
+                  className="px-2.5 py-1 rounded-md bg-[var(--court-surface)] border border-[var(--court-line)] text-[var(--court-ink)]"
                 >
                   Dismiss
                 </button>
@@ -195,145 +203,191 @@ export const RefereeConsole: React.FC = () => {
           </div>
         )}
 
-        {/* Top Control Bar: Match Title, Hotkey Help, Overrides */}
-        <div className="flex flex-wrap items-center justify-between gap-4 p-5 rounded-3xl bg-slate-900/90 border border-slate-800 shadow-xl">
-          <div className="flex flex-col gap-1">
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-mono text-cyan-400 font-bold uppercase tracking-wider bg-cyan-950/60 px-2.5 py-0.5 rounded border border-cyan-800">
-                REFEREE CONSOLE — {arenaState.arenaName}
+        {/* Match Identity & Utility Bar */}
+        <section className="p-5 rounded-2xl bg-[var(--court-surface)] border border-[var(--court-line)] flex flex-wrap items-center justify-between gap-4">
+          <div className="flex flex-col gap-1 min-w-0">
+            <div className="flex flex-wrap items-center gap-2 text-xs text-[var(--court-muted)]">
+              <span className="font-bold text-[var(--court-ink)]">{arenaState.arenaName}</span>
+              <span>{arenaState.tournamentName}</span>
+              <span>
+                Set {arenaState.currentSet} of {arenaState.maxSets}
               </span>
-              <span className="text-xs font-mono text-emerald-400 flex items-center gap-1">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                <span>CAGE {arenaId} LIVE</span>
+              <span
+                className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold border"
+                style={phaseMeta.pillStyle}
+              >
+                <span
+                  className={`w-1.5 h-1.5 rounded-full ${phaseMeta.pulse ? 'animate-pulse' : ''}`}
+                  style={{ backgroundColor: phaseMeta.dotColor }}
+                />
+                {phaseMeta.label}
               </span>
             </div>
-            <h1 className="text-2xl font-display font-black text-white">
-              {arenaState.matchNumber}: <span className="text-red-400">{arenaState.teamRed}</span> vs <span className="text-blue-400">{arenaState.teamBlue}</span>
+
+            <h1 className="spectator-numeral text-3xl sm:text-4xl font-black text-[var(--court-ink)] leading-tight">
+              {arenaState.matchNumber}:{' '}
+              <span style={{ color: 'var(--drone-red-text)' }}>{arenaState.teamRed}</span>{' '}
+              <span className="text-[var(--court-muted)] font-semibold text-2xl">vs</span>{' '}
+              <span style={{ color: 'var(--drone-blue-text)' }}>{arenaState.teamBlue}</span>
             </h1>
-            <span className="text-xs font-mono text-slate-400">
-              {arenaState.tournamentName} • Set {arenaState.currentSet} of {arenaState.maxSets}
-            </span>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3">
-            {/* Quick Match Queue Selector */}
+          <div className="flex flex-wrap items-center gap-2">
             {pendingMatches.length > 0 && (
-              <div className="flex items-center gap-2">
-                <select
-                  onChange={(e) => handleSelectQueuedMatch(e.target.value)}
-                  defaultValue=""
-                  className="px-3 py-2 rounded-xl bg-slate-950 border border-cyan-500/40 text-xs font-mono text-cyan-300 focus:outline-none"
-                >
-                  <option value="" disabled>
-                    Load Queued Match for Cage {arenaId}...
+              <select
+                onChange={(e) => handleSelectQueuedMatch(e.target.value)}
+                defaultValue=""
+                className="px-3 py-2 rounded-lg bg-[var(--court-subtle)] border border-[var(--court-line)] text-xs font-semibold text-[var(--court-ink)]"
+              >
+                <option value="" disabled>
+                  Load queued match...
+                </option>
+                {pendingMatches.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.matchNumber}: {m.teamRed} vs {m.teamBlue}
                   </option>
-                  {pendingMatches.map((m) => (
-                    <option key={m.id} value={m.id}>
-                      {m.matchNumber}: {m.teamRed} vs {m.teamBlue}
-                    </option>
-                  ))}
-                </select>
-              </div>
+                ))}
+              </select>
             )}
 
             <button
+              type="button"
               onClick={() => setIsHotkeyLegendOpen(true)}
-              className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 text-xs font-mono font-bold flex items-center gap-1.5 transition-colors"
+              className="px-3 py-2 rounded-lg bg-[var(--court-control-bg)] hover:bg-[var(--court-control-hover)] text-[var(--court-ink)] border border-[var(--court-line)] text-xs font-semibold inline-flex items-center gap-1.5 transition-colors"
             >
-              <Keyboard className="w-4 h-4 text-cyan-400" />
-              <span>HOTKEYS [?]</span>
+              <Keyboard className="w-3.5 h-3.5 text-[var(--court-muted)]" />
+              <span>Hotkeys</span>
             </button>
 
             <button
+              type="button"
               onClick={() => setIsResolutionModalOpen(true)}
-              className="px-3.5 py-2 rounded-xl bg-violet-950/80 hover:bg-violet-900 text-violet-300 hover:text-white border border-violet-700/50 text-xs font-mono font-bold flex items-center gap-1.5 transition-colors shadow-sm"
-              title="Resolve Penalties and Set Winner"
+              className="px-3 py-2 rounded-lg border text-xs font-semibold inline-flex items-center gap-1.5 transition-colors"
+              style={{
+                backgroundColor: 'var(--signal-intermission-tint)',
+                borderColor: 'var(--signal-intermission-border)',
+                color: 'var(--signal-intermission-text)',
+              }}
             >
-              <ShieldAlert className="w-4 h-4 text-violet-400" />
-              <span>RESOLVE SET</span>
+              <ShieldAlert className="w-3.5 h-3.5" />
+              <span>Resolve set</span>
             </button>
 
             <button
+              type="button"
               onClick={() => setIsIntermissionModalOpen(true)}
-              className="px-3.5 py-2 rounded-xl bg-amber-950/60 hover:bg-amber-900/80 text-amber-300 hover:text-white border border-amber-700/50 text-xs font-mono font-bold flex items-center gap-1.5 transition-colors"
-              title="Configure arena intermission break duration"
+              className="px-3 py-2 rounded-lg border text-xs font-semibold inline-flex items-center gap-1.5 transition-colors"
+              style={{
+                backgroundColor: 'var(--signal-amber-tint)',
+                borderColor: 'var(--signal-amber-border)',
+                color: 'var(--signal-amber-text)',
+              }}
             >
-              <Coffee className="w-4 h-4 text-amber-400" />
-              <span>BREAK: {Math.round((arenaState.intermissionDurationMs || 90000) / 1000)}s</span>
+              <Coffee className="w-3.5 h-3.5" />
+              <span>Break ({Math.round((arenaState.intermissionDurationMs || 90000) / 1000)}s)</span>
             </button>
 
             <button
+              type="button"
               onClick={() => setIsOverrideOpen(true)}
-              className="px-3.5 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-mono font-bold flex items-center gap-1.5 shadow-md shadow-cyan-600/20 transition-all"
+              className="px-3.5 py-2 rounded-lg text-white text-xs font-semibold inline-flex items-center gap-1.5 transition-opacity hover:opacity-90"
+              style={{ backgroundColor: 'var(--drone-blue-solid)' }}
             >
-              <Edit3 className="w-4 h-4" />
-              <span>MANUAL OVERRIDES</span>
+              <Edit3 className="w-3.5 h-3.5" />
+              <span>Overrides</span>
             </button>
           </div>
-        </div>
+        </section>
 
-        {/* Active Winner Banner Status Callout */}
-        {arenaState.setWinnerBanner?.active && (() => {
-          const banner = arenaState.setWinnerBanner;
-          const setsNeeded = Math.floor((arenaState.maxSets || 3) / 2) + 1;
-          const isMatchClinched = Boolean(banner.isMatchWinner) ||
-            Boolean(banner.matchWinner) ||
-            banner.setsWon >= setsNeeded ||
-            banner.redSetScore >= setsNeeded ||
-            banner.blueSetScore >= setsNeeded ||
-            arenaState.phase === 'MATCH_ENDED';
+        {/* Active Winner Banner Callout */}
+        {arenaState.setWinnerBanner?.active &&
+          (() => {
+            const banner = arenaState.setWinnerBanner;
+            const setsNeeded = Math.floor((arenaState.maxSets || 3) / 2) + 1;
+            const isMatchClinched =
+              Boolean(banner.isMatchWinner) ||
+              Boolean(banner.matchWinner) ||
+              banner.setsWon >= setsNeeded ||
+              banner.redSetScore >= setsNeeded ||
+              banner.blueSetScore >= setsNeeded ||
+              arenaState.phase === 'MATCH_ENDED';
 
-          return (
-            <div className="w-full p-5 rounded-3xl bg-slate-900/95 border-2 border-amber-500/70 shadow-2xl flex flex-wrap items-center justify-between gap-4 animate-in fade-in">
-              <div className="flex items-center gap-3">
-                <div className="p-3 rounded-2xl bg-amber-500/20 text-amber-400 border border-amber-500/40">
-                  <Trophy className="w-6 h-6" />
-                </div>
-                <div className="flex flex-col">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-mono font-bold tracking-wider text-amber-400 uppercase">
-                      {isMatchClinched ? 'MATCH CLINCHED' : `SET ${banner.currentSet} CONCLUDED`}
-                    </span>
-                    <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
+            return (
+              <div
+                className="w-full p-5 rounded-2xl border flex flex-wrap items-center justify-between gap-4"
+                style={{
+                  backgroundColor: 'var(--signal-amber-tint)',
+                  borderColor: 'var(--signal-amber-border)',
+                }}
+              >
+                <div className="flex items-center gap-3">
+                  <div
+                    className="p-2.5 rounded-xl border"
+                    style={{
+                      backgroundColor: 'var(--court-surface)',
+                      borderColor: 'var(--signal-amber-border)',
+                      color: 'var(--signal-amber)',
+                    }}
+                  >
+                    <Trophy className="w-5 h-5" />
                   </div>
-                  <h2 className="text-xl font-display font-black text-white">
-                    Winner: <span className={banner.winner === 'RED' ? 'text-red-400' : 'text-blue-400'}>{banner.winnerName}</span>
-                    {' • '}{banner.setsWon} Sets Won
-                  </h2>
-                  <span className="text-xs font-mono text-slate-400">
-                    Celebratory takeover is live across all arena scoreboard displays.
-                  </span>
+                  <div>
+                    <span
+                      className="text-xs font-bold block"
+                      style={{ color: 'var(--signal-amber-text)' }}
+                    >
+                      {isMatchClinched ? 'Match clinched' : `Set ${banner.currentSet} concluded`}
+                    </span>
+                    <h2 className="spectator-numeral text-2xl font-black text-[var(--court-ink)]">
+                      Winner:{' '}
+                      <span
+                        style={{
+                          color: banner.winner === 'RED' ? 'var(--drone-red-text)' : 'var(--drone-blue-text)',
+                        }}
+                      >
+                        {banner.winnerName}
+                      </span>{' '}
+                      ({banner.setsWon} sets won)
+                    </h2>
+                    <span className="text-xs text-[var(--court-muted)]">
+                      Winner takeover is live on stadium displays.
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  {!isMatchClinched ? (
+                    <button
+                      type="button"
+                      onClick={() => sendCommand('START_INTERMISSION')}
+                      className="px-4 py-2 rounded-lg text-white text-xs font-semibold inline-flex items-center gap-1.5"
+                      style={{ backgroundColor: 'var(--signal-intermission)' }}
+                    >
+                      <Coffee className="w-4 h-4" />
+                      <span>Start intermission</span>
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => sendCommand('RESET_MATCH')}
+                      className="px-4 py-2 rounded-lg text-white text-xs font-semibold"
+                      style={{ backgroundColor: 'var(--drone-blue-solid)' }}
+                    >
+                      Start new match
+                    </button>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => sendCommand('DISMISS_WINNER_BANNER')}
+                    className="px-3.5 py-2 rounded-lg bg-[var(--court-surface)] hover:bg-[var(--court-control-hover)] text-[var(--court-ink)] border border-[var(--court-line)] text-xs font-semibold"
+                  >
+                    Dismiss banner
+                  </button>
                 </div>
               </div>
-
-              <div className="flex items-center gap-3">
-                {!isMatchClinched ? (
-                  <button
-                    onClick={() => sendCommand('START_INTERMISSION')}
-                    className="px-5 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-mono font-bold flex items-center gap-2 shadow-lg shadow-purple-600/30 transition-all"
-                  >
-                    <Coffee className="w-4 h-4" />
-                    <span>START INTERMISSION BREAK</span>
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => sendCommand('RESET_MATCH')}
-                    className="px-5 py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-mono font-bold flex items-center gap-2 shadow-lg shadow-cyan-600/30 transition-all"
-                  >
-                    <span>START NEW MATCH</span>
-                  </button>
-                )}
-
-                <button
-                  onClick={() => sendCommand('DISMISS_WINNER_BANNER')}
-                  className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 text-xs font-mono font-bold transition-colors"
-                >
-                  DISMISS BANNER
-                </button>
-              </div>
-            </div>
-          );
-        })()}
+            );
+          })()}
 
         {/* Central Authoritative Timer & Clock Bar */}
         <TimerControlBar
@@ -357,9 +411,8 @@ export const RefereeConsole: React.FC = () => {
           }}
         />
 
-        {/* Score & Penalty Buttons (Side-Swap Aware) */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Left Side (Red or Blue depending on sideSwap) */}
+        {/* Score & Penalty Controls (Side-Swap Aware) */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           {!arenaState.sideSwap ? (
             <div className="flex flex-col gap-3">
               <ScoreButtonGrid
@@ -371,8 +424,8 @@ export const RefereeConsole: React.FC = () => {
                 onAddScore={() => sendCommand('ADD_RED_SCORE')}
                 onSubScore={() => sendCommand('SUB_RED_SCORE')}
                 onEditClick={() => setIsOverrideOpen(true)}
-                hotkeyPlus="↑ Up Arrow"
-                hotkeyMinus="↓ Down Arrow"
+                hotkeyPlus="↑ Up"
+                hotkeyMinus="↓ Down"
               />
               <PenaltyControls
                 team="red"
@@ -380,7 +433,7 @@ export const RefereeConsole: React.FC = () => {
                 pendingDelta={pendingDeltas.redPenaltyDelta}
                 onAddPenalty={() => sendCommand('ADD_RED_PENALTY')}
                 onSubPenalty={() => sendCommand('SUB_RED_PENALTY')}
-                hotkeyInfo="Shift + ↑ / Shift + ↓"
+                hotkeyInfo="Shift + ↑ / ↓"
               />
             </div>
           ) : (
@@ -408,7 +461,6 @@ export const RefereeConsole: React.FC = () => {
             </div>
           )}
 
-          {/* Right Side */}
           {!arenaState.sideSwap ? (
             <div className="flex flex-col gap-3">
               <ScoreButtonGrid
@@ -443,8 +495,8 @@ export const RefereeConsole: React.FC = () => {
                 onAddScore={() => sendCommand('ADD_RED_SCORE')}
                 onSubScore={() => sendCommand('SUB_RED_SCORE')}
                 onEditClick={() => setIsOverrideOpen(true)}
-                hotkeyPlus="↑ Up Arrow"
-                hotkeyMinus="↓ Down Arrow"
+                hotkeyPlus="↑ Up"
+                hotkeyMinus="↓ Down"
               />
               <PenaltyControls
                 team="red"
@@ -452,13 +504,13 @@ export const RefereeConsole: React.FC = () => {
                 pendingDelta={pendingDeltas.redPenaltyDelta}
                 onAddPenalty={() => sendCommand('ADD_RED_PENALTY')}
                 onSubPenalty={() => sendCommand('SUB_RED_PENALTY')}
-                hotkeyInfo="Shift + ↑ / Shift + ↓"
+                hotkeyInfo="Shift + ↑ / ↓"
               />
             </div>
           )}
         </div>
 
-        {/* Set & Match Progression Card */}
+        {/* Set & Match Progression */}
         <SetManagementCard
           currentSet={arenaState.currentSet}
           maxSets={arenaState.maxSets}
@@ -487,7 +539,7 @@ export const RefereeConsole: React.FC = () => {
         />
       </main>
 
-      {/* Override and Hotkey Modals */}
+      {/* Modals */}
       <TeamOverrideModal
         isOpen={isOverrideOpen}
         onClose={() => setIsOverrideOpen(false)}
@@ -535,10 +587,26 @@ export const RefereeConsole: React.FC = () => {
         redPenalties={arenaState.redPenalties}
         bluePenalties={arenaState.bluePenalties}
         onAdjustScore={(isRed, delta) => {
-          sendCommand(isRed ? (delta > 0 ? 'ADD_RED_SCORE' : 'SUB_RED_SCORE') : (delta > 0 ? 'ADD_BLUE_SCORE' : 'SUB_BLUE_SCORE'));
+          sendCommand(
+            isRed
+              ? delta > 0
+                ? 'ADD_RED_SCORE'
+                : 'SUB_RED_SCORE'
+              : delta > 0
+              ? 'ADD_BLUE_SCORE'
+              : 'SUB_BLUE_SCORE'
+          );
         }}
         onAdjustPenalty={(isRed, delta) => {
-          sendCommand(isRed ? (delta > 0 ? 'ADD_RED_PENALTY' : 'SUB_RED_PENALTY') : (delta > 0 ? 'ADD_BLUE_PENALTY' : 'SUB_BLUE_PENALTY'));
+          sendCommand(
+            isRed
+              ? delta > 0
+                ? 'ADD_RED_PENALTY'
+                : 'SUB_RED_PENALTY'
+              : delta > 0
+              ? 'ADD_BLUE_PENALTY'
+              : 'SUB_BLUE_PENALTY'
+          );
         }}
         onEnterPenaltyPhase={() => sendCommand('SET_PHASE', { phaseValue: 'PENALTY_PHASE' })}
         onEnterSuddenDeath={() => sendCommand('START_SUDDEN_DEATH')}

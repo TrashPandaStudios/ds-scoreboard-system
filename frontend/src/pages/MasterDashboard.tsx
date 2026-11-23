@@ -12,8 +12,25 @@ import { AddArenaModal } from '../components/dashboard/AddArenaModal';
 import { DeleteArenaConfirmModal } from '../components/dashboard/DeleteArenaConfirmModal';
 import { PreloadScheduleModal } from '../components/dashboard/PreloadScheduleModal';
 import { TeamsManagementPanel } from '../components/dashboard/TeamsManagementPanel';
-import { MatchRecord, ScheduledMatch, SponsorItem, ArenaSummary, PublicPortalSystemStatus } from '../types/scoreboard';
-import { AlertOctagon, Play, Layers, Radio, Sparkles, Calendar, History, Coffee, Plus, UploadCloud, Users, Globe, Copy, Check, ExternalLink } from 'lucide-react';
+import {
+  MatchRecord,
+  ScheduledMatch,
+  SponsorItem,
+  ArenaSummary,
+  PublicPortalSystemStatus,
+} from '../types/scoreboard';
+import {
+  AlertOctagon,
+  Play,
+  Layers,
+  Coffee,
+  Plus,
+  UploadCloud,
+  Globe,
+  Copy,
+  Check,
+  ExternalLink,
+} from 'lucide-react';
 
 export const MasterDashboard: React.FC = () => {
   const { sendCommand } = useArenaWebSocket();
@@ -55,6 +72,7 @@ export const MasterDashboard: React.FC = () => {
   };
 
   useEffect(() => {
+    document.title = 'Drone Soccer Admin — Tournament Command';
     fetchAllData();
     const interval = setInterval(fetchAllData, 10000);
     return () => clearInterval(interval);
@@ -145,184 +163,193 @@ export const MasterDashboard: React.FC = () => {
     fetch(`/api/sponsors/${id}`, { method: 'DELETE' }).then(() => fetchAllData());
   };
 
+  const sortedArenas = [...arenaSummaries].sort((a, b) => a.arenaId - b.arenaId);
+
   return (
-    <div className="min-h-screen bg-[#080b11] text-slate-100 flex flex-col select-none">
+    <div className="app-shell min-h-screen flex flex-col select-none">
       <HeaderNav variant="admin" />
 
-      <main className="max-w-7xl mx-auto px-4 lg:px-8 py-8 flex-1 flex flex-col gap-8 w-full">
-        {/* Master Control Top Header */}
-        <div className="flex flex-wrap items-center justify-between gap-4 p-6 rounded-3xl bg-slate-900/90 border-2 border-slate-800 shadow-2xl">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center shadow-lg shadow-cyan-500/20">
-              <Radio className="w-6 h-6 text-cyan-400 animate-pulse" />
-            </div>
+      <main className="max-w-7xl mx-auto px-4 lg:px-8 py-6 sm:py-8 flex-1 flex flex-col gap-6 w-full">
+        {/* Command Toolbar */}
+        <section className="p-5 rounded-2xl bg-[var(--court-surface)] border border-[var(--court-line)] flex flex-col gap-4">
+          <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
-              <span className="text-xs font-mono text-cyan-400 font-bold uppercase tracking-widest block">
-                EVENT STAFF COMMAND CENTER
-              </span>
-              <h1 className="text-2xl font-display font-black text-white">
-                Multi-Arena Master Telemetry Dashboard
+              <h1 className="spectator-numeral text-3xl font-black text-[var(--court-ink)] leading-none">
+                Multi-arena control
               </h1>
+              <p className="text-xs text-[var(--court-muted)] mt-1">
+                Manage active cages, tournament schedules, sponsors, teams, and public broadcasts.
+              </p>
+            </div>
+
+            {/* Emergency Global Clock Controls */}
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleEmergencyPauseAll}
+                className="px-3.5 py-2 rounded-lg text-white text-xs font-bold inline-flex items-center gap-1.5 transition-opacity hover:opacity-90"
+                style={{ backgroundColor: 'var(--drone-red-solid)' }}
+              >
+                <AlertOctagon className="w-4 h-4" />
+                <span>Pause all cages</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleEmergencyResumeAll}
+                className="px-3.5 py-2 rounded-lg text-white text-xs font-bold inline-flex items-center gap-1.5 transition-opacity hover:opacity-90"
+                style={{ backgroundColor: 'var(--signal-live-solid)' }}
+              >
+                <Play className="w-3.5 h-3.5 fill-current" />
+                <span>Resume all</span>
+              </button>
             </div>
           </div>
 
-          {/* Emergency Global Actions */}
-          <div className="flex flex-wrap items-center gap-3">
+          {/* Secondary Action Strip */}
+          <div className="flex flex-wrap items-center gap-2 pt-3 border-t border-[var(--court-line-soft)]">
             <button
+              type="button"
               onClick={() => setIsPreloadModalOpen(true)}
-              className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white text-xs font-mono font-black flex items-center gap-2 shadow-lg shadow-cyan-600/30 transition-all active:scale-95"
-              title="Preload tournament team lineups and opening matches for all cages"
+              className="px-3 py-1.5 rounded-lg text-xs font-semibold inline-flex items-center gap-1.5 transition-opacity hover:opacity-90"
+              style={{
+                backgroundColor: 'var(--drone-blue-solid)',
+                color: '#FFFFFF',
+              }}
             >
-              <UploadCloud className="w-4 h-4 stroke-[2.5]" />
-              <span>PRELOAD EVENT</span>
+              <UploadCloud className="w-3.5 h-3.5" />
+              <span>Preload schedule</span>
             </button>
 
             <button
+              type="button"
               onClick={() => setIsAddArenaModalOpen(true)}
-              className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white border border-slate-700 text-xs font-mono font-black flex items-center gap-2 transition-all active:scale-95"
-              title="Deploy a new authoritative drone arena cage at runtime"
+              className="px-3 py-1.5 rounded-lg bg-[var(--court-control-bg)] hover:bg-[var(--court-control-hover)] border border-[var(--court-line)] text-xs font-semibold text-[var(--court-ink)] inline-flex items-center gap-1.5 transition-colors"
             >
-              <Plus className="w-4 h-4 stroke-[3]" />
-              <span>ADD ARENA</span>
+              <Plus className="w-3.5 h-3.5" />
+              <span>Add arena</span>
             </button>
 
             <button
+              type="button"
               onClick={() => setIsIntermissionModalOpen(true)}
-              className="px-4 py-2.5 rounded-xl bg-amber-600/30 hover:bg-amber-600/50 text-amber-300 border border-amber-500/40 text-xs font-mono font-bold flex items-center gap-2 transition-colors"
-              title="Configure global intermission duration and per-cage overrides"
+              className="px-3 py-1.5 rounded-lg bg-[var(--court-control-bg)] hover:bg-[var(--court-control-hover)] border border-[var(--court-line)] text-xs font-semibold text-[var(--court-ink)] inline-flex items-center gap-1.5 transition-colors"
             >
-              <Coffee className="w-4 h-4 text-amber-400" />
-              <span>INTERMISSION CONFIG</span>
+              <Coffee className="w-3.5 h-3.5" style={{ color: 'var(--signal-amber)' }} />
+              <span>Intermission settings</span>
             </button>
 
             <button
-              onClick={() => setSelectedObsArenaId(1)}
-              className="px-4 py-2.5 rounded-xl bg-purple-600/30 hover:bg-purple-600/50 text-purple-300 border border-purple-500/40 text-xs font-mono font-bold flex items-center gap-2 transition-colors"
+              type="button"
+              onClick={() => setSelectedObsArenaId(sortedArenas[0]?.arenaId || 1)}
+              className="px-3 py-1.5 rounded-lg bg-[var(--court-control-bg)] hover:bg-[var(--court-control-hover)] border border-[var(--court-line)] text-xs font-semibold text-[var(--court-ink)] inline-flex items-center gap-1.5 transition-colors"
             >
-              <Layers className="w-4 h-4 text-purple-400" />
-              <span>OBS DISCOVERY HUB</span>
+              <Layers className="w-3.5 h-3.5" style={{ color: 'var(--signal-intermission)' }} />
+              <span>Displays &amp; OBS</span>
             </button>
 
             <a
               href={publicPortalStatus?.publicSiteUrl || '/live'}
               target="_blank"
               rel="noopener noreferrer"
-              className={`px-4 py-2.5 rounded-xl border text-xs font-mono font-bold flex items-center gap-2 transition-colors ${
+              className="px-3 py-1.5 rounded-lg border text-xs font-semibold inline-flex items-center gap-1.5 transition-colors"
+              style={
                 publicPortalStatus?.tunnelConfigured
-                  ? 'bg-emerald-600/25 hover:bg-emerald-600/40 text-emerald-300 border-emerald-500/50'
-                  : 'bg-cyan-950/50 hover:bg-cyan-900/60 text-cyan-300 border-cyan-500/40'
-              }`}
+                  ? {
+                      backgroundColor: 'var(--signal-live-tint)',
+                      borderColor: 'var(--signal-live-border)',
+                      color: 'var(--signal-live-text)',
+                    }
+                  : {
+                      backgroundColor: 'var(--court-control-bg)',
+                      borderColor: 'var(--court-line)',
+                      color: 'var(--court-ink)',
+                    }
+              }
               title={
                 publicPortalStatus?.tunnelConfigured
-                  ? `Cloudflare Tunnel Active — Public Portal on port ${publicPortalStatus.publicPort}`
-                  : `Open Public Live Spectator Portal (read-only port ${publicPortalStatus?.publicPort ?? 8081})`
+                  ? `Cloudflare Tunnel active on port ${publicPortalStatus.publicPort}`
+                  : `Public spectator portal on port ${publicPortalStatus?.publicPort ?? 8081}`
               }
             >
-              <Globe className="w-4 h-4" />
-              <span>{publicPortalStatus?.tunnelConfigured ? 'PUBLIC LIVE (TUNNEL ON)' : 'PUBLIC LIVE PORTAL'}</span>
-              <ExternalLink className="w-3.5 h-3.5 opacity-75" />
+              <Globe className="w-3.5 h-3.5" />
+              <span>{publicPortalStatus?.tunnelConfigured ? 'Public live (Tunnel on)' : 'Public live portal'}</span>
+              <ExternalLink className="w-3 h-3 opacity-70" />
             </a>
 
             {publicPortalStatus?.publicSiteUrl && (
               <button
+                type="button"
                 onClick={() => {
                   navigator.clipboard?.writeText(publicPortalStatus.publicSiteUrl).catch(() => {});
                   setCopiedPublicUrl(true);
                   window.setTimeout(() => setCopiedPublicUrl(false), 2000);
                 }}
-                className="px-3 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 text-xs font-mono font-bold flex items-center gap-1.5 transition-colors"
+                className="px-2.5 py-1.5 rounded-lg bg-[var(--court-control-bg)] hover:bg-[var(--court-control-hover)] border border-[var(--court-line)] text-xs font-semibold text-[var(--court-ink-secondary)] inline-flex items-center gap-1.5 transition-colors"
                 title={`Copy public URL: ${publicPortalStatus.publicSiteUrl}`}
               >
-                {copiedPublicUrl ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                <span>{copiedPublicUrl ? 'COPIED' : 'COPY URL'}</span>
+                {copiedPublicUrl ? (
+                  <Check className="w-3.5 h-3.5" style={{ color: 'var(--signal-live)' }} />
+                ) : (
+                  <Copy className="w-3.5 h-3.5" />
+                )}
+                <span>{copiedPublicUrl ? 'Copied' : 'Copy URL'}</span>
               </button>
             )}
-
-            <button
-              onClick={handleEmergencyPauseAll}
-              className="px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-mono font-black flex items-center gap-2 shadow-lg shadow-rose-600/30 transition-all active:scale-95"
-            >
-              <AlertOctagon className="w-4 h-4" />
-              <span>EMERGENCY PAUSE ALL</span>
-            </button>
-
-            <button
-              onClick={handleEmergencyResumeAll}
-              className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-mono font-black flex items-center gap-2 shadow-lg shadow-emerald-600/30 transition-all active:scale-95"
-            >
-              <Play className="w-4 h-4 fill-current" />
-              <span>RESUME ALL</span>
-            </button>
           </div>
-        </div>
+        </section>
 
-        {/* Tab Navigation */}
-        <div className="flex items-center gap-2 border-b border-slate-800 pb-2">
-          <button
-            onClick={() => setActiveTab('TELEMETRY')}
-            className={`px-4 py-2 rounded-xl text-xs font-mono font-bold flex items-center gap-2 transition-all ${
-              activeTab === 'TELEMETRY'
-                ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-sm'
-                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40'
-            }`}
-          >
-            <Radio className="w-4 h-4" />
-            <span>LIVE CAGES ({arenaSummaries.length || 3})</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('HISTORY')}
-            className={`px-4 py-2 rounded-xl text-xs font-mono font-bold flex items-center gap-2 transition-all ${
-              activeTab === 'HISTORY'
-                ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-sm'
-                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40'
-            }`}
-          >
-            <History className="w-4 h-4" />
-            <span>MATCH AUDIT LOGS</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('QUEUE')}
-            className={`px-4 py-2 rounded-xl text-xs font-mono font-bold flex items-center gap-2 transition-all ${
-              activeTab === 'QUEUE'
-                ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-sm'
-                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40'
-            }`}
-          >
-            <Calendar className="w-4 h-4" />
-            <span>MATCH QUEUE ({queue.length})</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('SPONSORS')}
-            className={`px-4 py-2 rounded-xl text-xs font-mono font-bold flex items-center gap-2 transition-all ${
-              activeTab === 'SPONSORS'
-                ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-sm'
-                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40'
-            }`}
-          >
-            <Sparkles className="w-4 h-4" />
-            <span>SPONSOR TAKEOVERS</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('TEAMS')}
-            className={`px-4 py-2 rounded-xl text-xs font-mono font-bold flex items-center gap-2 transition-all ${
-              activeTab === 'TEAMS'
-                ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-sm'
-                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40'
-            }`}
-          >
-            <Users className="w-4 h-4" />
-            <span>TEAMS & LOGOS</span>
-          </button>
-        </div>
+        {/* Underline Tab Navigation */}
+        <nav className="flex items-center gap-6 border-b border-[var(--court-line)] overflow-x-auto" aria-label="Admin sections">
+          {(
+            [
+              { id: 'TELEMETRY', label: 'Live cages', count: sortedArenas.length },
+              { id: 'HISTORY', label: 'Match history', count: matches.length },
+              { id: 'QUEUE', label: 'Match queue', count: queue.length },
+              { id: 'SPONSORS', label: 'Sponsors', count: sponsors.length },
+              { id: 'TEAMS', label: 'Teams & logos' },
+            ] as const
+          ).map((tab) => {
+            const active = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setActiveTab(tab.id)}
+                className={`py-2.5 border-b-2 text-sm font-semibold whitespace-nowrap inline-flex items-center gap-2 -mb-px transition-colors ${
+                  active
+                    ? 'border-[var(--court-ink)] text-[var(--court-ink)]'
+                    : 'border-transparent text-[var(--court-muted)] hover:text-[var(--court-ink-secondary)]'
+                }`}
+              >
+                <span>{tab.label}</span>
+                {'count' in tab && (
+                  <span
+                    className="px-1.5 py-0.5 rounded-md text-xs tabular-nums"
+                    style={
+                      active
+                        ? {
+                            backgroundColor: 'var(--court-active-pill-bg)',
+                            color: 'var(--court-active-pill-fg)',
+                          }
+                        : {
+                            backgroundColor: 'var(--court-control-bg)',
+                            color: 'var(--court-muted)',
+                          }
+                    }
+                  >
+                    {tab.count}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </nav>
 
         {/* Tab 1: Live Cages Multi-Arena Grid */}
         {activeTab === 'TELEMETRY' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-fadeIn">
-            {arenaSummaries.map((arena) => (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {sortedArenas.map((arena) => (
               <ArenaTelemetryCard
                 key={arena.arenaId}
                 arena={arena}
@@ -331,78 +358,64 @@ export const MasterDashboard: React.FC = () => {
                 }
                 onTriggerBuzzer={(aId) => sendCommand('TRIGGER_BUZZER', { arenaId: aId })}
                 onConfigureIntermission={() => setIsIntermissionModalOpen(true)}
-                onDeleteArena={(arena) => setArenaToDelete(arena)}
+                onDeleteArena={(target) => setArenaToDelete(target)}
               />
             ))}
 
-            {arenaSummaries.length === 0 && (
-              <div className="col-span-3 py-12 text-center text-slate-500 font-mono text-sm">
-                Connecting to Authoritative Arena Match Engines...
+            {sortedArenas.length === 0 && (
+              <div className="col-span-full py-12 text-center text-sm text-[var(--court-muted)] rounded-2xl bg-[var(--court-surface)] border border-[var(--court-line)]">
+                Connecting to active arena engines...
               </div>
             )}
           </div>
         )}
 
-        {/* Tab 2: Match History Table */}
-        {activeTab === 'HISTORY' && (
-          <div className="animate-fadeIn">
-            <MatchHistoryTable matches={matches} onRefresh={fetchAllData} />
-          </div>
-        )}
+        {/* Tab 2: Match History */}
+        {activeTab === 'HISTORY' && <MatchHistoryTable matches={matches} onRefresh={fetchAllData} />}
 
-        {/* Tab 3: Match Schedule Queue */}
+        {/* Tab 3: Match Queue */}
         {activeTab === 'QUEUE' && (
-          <div className="animate-fadeIn">
-            <ScheduleQueueManager
-              queue={queue}
-              arenas={arenaSummaries}
-              onPushToArena={handlePushMatchToArena}
-              onCreateMatch={handleCreateQueueMatch}
-              onDeleteMatch={handleDeleteQueueMatch}
-              onOpenPreload={() => setIsPreloadModalOpen(true)}
-              onPrimeArenas={handlePrimeFirstMatches}
-            />
-          </div>
+          <ScheduleQueueManager
+            queue={queue}
+            arenas={sortedArenas}
+            onPushToArena={handlePushMatchToArena}
+            onCreateMatch={handleCreateQueueMatch}
+            onDeleteMatch={handleDeleteQueueMatch}
+            onOpenPreload={() => setIsPreloadModalOpen(true)}
+            onPrimeArenas={handlePrimeFirstMatches}
+          />
         )}
 
-        {/* Tab 4: Sponsor Manager */}
+        {/* Tab 4: Sponsors */}
         {activeTab === 'SPONSORS' && (
-          <div className="animate-fadeIn">
-            <SponsorConfigPanel
-              sponsors={sponsors}
-              onCreateSponsor={handleCreateSponsor}
-              onUpdateSponsor={handleUpdateSponsor}
-              onDeleteSponsor={handleDeleteSponsor}
-            />
-          </div>
+          <SponsorConfigPanel
+            sponsors={sponsors}
+            onCreateSponsor={handleCreateSponsor}
+            onUpdateSponsor={handleUpdateSponsor}
+            onDeleteSponsor={handleDeleteSponsor}
+          />
         )}
 
-        {/* Tab 5: Teams & Logos Management */}
-        {activeTab === 'TEAMS' && (
-          <div className="animate-fadeIn">
-            <TeamsManagementPanel />
-          </div>
-        )}
+        {/* Tab 5: Teams & Logos */}
+        {activeTab === 'TEAMS' && <TeamsManagementPanel />}
       </main>
 
-      {/* OBS Links Discovery Modal */}
+      {/* Modals */}
       <ObsLinksModal
         isOpen={selectedObsArenaId !== null}
         onClose={() => setSelectedObsArenaId(null)}
-        arenaId={selectedObsArenaId || arenaSummaries[0]?.arenaId || 1}
-        arenas={arenaSummaries}
+        arenaId={selectedObsArenaId || sortedArenas[0]?.arenaId || 1}
+        arenas={sortedArenas}
         onSelectArena={(id) => setSelectedObsArenaId(id)}
       />
 
-      {/* Admin Intermission Configuration & Override Hub */}
       <AdminIntermissionModal
         isOpen={isIntermissionModalOpen}
         onClose={() => setIsIntermissionModalOpen(false)}
-        arenas={arenaSummaries}
+        arenas={sortedArenas}
         onSuccess={fetchAllData}
       />
 
-      {/* Dynamic Arena Creation Modal */}
       <AddArenaModal
         isOpen={isAddArenaModalOpen}
         onClose={() => setIsAddArenaModalOpen(false)}
@@ -410,7 +423,6 @@ export const MasterDashboard: React.FC = () => {
         nextArenaId={nextArenaId}
       />
 
-      {/* Arena Decommission Safety Confirmation Modal */}
       <DeleteArenaConfirmModal
         isOpen={arenaToDelete !== null}
         arena={arenaToDelete}
@@ -418,11 +430,10 @@ export const MasterDashboard: React.FC = () => {
         onConfirm={handleDeleteArena}
       />
 
-      {/* Preload Tournament Schedule & Arm Arenas Modal */}
       <PreloadScheduleModal
         isOpen={isPreloadModalOpen}
         onClose={() => setIsPreloadModalOpen(false)}
-        arenas={arenaSummaries}
+        arenas={sortedArenas}
         onSuccess={fetchAllData}
       />
     </div>

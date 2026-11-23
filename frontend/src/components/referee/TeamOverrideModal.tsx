@@ -65,7 +65,17 @@ export const TeamOverrideModal: React.FC<TeamOverrideModalProps> = ({
     setFormBlueScore(blueScore);
     setFormRedPen(redPenalties);
     setFormBluePen(bluePenalties);
-  }, [teamRed, teamBlue, teamRedLogoUrl, teamBlueLogoUrl, matchNumber, redScore, blueScore, redPenalties, bluePenalties]);
+  }, [
+    teamRed,
+    teamBlue,
+    teamRedLogoUrl,
+    teamBlueLogoUrl,
+    matchNumber,
+    redScore,
+    blueScore,
+    redPenalties,
+    bluePenalties,
+  ]);
 
   if (!isOpen) return null;
 
@@ -87,11 +97,8 @@ export const TeamOverrideModal: React.FC<TeamOverrideModalProps> = ({
 
       if (res.ok) {
         const data = await res.json();
-        if (side === 'red') {
-          setFormRedLogo(data.logoUrl);
-        } else {
-          setFormBlueLogo(data.logoUrl);
-        }
+        if (side === 'red') setFormRedLogo(data.logoUrl);
+        else setFormBlueLogo(data.logoUrl);
       } else {
         alert('Failed to upload logo');
       }
@@ -119,39 +126,48 @@ export const TeamOverrideModal: React.FC<TeamOverrideModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
-      <div className="w-full max-w-lg rounded-3xl bg-slate-900 border-2 border-slate-700 shadow-2xl p-6 relative">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm"
+      style={{ backgroundColor: 'var(--court-overlay-backdrop)' }}
+    >
+      <div className="w-full max-w-lg rounded-2xl bg-[var(--court-surface)] border border-[var(--court-line)] shadow-2xl p-6 relative">
         <button
+          type="button"
           onClick={onClose}
-          className="absolute top-5 right-5 p-2 rounded-xl text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 transition-colors"
+          className="absolute top-5 right-5 p-1.5 rounded-lg text-[var(--court-muted)] hover:text-[var(--court-ink)] hover:bg-[var(--court-control-bg)]"
         >
           <X className="w-5 h-5" />
         </button>
 
-        <h2 className="text-xl font-display font-black text-white mb-1">
-          Referee Override &amp; Team Details
-        </h2>
-        <p className="text-xs font-mono text-slate-400 mb-6">
-          Hotkeys are automatically disabled while modifying these fields.
+        <h2 className="text-xl font-bold text-[var(--court-ink)] mb-1 pr-8">Manual overrides</h2>
+        <p className="text-xs text-[var(--court-muted)] mb-5">
+          Hotkeys are disabled while editing these fields.
         </p>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div>
-            <label className="block text-xs font-mono text-slate-400 mb-1">MATCH NUMBER</label>
+            <label className="block text-xs font-semibold text-[var(--court-ink-secondary)] mb-1">
+              Match number
+            </label>
             <input
               type="text"
               value={formMatchNum}
               onChange={(e) => setFormMatchNum(e.target.value)}
-              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-white font-mono text-sm focus:border-cyan-500 focus:outline-none"
+              className="w-full px-3.5 py-2 rounded-lg bg-[var(--court-subtle)] border border-[var(--court-line)] text-[var(--court-ink)] text-sm"
             />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Red Team Section */}
-            <div className="p-4 rounded-2xl bg-red-950/30 border border-red-500/30 flex flex-col gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+            {/* Red Team */}
+            <div
+              className="p-4 rounded-xl border flex flex-col gap-3"
+              style={{ backgroundColor: 'var(--drone-red-tint)', borderColor: 'var(--drone-red-border)' }}
+            >
               <div className="flex items-center justify-between">
-                <label className="block text-xs font-mono font-bold text-red-400">RED TEAM</label>
-                <div className="flex items-center gap-2">
+                <label className="text-xs font-bold" style={{ color: 'var(--drone-red-text)' }}>
+                  Red team
+                </label>
+                <div className="flex items-center gap-1.5">
                   <TeamBadge teamName={formRed} logoUrl={formRedLogo} side="red" size="sm" />
                   <input
                     type="file"
@@ -168,14 +184,9 @@ export const TeamOverrideModal: React.FC<TeamOverrideModalProps> = ({
                     type="button"
                     onClick={() => redFileInputRef.current?.click()}
                     disabled={isUploadingRed}
-                    title="Upload or replace Red Team logo"
-                    className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-red-900/60 hover:bg-red-800 text-red-200 border border-red-500/40 flex items-center gap-1 cursor-pointer"
+                    className="text-[11px] font-semibold px-2 py-1 rounded-md bg-[var(--court-surface)] border border-[var(--court-line)] text-[var(--court-ink)] inline-flex items-center gap-1"
                   >
-                    {isUploadingRed ? (
-                      <RefreshCw className="w-3 h-3 animate-spin" />
-                    ) : (
-                      <UploadCloud className="w-3 h-3" />
-                    )}
+                    {isUploadingRed ? <RefreshCw className="w-3 h-3 animate-spin" /> : <UploadCloud className="w-3 h-3" />}
                     <span>Logo</span>
                   </button>
                 </div>
@@ -185,38 +196,43 @@ export const TeamOverrideModal: React.FC<TeamOverrideModalProps> = ({
                 type="text"
                 value={formRed}
                 onChange={(e) => setFormRed(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-red-500/40 text-white text-sm focus:border-red-400 focus:outline-none"
+                className="w-full px-3 py-2 rounded-lg bg-[var(--court-surface)] border border-[var(--court-line)] text-[var(--court-ink)] text-sm"
               />
 
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="block text-[10px] font-mono text-slate-400">EXACT SCORE</label>
+                  <label className="block text-[11px] font-medium text-[var(--court-muted)] mb-1">Score</label>
                   <input
                     type="number"
                     min="0"
                     value={formRedScore}
                     onChange={(e) => setFormRedScore(parseInt(e.target.value, 10) || 0)}
-                    className="w-full px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-white font-mono text-center text-sm"
+                    className="w-full px-2.5 py-1.5 rounded-lg bg-[var(--court-surface)] border border-[var(--court-line)] text-[var(--court-ink)] text-center text-sm tabular-nums"
                   />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-mono text-slate-400">PENALTIES</label>
+                  <label className="block text-[11px] font-medium text-[var(--court-muted)] mb-1">Penalties</label>
                   <input
                     type="number"
                     min="0"
                     value={formRedPen}
                     onChange={(e) => setFormRedPen(parseInt(e.target.value, 10) || 0)}
-                    className="w-full px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-white font-mono text-center text-sm"
+                    className="w-full px-2.5 py-1.5 rounded-lg bg-[var(--court-surface)] border border-[var(--court-line)] text-[var(--court-ink)] text-center text-sm tabular-nums"
                   />
                 </div>
               </div>
             </div>
 
-            {/* Blue Team Section */}
-            <div className="p-4 rounded-2xl bg-blue-950/30 border border-blue-500/30 flex flex-col gap-3">
+            {/* Blue Team */}
+            <div
+              className="p-4 rounded-xl border flex flex-col gap-3"
+              style={{ backgroundColor: 'var(--drone-blue-tint)', borderColor: 'var(--drone-blue-border)' }}
+            >
               <div className="flex items-center justify-between">
-                <label className="block text-xs font-mono font-bold text-blue-400">BLUE TEAM</label>
-                <div className="flex items-center gap-2">
+                <label className="text-xs font-bold" style={{ color: 'var(--drone-blue-text)' }}>
+                  Blue team
+                </label>
+                <div className="flex items-center gap-1.5">
                   <TeamBadge teamName={formBlue} logoUrl={formBlueLogo} side="blue" size="sm" />
                   <input
                     type="file"
@@ -233,14 +249,9 @@ export const TeamOverrideModal: React.FC<TeamOverrideModalProps> = ({
                     type="button"
                     onClick={() => blueFileInputRef.current?.click()}
                     disabled={isUploadingBlue}
-                    title="Upload or replace Blue Team logo"
-                    className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-blue-900/60 hover:bg-blue-800 text-blue-200 border border-blue-500/40 flex items-center gap-1 cursor-pointer"
+                    className="text-[11px] font-semibold px-2 py-1 rounded-md bg-[var(--court-surface)] border border-[var(--court-line)] text-[var(--court-ink)] inline-flex items-center gap-1"
                   >
-                    {isUploadingBlue ? (
-                      <RefreshCw className="w-3 h-3 animate-spin" />
-                    ) : (
-                      <UploadCloud className="w-3 h-3" />
-                    )}
+                    {isUploadingBlue ? <RefreshCw className="w-3 h-3 animate-spin" /> : <UploadCloud className="w-3 h-3" />}
                     <span>Logo</span>
                   </button>
                 </div>
@@ -250,48 +261,49 @@ export const TeamOverrideModal: React.FC<TeamOverrideModalProps> = ({
                 type="text"
                 value={formBlue}
                 onChange={(e) => setFormBlue(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-blue-500/40 text-white text-sm focus:border-blue-400 focus:outline-none"
+                className="w-full px-3 py-2 rounded-lg bg-[var(--court-surface)] border border-[var(--court-line)] text-[var(--court-ink)] text-sm"
               />
 
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="block text-[10px] font-mono text-slate-400">EXACT SCORE</label>
+                  <label className="block text-[11px] font-medium text-[var(--court-muted)] mb-1">Score</label>
                   <input
                     type="number"
                     min="0"
                     value={formBlueScore}
                     onChange={(e) => setFormBlueScore(parseInt(e.target.value, 10) || 0)}
-                    className="w-full px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-white font-mono text-center text-sm"
+                    className="w-full px-2.5 py-1.5 rounded-lg bg-[var(--court-surface)] border border-[var(--court-line)] text-[var(--court-ink)] text-center text-sm tabular-nums"
                   />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-mono text-slate-400">PENALTIES</label>
+                  <label className="block text-[11px] font-medium text-[var(--court-muted)] mb-1">Penalties</label>
                   <input
                     type="number"
                     min="0"
                     value={formBluePen}
                     onChange={(e) => setFormBluePen(parseInt(e.target.value, 10) || 0)}
-                    className="w-full px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-white font-mono text-center text-sm"
+                    className="w-full px-2.5 py-1.5 rounded-lg bg-[var(--court-surface)] border border-[var(--court-line)] text-[var(--court-ink)] text-center text-sm tabular-nums"
                   />
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="flex items-center justify-end gap-3 mt-4">
+          <div className="flex items-center justify-end gap-2 pt-3 border-t border-[var(--court-line-soft)]">
             <button
               type="button"
               onClick={onClose}
-              className="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-mono text-xs font-bold transition-colors"
+              className="px-4 py-2 rounded-lg bg-[var(--court-control-bg)] hover:bg-[var(--court-control-hover)] text-[var(--court-ink-secondary)] text-xs font-semibold"
             >
-              CANCEL
+              Cancel
             </button>
             <button
               type="submit"
-              className="px-6 py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-display font-bold text-sm flex items-center gap-2 shadow-lg shadow-cyan-600/30 transition-all cursor-pointer"
+              className="px-4 py-2 rounded-lg text-white text-xs font-semibold inline-flex items-center gap-1.5"
+              style={{ backgroundColor: 'var(--drone-blue-solid)' }}
             >
               <Check className="w-4 h-4" />
-              <span>APPLY OVERRIDES</span>
+              <span>Apply overrides</span>
             </button>
           </div>
         </form>

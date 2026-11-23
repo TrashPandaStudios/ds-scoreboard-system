@@ -3,8 +3,7 @@ import { useParams } from 'react-router-dom';
 import { useArenaStore } from '../../store/arenaStore';
 import { useArenaWebSocket } from '../../hooks/useArenaWebSocket';
 import { useAuthoritativeTimer } from '../../hooks/useAuthoritativeTimer';
-import { AlertTriangle, Zap } from 'lucide-react';
-import { PenaltyPips } from '../../components/display/PenaltyPips';
+import { AlertTriangle } from 'lucide-react';
 
 export const OBSPenaltyAlert: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -25,13 +24,14 @@ export const OBSPenaltyAlert: React.FC = () => {
     timeRemainingMs: 30000,
     totalSetDurationMs: 30000,
     timerRunning: false,
-    phase: 'PENALTY_PHASE',
+    phase: 'PENALTY_PHASE' as const,
   };
 
   const { formattedTime } = useAuthoritativeTimer({
     serverRemainingMs: state.timeRemainingMs,
     totalDurationMs: state.totalSetDurationMs,
     timerRunning: state.timerRunning,
+    phase: state.phase,
   });
 
   useEffect(() => {
@@ -43,9 +43,7 @@ export const OBSPenaltyAlert: React.FC = () => {
     };
   }, []);
 
-  const isPenaltyPhase = state.phase === 'PENALTY_PHASE';
-
-  if (!isPenaltyPhase) {
+  if (state.phase !== 'PENALTY_PHASE') {
     return <div style={{ background: 'transparent' }} className="w-screen h-screen" />;
   }
 
@@ -54,47 +52,47 @@ export const OBSPenaltyAlert: React.FC = () => {
       className="w-screen h-screen flex flex-col items-center justify-center p-8 select-none overflow-hidden"
       style={{ background: 'transparent' }}
     >
-      <div className="w-full max-w-3xl rounded-3xl overflow-hidden bg-slate-950/95 border-4 border-amber-500 shadow-[0_0_80px_rgba(245,158,11,0.6)] backdrop-blur-xl animate-bounce">
-        {/* Hazard Animated Bar Top */}
-        <div className="h-4 w-full hazard-bar" />
+      <div className="w-full max-w-3xl rounded-2xl overflow-hidden bg-[#151B23]/95 border-2 border-[#D29922] shadow-[0_20px_60px_rgba(0,0,0,0.75)] backdrop-blur-md">
+        <div className="h-3 w-full hazard-bar" />
 
-        <div className="p-8 flex flex-col items-center text-center gap-4">
-          <div className="flex items-center gap-3 text-amber-400">
-            <AlertTriangle className="w-10 h-10 animate-spin" />
-            <h1 className="text-4xl font-display font-black text-white uppercase tracking-widest drop-shadow-lg">
-              PENALTY SHOOTOUT PHASE
+        <div className="p-8 flex flex-col items-center text-center gap-5">
+          <div className="flex items-center gap-3 text-[#F2CC60]">
+            <AlertTriangle className="w-8 h-8" />
+            <h1 className="spectator-numeral text-5xl font-black text-[#F0F6FC] leading-none">
+              Penalty shootout
             </h1>
-            <AlertTriangle className="w-10 h-10 animate-spin" />
           </div>
 
-          <div className="flex items-center justify-center gap-6 my-4 flex-wrap">
-            <div className="flex items-center gap-3 bg-red-950/40 px-5 py-2.5 rounded-2xl border border-red-500/50 shadow-lg">
-              <span className="text-xl sm:text-2xl font-bold font-mono text-red-400">
+          <div className="flex items-center justify-center gap-5 flex-wrap">
+            <div className="flex items-center gap-3 bg-[#F85149]/15 px-5 py-2.5 rounded-xl border border-[#F85149]/40">
+              <span className="spectator-numeral text-2xl font-bold text-[#FF7B72]">
                 {state.teamRed}
               </span>
-              <PenaltyPips count={state.redPenalties} team="red" size="lg" />
+              <span className="spectator-numeral text-3xl font-black text-[#F0F6FC] px-2.5 py-0.5 rounded-lg bg-[#1C232D]">
+                {state.redPenalties}
+              </span>
             </div>
 
-            <span className="text-slate-500 font-mono font-black text-2xl">VS</span>
+            <span className="text-[#8B949E] font-bold text-sm">vs</span>
 
-            <div className="flex items-center gap-3 bg-blue-950/40 px-5 py-2.5 rounded-2xl border border-blue-500/50 shadow-lg">
-              <span className="text-xl sm:text-2xl font-bold font-mono text-blue-400">
+            <div className="flex items-center gap-3 bg-[#388BFD]/15 px-5 py-2.5 rounded-xl border border-[#388BFD]/40">
+              <span className="spectator-numeral text-2xl font-bold text-[#79C0FF]">
                 {state.teamBlue}
               </span>
-              <PenaltyPips count={state.bluePenalties} team="blue" size="lg" />
+              <span className="spectator-numeral text-3xl font-black text-[#F0F6FC] px-2.5 py-0.5 rounded-lg bg-[#1C232D]">
+                {state.bluePenalties}
+              </span>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 px-6 py-2 rounded-2xl bg-amber-500/20 border border-amber-500/50">
-            <Zap className="w-5 h-5 text-amber-400 fill-amber-400 animate-pulse" />
-            <span className="font-mono font-black text-3xl text-amber-300 tabular-nums">
+          <div className="px-6 py-2 rounded-xl bg-[#D29922]/15 border border-[#D29922]/50">
+            <span className="spectator-numeral text-4xl font-black text-[#F2CC60]">
               {formattedTime}
             </span>
           </div>
         </div>
 
-        {/* Hazard Animated Bar Bottom */}
-        <div className="h-4 w-full hazard-bar" />
+        <div className="h-3 w-full hazard-bar" />
       </div>
     </div>
   );

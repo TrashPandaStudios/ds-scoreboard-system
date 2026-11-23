@@ -49,7 +49,7 @@ export const App: React.FC = () => {
   // Brief loading shell only while resolving whether this origin is the locked-down public portal
   if (portalMode === 'loading') {
     return (
-      <div className="min-h-screen bg-[#080b11] text-slate-400 flex items-center justify-center text-sm font-medium">
+      <div className="app-shell min-h-screen flex items-center justify-center text-sm font-medium text-[var(--court-muted)]">
         <span>Loading scoreboard...</span>
       </div>
     );

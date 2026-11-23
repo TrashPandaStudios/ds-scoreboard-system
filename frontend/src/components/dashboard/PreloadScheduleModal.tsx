@@ -10,7 +10,6 @@ import {
   Copy,
   Download,
   Layers,
-  Sparkles,
   PlayCircle,
   Clock,
   ShieldCheck,
@@ -44,7 +43,6 @@ export const PreloadScheduleModal: React.FC<PreloadScheduleModalProps> = ({
   const [autoLoadArenas, setAutoLoadArenas] = useState<boolean>(true);
   const [clearExisting, setClearExisting] = useState<boolean>(true);
 
-  // Manual matches state
   const [manualMatches, setManualMatches] = useState<MatchScheduleInput[]>([
     { matchNumber: 'M-101', arenaId: 1, teamRed: 'Red Phoenix', teamBlue: 'Blue Comets', scheduledTime: '09:00' },
     { matchNumber: 'M-102', arenaId: 2, teamRed: 'Thunder Hawks', teamBlue: 'Cyber Vipers', scheduledTime: '09:00' },
@@ -67,7 +65,6 @@ export const PreloadScheduleModal: React.FC<PreloadScheduleModalProps> = ({
 
   if (!isOpen) return null;
 
-  // Real-time client-side parsing of CSV text for live preview
   const parsePreviewMatches = (): { matches: MatchScheduleInput[]; warnings: string[] } => {
     if (activeTab === 'MANUAL') {
       const warnings: string[] = [];
@@ -86,8 +83,8 @@ export const PreloadScheduleModal: React.FC<PreloadScheduleModalProps> = ({
     if (lines.length === 0) return { matches: [], warnings };
 
     const delimiter = lines[0].includes('\t') ? '\t' : lines[0].includes(';') && !lines[0].includes(',') ? ';' : ',';
-
     const headerParts = lines[0].split(delimiter).map((h) => h.toLowerCase().trim().replace(/^"|"$/g, ''));
+
     let matchIdx = -1,
       cageIdx = -1,
       redIdx = -1,
@@ -118,7 +115,6 @@ export const PreloadScheduleModal: React.FC<PreloadScheduleModalProps> = ({
       const line = lines[i];
       if (line.startsWith('#')) continue;
 
-      // regex split supporting quotes
       const regex = new RegExp(`${delimiter}(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)`);
       const cols = line.split(regex).map((c) => c.replace(/^"|"$/g, '').trim());
 
@@ -132,7 +128,7 @@ export const PreloadScheduleModal: React.FC<PreloadScheduleModalProps> = ({
       const arenaId = arenaMatch ? parseInt(arenaMatch[0], 10) : 1;
 
       if (!teamRed || !teamBlue) {
-        warnings.push(`Line ${i + 1} ("${line.substring(0, 30)}..."): Missing Team Red or Team Blue.`);
+        warnings.push(`Line ${i + 1}: Missing Red or Blue team.`);
       }
 
       parsed.push({
@@ -150,7 +146,6 @@ export const PreloadScheduleModal: React.FC<PreloadScheduleModalProps> = ({
 
   const { matches: previewMatches, warnings: previewWarnings } = parsePreviewMatches();
 
-  // Determine which matches are the first match for each arena
   const firstMatchIdsByArena = new Set<string>();
   const seenArenas = new Set<number>();
   previewMatches.forEach((m) => {
@@ -169,13 +164,10 @@ export const PreloadScheduleModal: React.FC<PreloadScheduleModalProps> = ({
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
     const reader = new FileReader();
     reader.onload = (evt) => {
       const text = evt.target?.result as string;
-      if (text) {
-        setCsvText(text);
-      }
+      if (text) setCsvText(text);
     };
     reader.readAsText(file);
   };
@@ -199,7 +191,7 @@ export const PreloadScheduleModal: React.FC<PreloadScheduleModalProps> = ({
 
   const handleAddManualRow = () => {
     const nextMatchNum = `M-${manualMatches.length + 101}`;
-    const nextArenaId = ((manualMatches.length) % (arenas.length || 3)) + 1;
+    const nextArenaId = (manualMatches.length % (arenas.length || 3)) + 1;
     setManualMatches([
       ...manualMatches,
       { matchNumber: nextMatchNum, arenaId: nextArenaId, teamRed: '', teamBlue: '', scheduledTime: '09:00' },
@@ -226,29 +218,25 @@ export const PreloadScheduleModal: React.FC<PreloadScheduleModalProps> = ({
     setErrorMessage(null);
 
     try {
-      const payload = {
-        matches: previewMatches,
-        clearExisting,
-        autoLoadArenas,
-        defaultTournamentName: tournamentName,
-      };
-
       const res = await fetch('/api/queue/preload', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          matches: previewMatches,
+          clearExisting,
+          autoLoadArenas,
+          defaultTournamentName: tournamentName,
+        }),
       });
 
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
-        throw new Error(errorData.message || `Preload failed with HTTP ${res.status}`);
+        throw new Error(errorData.message || `Preload failed (HTTP ${res.status})`);
       }
 
       const data: PreloadResultDTO = await res.json();
       setResultSummary(data);
-      if (onSuccess) {
-        onSuccess();
-      }
+      onSuccess?.();
     } catch (err: any) {
       setErrorMessage(err.message || 'Failed to preload tournament data.');
     } finally {
@@ -257,217 +245,219 @@ export const PreloadScheduleModal: React.FC<PreloadScheduleModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/85 backdrop-blur-md animate-fadeIn overflow-y-auto">
-      <div className="w-full max-w-4xl max-h-[92vh] flex flex-col rounded-3xl bg-slate-900 border-2 border-slate-700 shadow-2xl relative overflow-hidden my-auto">
-        {/* Modal Header */}
-        <div className="flex items-center justify-between p-6 border-b border-slate-800 bg-slate-950/60 shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center shadow-lg shadow-cyan-500/20">
-              <UploadCloud className="w-6 h-6 text-cyan-400" />
-            </div>
-            <div>
-              <span className="text-xs font-mono text-cyan-400 font-bold uppercase tracking-widest block">
-                EVENT TOURNAMENT INITIALIZATION
-              </span>
-              <h2 className="text-xl font-display font-black text-white">Preload Tournament Match Data</h2>
-            </div>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 backdrop-blur-sm overflow-y-auto"
+      style={{ backgroundColor: 'var(--court-overlay-backdrop)' }}
+    >
+      <div className="w-full max-w-4xl max-h-[92vh] flex flex-col rounded-2xl bg-[var(--court-surface)] border border-[var(--court-line)] shadow-2xl overflow-hidden my-auto">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--court-line-soft)] bg-[var(--court-subtle)] shrink-0">
+          <div>
+            <h2 className="text-xl font-bold text-[var(--court-ink)]">Preload tournament schedule</h2>
+            <p className="text-xs text-[var(--court-muted)] mt-0.5">
+              Import matches from CSV or build the lineup manually and arm opening cages.
+            </p>
           </div>
 
           <button
+            type="button"
             onClick={onClose}
             disabled={loading}
-            className="p-2 rounded-xl text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 transition-colors"
+            className="p-1.5 rounded-lg text-[var(--court-muted)] hover:text-[var(--court-ink)] hover:bg-[var(--court-control-bg)]"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Modal Body */}
-        <div className="p-6 overflow-y-auto flex-1 flex flex-col gap-6">
-          {/* Success Screen */}
+        {/* Body */}
+        <div className="p-6 overflow-y-auto flex-1 flex flex-col gap-5">
           {resultSummary ? (
-            <div className="flex flex-col items-center justify-center py-6 text-center animate-fadeIn gap-6">
-              <div className="w-16 h-16 rounded-3xl bg-emerald-500/20 border-2 border-emerald-500/50 flex items-center justify-center shadow-lg shadow-emerald-500/30">
-                <CheckCircle2 className="w-10 h-10 text-emerald-400" />
+            <div className="flex flex-col items-center justify-center py-6 text-center gap-5">
+              <div
+                className="w-14 h-14 rounded-2xl border flex items-center justify-center"
+                style={{
+                  backgroundColor: 'var(--signal-live-tint)',
+                  borderColor: 'var(--signal-live-border)',
+                  color: 'var(--signal-live-text)',
+                }}
+              >
+                <CheckCircle2 className="w-8 h-8" />
               </div>
 
-              <div className="flex flex-col gap-1 max-w-lg">
-                <h3 className="text-2xl font-display font-black text-white">Event Lineup Successfully Primed!</h3>
-                <p className="text-xs font-mono text-slate-400">
+              <div className="max-w-lg">
+                <h3 className="text-xl font-bold text-[var(--court-ink)]">Schedule loaded</h3>
+                <p className="text-xs text-[var(--court-muted)] mt-1">
                   {resultSummary.message ||
-                    `Preloaded ${resultSummary.totalMatchesLoaded} matches and armed ${resultSummary.totalArenasPrimed} cages for the tournament opening.`}
+                    `Loaded ${resultSummary.totalMatchesLoaded} matches and armed ${resultSummary.totalArenasPrimed} cages.`}
                 </p>
               </div>
 
-              {/* Primed Arenas Summary Grid */}
               {resultSummary.primedArenas && resultSummary.primedArenas.length > 0 && (
-                <div className="w-full max-w-2xl flex flex-col gap-2.5">
-                  <span className="text-xs font-mono text-cyan-400 font-bold tracking-wider uppercase text-left">
-                    ARENAS READY AT EVENT START (03:00 / SET 1):
-                  </span>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {resultSummary.primedArenas.map((pa) => (
-                      <div
-                        key={pa.arenaId}
-                        className="p-4 rounded-2xl bg-slate-950 border border-emerald-500/40 flex flex-col gap-2 text-left shadow-md"
-                      >
-                        <div className="flex items-center justify-between">
-                          <span className="text-[11px] font-mono font-black text-emerald-400">
-                            CAGE {pa.arenaId}
-                          </span>
-                          <span className="text-[10px] font-mono bg-cyan-950 px-2 py-0.5 rounded border border-cyan-800 text-cyan-300">
-                            {pa.matchNumber}
-                          </span>
-                        </div>
-                        <div className="flex flex-col gap-0.5 text-xs font-semibold">
-                          <span className="text-red-400 font-mono">{pa.teamRed}</span>
-                          <span className="text-slate-500 text-[10px] font-mono">VS</span>
-                          <span className="text-blue-400 font-mono">{pa.teamBlue}</span>
-                        </div>
-                        <span className="text-[10px] font-mono text-slate-400 flex items-center gap-1 mt-1">
-                          <ShieldCheck className="w-3 h-3 text-emerald-400" />
-                          <span>Arming Complete</span>
-                        </span>
+                <div className="w-full max-w-2xl grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-left">
+                  {resultSummary.primedArenas.map((pa) => (
+                    <div
+                      key={pa.arenaId}
+                      className="p-4 rounded-xl bg-[var(--court-subtle)] border border-[var(--court-line-soft)] flex flex-col gap-1.5"
+                    >
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="font-bold text-[var(--court-ink)]">Cage {pa.arenaId}</span>
+                        <span className="font-semibold text-[var(--court-accent-link)]">{pa.matchNumber}</span>
                       </div>
-                    ))}
-                  </div>
+                      <div className="text-xs font-semibold">
+                        <span style={{ color: 'var(--drone-red-text)' }}>{pa.teamRed}</span>
+                        <span className="text-[var(--court-muted)] mx-1.5">vs</span>
+                        <span style={{ color: 'var(--drone-blue-text)' }}>{pa.teamBlue}</span>
+                      </div>
+                      <span
+                        className="text-[11px] font-semibold inline-flex items-center gap-1 mt-1"
+                        style={{ color: 'var(--signal-live-text)' }}
+                      >
+                        <ShieldCheck className="w-3.5 h-3.5" />
+                        <span>Armed at 03:00</span>
+                      </span>
+                    </div>
+                  ))}
                 </div>
               )}
 
-              <div className="flex items-center gap-3 pt-4">
-                <button
-                  onClick={onClose}
-                  className="px-6 py-3 rounded-xl bg-gradient-to-r from-emerald-600 to-cyan-600 hover:from-emerald-500 hover:to-cyan-500 text-white font-mono text-xs font-black shadow-lg shadow-emerald-600/30 transition-all active:scale-95"
-                >
-                  RETURN TO MASTER DASHBOARD
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-5 py-2.5 rounded-lg text-white text-xs font-semibold"
+                style={{ backgroundColor: 'var(--drone-blue-solid)' }}
+              >
+                Back to Admin Panel
+              </button>
             </div>
           ) : (
             <>
               {errorMessage && (
-                <div className="p-3.5 rounded-2xl bg-rose-950/80 border border-rose-600/50 text-rose-200 text-xs font-mono flex items-center gap-2.5">
-                  <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
+                <div
+                  className="p-3 rounded-xl border text-xs font-semibold flex items-center gap-2"
+                  style={{
+                    backgroundColor: 'var(--drone-red-tint)',
+                    borderColor: 'var(--drone-red-border)',
+                    color: 'var(--drone-red-text)',
+                  }}
+                >
+                  <AlertTriangle className="w-4 h-4 shrink-0" />
                   <span>{errorMessage}</span>
                 </div>
               )}
 
               {/* Tournament Name & Options */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-4 rounded-2xl bg-slate-950/70 border border-slate-800">
-                <div className="sm:col-span-1">
-                  <label className="block text-[11px] font-mono text-slate-400 font-bold mb-1.5 uppercase">
-                    TOURNAMENT / EVENT TITLE
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-4 rounded-xl bg-[var(--court-subtle)] border border-[var(--court-line-soft)]">
+                <div>
+                  <label className="block text-xs font-semibold text-[var(--court-ink-secondary)] mb-1">
+                    Tournament title
                   </label>
                   <input
                     type="text"
                     value={tournamentName}
                     onChange={(e) => setTournamentName(e.target.value)}
                     placeholder="e.g. FIDA National Championship"
-                    className="w-full px-3.5 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white font-mono text-xs focus:outline-none focus:border-cyan-500"
+                    className="w-full px-3 py-2 rounded-lg bg-[var(--court-surface)] border border-[var(--court-line)] text-[var(--court-ink)] text-xs"
                   />
                 </div>
 
-                <div className="sm:col-span-2 flex flex-col justify-center gap-2">
-                  <label className="flex items-center gap-2.5 cursor-pointer text-xs font-mono text-slate-300">
+                <div className="sm:col-span-2 flex flex-col justify-center gap-2 text-xs text-[var(--court-ink-secondary)]">
+                  <label className="flex items-center gap-2 cursor-pointer">
                     <input
                       type="checkbox"
                       checked={autoLoadArenas}
                       onChange={(e) => setAutoLoadArenas(e.target.checked)}
-                      className="w-4 h-4 rounded border-slate-700 text-cyan-600 focus:ring-cyan-500 bg-slate-900"
+                      className="w-4 h-4 rounded"
                     />
-                    <span className="font-bold text-cyan-300">
-                      Auto-load each arena with its 1st match
-                    </span>
-                    <span className="text-[10px] text-slate-500 hidden md:inline">
-                      (Sets scoreboard, timer 03:00, and teams ready to play)
+                    <span className="font-semibold text-[var(--court-ink)]">
+                      Auto-load each cage with its opening match
                     </span>
                   </label>
 
-                  <label className="flex items-center gap-2.5 cursor-pointer text-xs font-mono text-slate-300">
+                  <label className="flex items-center gap-2 cursor-pointer">
                     <input
                       type="checkbox"
                       checked={clearExisting}
                       onChange={(e) => setClearExisting(e.target.checked)}
-                      className="w-4 h-4 rounded border-slate-700 text-cyan-600 focus:ring-cyan-500 bg-slate-900"
+                      className="w-4 h-4 rounded"
                     />
                     <span>Clear existing queue before import</span>
-                    <span className="text-[10px] text-slate-500 hidden md:inline">
-                      (Removes stale test/demo matches)
-                    </span>
                   </label>
                 </div>
               </div>
 
               {/* Mode Tabs */}
-              <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-                <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--court-line-soft)] pb-2">
+                <div className="flex items-center gap-1.5">
                   <button
+                    type="button"
                     onClick={() => setActiveTab('CSV')}
-                    className={`px-4 py-2 rounded-xl text-xs font-mono font-bold flex items-center gap-2 transition-all ${
+                    className="px-3.5 py-1.5 rounded-lg text-xs font-semibold inline-flex items-center gap-1.5 transition-colors"
+                    style={
                       activeTab === 'CSV'
-                        ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-sm'
-                        : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40'
-                    }`}
+                        ? {
+                            backgroundColor: 'var(--court-active-pill-bg)',
+                            color: 'var(--court-active-pill-fg)',
+                          }
+                        : { color: 'var(--court-muted)' }
+                    }
                   >
-                    <FileSpreadsheet className="w-4 h-4" />
-                    <span>SPREADSHEET / CSV IMPORT</span>
+                    <FileSpreadsheet className="w-3.5 h-3.5" />
+                    <span>CSV import</span>
                   </button>
 
                   <button
+                    type="button"
                     onClick={() => setActiveTab('MANUAL')}
-                    className={`px-4 py-2 rounded-xl text-xs font-mono font-bold flex items-center gap-2 transition-all ${
+                    className="px-3.5 py-1.5 rounded-lg text-xs font-semibold inline-flex items-center gap-1.5 transition-colors"
+                    style={
                       activeTab === 'MANUAL'
-                        ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-sm'
-                        : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40'
-                    }`}
+                        ? {
+                            backgroundColor: 'var(--court-active-pill-bg)',
+                            color: 'var(--court-active-pill-fg)',
+                          }
+                        : { color: 'var(--court-muted)' }
+                    }
                   >
-                    <Layers className="w-4 h-4" />
-                    <span>INTERACTIVE BUILDER</span>
+                    <Layers className="w-3.5 h-3.5" />
+                    <span>Manual builder</span>
                   </button>
                 </div>
 
                 {activeTab === 'CSV' && (
                   <div className="flex items-center gap-2">
                     <button
+                      type="button"
                       onClick={handleCopyTemplate}
-                      className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] font-mono flex items-center gap-1.5 transition-colors"
-                      title="Copy standard CSV structure to clipboard"
+                      className="px-2.5 py-1.5 rounded-lg bg-[var(--court-control-bg)] hover:bg-[var(--court-control-hover)] text-[var(--court-ink-secondary)] text-xs font-semibold inline-flex items-center gap-1.5 border border-[var(--court-line)]"
                     >
                       <Copy className="w-3.5 h-3.5" />
-                      <span>{copiedSuccess ? 'COPIED!' : 'COPY TEMPLATE'}</span>
+                      <span>{copiedSuccess ? 'Copied' : 'Copy template'}</span>
                     </button>
 
                     <button
+                      type="button"
                       onClick={handleDownloadTemplate}
-                      className="px-2.5 py-1.5 rounded-lg bg-cyan-950/60 hover:bg-cyan-900/60 text-cyan-300 border border-cyan-800 text-[11px] font-mono flex items-center gap-1.5 transition-colors"
-                      title="Download sample .csv template file"
+                      className="px-2.5 py-1.5 rounded-lg bg-[var(--court-control-bg)] hover:bg-[var(--court-control-hover)] text-[var(--court-accent-link)] text-xs font-semibold inline-flex items-center gap-1.5 border border-[var(--court-line)]"
                     >
                       <Download className="w-3.5 h-3.5" />
-                      <span>DOWNLOAD .CSV</span>
+                      <span>Download CSV</span>
                     </button>
                   </div>
                 )}
               </div>
 
-              {/* Tab 1: CSV Textarea & File Dropzone */}
+              {/* CSV Tab */}
               {activeTab === 'CSV' && (
-                <div className="flex flex-col gap-3 animate-fadeIn">
-                  <div className="flex items-center justify-between">
-                    <label className="text-xs font-mono text-slate-400 flex items-center gap-1.5">
-                      <span>Paste CSV / Spreadsheet cells below or</span>
-                      <label className="text-cyan-400 underline cursor-pointer hover:text-cyan-300">
-                        <span>browse file</span>
-                        <input
-                          type="file"
-                          accept=".csv,.txt"
-                          onChange={handleFileUpload}
-                          className="hidden"
-                        />
+                <div className="flex flex-col gap-2">
+                  <div className="flex flex-wrap items-center justify-between text-xs text-[var(--court-muted)]">
+                    <span>
+                      Paste CSV rows below or{' '}
+                      <label className="text-[var(--court-accent-link)] underline cursor-pointer">
+                        browse a file
+                        <input type="file" accept=".csv,.txt" onChange={handleFileUpload} className="hidden" />
                       </label>
-                    </label>
-                    <span className="text-[10px] font-mono text-slate-500">
-                      Columns: Match, Cage, Red Team, Blue Team, Time
                     </span>
+                    <span>Columns: Match, Cage, Red Team, Blue Team, Time</span>
                   </div>
 
                   <textarea
@@ -475,33 +465,32 @@ export const PreloadScheduleModal: React.FC<PreloadScheduleModalProps> = ({
                     value={csvText}
                     onChange={(e) => setCsvText(e.target.value)}
                     placeholder="Paste CSV rows here..."
-                    className="w-full px-4 py-3 rounded-2xl bg-slate-950 border border-slate-800 text-white font-mono text-xs focus:outline-none focus:border-cyan-500/60 leading-relaxed font-mono"
+                    className="w-full px-3.5 py-3 rounded-xl bg-[var(--court-subtle)] border border-[var(--court-line)] text-[var(--court-ink)] font-mono text-xs leading-relaxed"
                   />
                 </div>
               )}
 
-              {/* Tab 2: Manual Row Editor */}
+              {/* Manual Tab */}
               {activeTab === 'MANUAL' && (
-                <div className="flex flex-col gap-3 animate-fadeIn">
+                <div className="flex flex-col gap-2.5">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-mono text-slate-400">
-                      Manually configure opening matches and lineup per cage:
-                    </span>
+                    <span className="text-xs text-[var(--court-muted)]">Configure matches per cage:</span>
                     <button
                       type="button"
                       onClick={handleAddManualRow}
-                      className="px-3 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-mono font-bold flex items-center gap-1.5 transition-colors"
+                      className="px-3 py-1.5 rounded-lg text-white text-xs font-semibold inline-flex items-center gap-1"
+                      style={{ backgroundColor: 'var(--drone-blue-solid)' }}
                     >
                       <Plus className="w-3.5 h-3.5" />
-                      <span>ADD ROW</span>
+                      <span>Add row</span>
                     </button>
                   </div>
 
-                  <div className="flex flex-col gap-2 max-h-60 overflow-y-auto pr-1">
+                  <div className="flex flex-col gap-2 max-h-56 overflow-y-auto pr-1">
                     {manualMatches.map((row, idx) => (
                       <div
                         key={idx}
-                        className="grid grid-cols-12 gap-2 items-center p-2 rounded-xl bg-slate-950 border border-slate-800"
+                        className="grid grid-cols-12 gap-2 items-center p-2 rounded-lg bg-[var(--court-subtle)] border border-[var(--court-line-soft)]"
                       >
                         <div className="col-span-2">
                           <input
@@ -509,16 +498,23 @@ export const PreloadScheduleModal: React.FC<PreloadScheduleModalProps> = ({
                             placeholder="Match #"
                             value={row.matchNumber || ''}
                             onChange={(e) => handleManualChange(idx, 'matchNumber', e.target.value)}
-                            className="w-full px-2 py-1 rounded bg-slate-900 border border-slate-700 text-xs font-mono text-white"
+                            className="w-full px-2 py-1.5 rounded bg-[var(--court-surface)] border border-[var(--court-line)] text-xs text-[var(--court-ink)]"
                           />
                         </div>
                         <div className="col-span-2">
                           <select
                             value={row.arenaId || 1}
                             onChange={(e) => handleManualChange(idx, 'arenaId', parseInt(e.target.value, 10))}
-                            className="w-full px-2 py-1 rounded bg-slate-900 border border-slate-700 text-xs font-mono text-slate-300"
+                            className="w-full px-2 py-1.5 rounded bg-[var(--court-surface)] border border-[var(--court-line)] text-xs text-[var(--court-ink)]"
                           >
-                            {(arenas.length > 0 ? arenas : [{ arenaId: 1, arenaName: 'Arena 1' }, { arenaId: 2, arenaName: 'Arena 2' }, { arenaId: 3, arenaName: 'Arena 3' }]).map((a) => (
+                            {(arenas.length > 0
+                              ? arenas
+                              : [
+                                  { arenaId: 1, arenaName: 'Arena 1' },
+                                  { arenaId: 2, arenaName: 'Arena 2' },
+                                  { arenaId: 3, arenaName: 'Arena 3' },
+                                ]
+                            ).map((a) => (
                               <option key={a.arenaId} value={a.arenaId}>
                                 Cage {a.arenaId}
                               </option>
@@ -528,19 +524,21 @@ export const PreloadScheduleModal: React.FC<PreloadScheduleModalProps> = ({
                         <div className="col-span-3">
                           <input
                             type="text"
-                            placeholder="Red Team"
+                            placeholder="Red team"
                             value={row.teamRed || ''}
                             onChange={(e) => handleManualChange(idx, 'teamRed', e.target.value)}
-                            className="w-full px-2 py-1 rounded bg-slate-900 border border-red-500/40 text-xs font-mono text-red-300 placeholder-red-500/30"
+                            className="w-full px-2 py-1.5 rounded bg-[var(--court-surface)] border text-xs text-[var(--court-ink)]"
+                            style={{ borderColor: 'var(--drone-red-border)' }}
                           />
                         </div>
                         <div className="col-span-3">
                           <input
                             type="text"
-                            placeholder="Blue Team"
+                            placeholder="Blue team"
                             value={row.teamBlue || ''}
                             onChange={(e) => handleManualChange(idx, 'teamBlue', e.target.value)}
-                            className="w-full px-2 py-1 rounded bg-slate-900 border border-blue-500/40 text-xs font-mono text-blue-300 placeholder-blue-500/30"
+                            className="w-full px-2 py-1.5 rounded bg-[var(--court-surface)] border text-xs text-[var(--court-ink)]"
+                            style={{ borderColor: 'var(--drone-blue-border)' }}
                           />
                         </div>
                         <div className="col-span-1">
@@ -549,14 +547,14 @@ export const PreloadScheduleModal: React.FC<PreloadScheduleModalProps> = ({
                             placeholder="09:00"
                             value={row.scheduledTime || ''}
                             onChange={(e) => handleManualChange(idx, 'scheduledTime', e.target.value)}
-                            className="w-full px-2 py-1 rounded bg-slate-900 border border-slate-700 text-xs font-mono text-slate-300 text-center"
+                            className="w-full px-1.5 py-1.5 rounded bg-[var(--court-surface)] border border-[var(--court-line)] text-xs text-[var(--court-ink)] text-center tabular-nums"
                           />
                         </div>
                         <div className="col-span-1 flex justify-center">
                           <button
                             type="button"
                             onClick={() => handleRemoveManualRow(idx)}
-                            className="p-1 rounded text-slate-500 hover:text-rose-400 transition-colors"
+                            className="p-1 text-[var(--court-muted)] hover:text-[var(--drone-red-text)]"
                             title="Remove row"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -568,95 +566,91 @@ export const PreloadScheduleModal: React.FC<PreloadScheduleModalProps> = ({
                 </div>
               )}
 
-              {/* Live Preview Header & Summary Cards */}
-              <div className="flex flex-col gap-3">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <span className="text-xs font-mono text-cyan-400 font-bold uppercase tracking-wider flex items-center gap-1.5">
-                    <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
-                    <span>DETECTED SCHEDULE PREVIEW</span>
-                  </span>
-
-                  <div className="flex items-center gap-3 text-xs font-mono">
-                    <span className="text-slate-400">
-                      Matches: <b className="text-white">{previewMatches.length}</b>
-                    </span>
-                    <span className="text-slate-600">•</span>
-                    <span className="text-slate-400">
-                      Teams: <b className="text-cyan-400">{uniqueTeamsCount}</b>
-                    </span>
-                    <span className="text-slate-600">•</span>
-                    <span className="text-slate-400">
-                      Cages: <b className="text-purple-400">{seenArenas.size}</b>
-                    </span>
+              {/* Preview Table */}
+              <div className="flex flex-col gap-2">
+                <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+                  <span className="font-bold text-[var(--court-ink)]">Schedule preview</span>
+                  <div className="flex items-center gap-3 text-[var(--court-muted)] tabular-nums">
+                    <span>Matches: <strong className="text-[var(--court-ink)]">{previewMatches.length}</strong></span>
+                    <span>Teams: <strong className="text-[var(--court-ink)]">{uniqueTeamsCount}</strong></span>
+                    <span>Cages: <strong className="text-[var(--court-ink)]">{seenArenas.size}</strong></span>
                   </div>
                 </div>
 
                 {previewWarnings.length > 0 && (
-                  <div className="p-2.5 rounded-xl bg-amber-950/60 border border-amber-600/40 text-amber-300 text-[11px] font-mono flex items-center gap-2">
-                    <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                  <div
+                    className="p-2.5 rounded-lg border text-xs flex items-center gap-2"
+                    style={{
+                      backgroundColor: 'var(--signal-amber-tint)',
+                      borderColor: 'var(--signal-amber-border)',
+                      color: 'var(--signal-amber-text)',
+                    }}
+                  >
+                    <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
                     <span>{previewWarnings[0]}</span>
                   </div>
                 )}
 
-                {/* Parsed Matches Table */}
-                <div className="rounded-2xl border border-slate-800 bg-slate-950 overflow-hidden max-h-52 overflow-y-auto">
-                  <table className="w-full text-left text-xs font-mono">
-                    <thead className="bg-slate-900/90 text-[10px] text-slate-400 uppercase sticky top-0 border-b border-slate-800">
+                <div className="rounded-xl border border-[var(--court-line-soft)] bg-[var(--court-subtle)] overflow-hidden max-h-48 overflow-y-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-[var(--court-surface)] text-[var(--court-muted)] sticky top-0 border-b border-[var(--court-line-soft)]">
                       <tr>
-                        <th className="px-3 py-2">Match</th>
-                        <th className="px-3 py-2">Cage</th>
-                        <th className="px-3 py-2">Red Team</th>
-                        <th className="px-3 py-2 text-center">VS</th>
-                        <th className="px-3 py-2">Blue Team</th>
-                        <th className="px-3 py-2">Time</th>
-                        <th className="px-3 py-2 text-right">Start Status</th>
+                        <th className="px-3 py-2 font-semibold">Match</th>
+                        <th className="px-3 py-2 font-semibold">Cage</th>
+                        <th className="px-3 py-2 font-semibold">Red team</th>
+                        <th className="px-3 py-2 font-semibold">Blue team</th>
+                        <th className="px-3 py-2 font-semibold">Time</th>
+                        <th className="px-3 py-2 font-semibold text-right">Status</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-800/60 text-slate-300">
+                    <tbody className="divide-y divide-[var(--court-line-soft)]">
                       {previewMatches.map((item, idx) => {
                         const aId = item.arenaId || 1;
                         const isFirstOnCage = firstMatchIdsByArena.has(`${aId}-${item.matchNumber}`);
-
                         return (
-                          <tr
-                            key={idx}
-                            className={`hover:bg-slate-900/40 transition-colors ${
-                              isFirstOnCage ? 'bg-cyan-950/10' : ''
-                            }`}
-                          >
-                            <td className="px-3 py-2 font-bold text-cyan-400">{item.matchNumber}</td>
-                            <td className="px-3 py-2 text-slate-400">Cage {aId}</td>
-                            <td className="px-3 py-2 font-semibold text-red-400">{item.teamRed || '—'}</td>
-                            <td className="px-3 py-2 text-center text-slate-600">vs</td>
-                            <td className="px-3 py-2 font-semibold text-blue-400">{item.teamBlue || '—'}</td>
-                            <td className="px-3 py-2 text-slate-400 flex items-center gap-1">
+                          <tr key={idx}>
+                            <td className="px-3 py-2 font-bold text-[var(--court-ink)]">{item.matchNumber}</td>
+                            <td className="px-3 py-2 text-[var(--court-muted)]">Cage {aId}</td>
+                            <td className="px-3 py-2 font-semibold" style={{ color: 'var(--drone-red-text)' }}>
+                              {item.teamRed || '–'}
+                            </td>
+                            <td className="px-3 py-2 font-semibold" style={{ color: 'var(--drone-blue-text)' }}>
+                              {item.teamBlue || '–'}
+                            </td>
+                            <td className="px-3 py-2 text-[var(--court-muted)] tabular-nums">
                               {item.scheduledTime ? (
-                                <>
-                                  <Clock className="w-3 h-3 text-slate-500" />
-                                  <span>{item.scheduledTime}</span>
-                                </>
+                                <span className="inline-flex items-center gap-1">
+                                  <Clock className="w-3 h-3" />
+                                  {item.scheduledTime}
+                                </span>
                               ) : (
-                                '—'
+                                '–'
                               )}
                             </td>
                             <td className="px-3 py-2 text-right">
                               {isFirstOnCage ? (
-                                <span className="px-2 py-0.5 rounded-md bg-emerald-950/80 border border-emerald-600/60 text-emerald-300 text-[10px] font-black uppercase inline-flex items-center gap-1">
-                                  <PlayCircle className="w-3 h-3 text-emerald-400" />
-                                  <span>1ST MATCH ON CAGE {aId}</span>
+                                <span
+                                  className="px-2 py-0.5 rounded-full border text-[11px] font-semibold inline-flex items-center gap-1"
+                                  style={{
+                                    backgroundColor: 'var(--signal-live-tint)',
+                                    borderColor: 'var(--signal-live-border)',
+                                    color: 'var(--signal-live-text)',
+                                  }}
+                                >
+                                  <PlayCircle className="w-3 h-3" />
+                                  <span>Opening match</span>
                                 </span>
                               ) : (
-                                <span className="text-[10px] text-slate-500 font-mono">Queued</span>
+                                <span className="text-[var(--court-muted)]">Queued</span>
                               )}
                             </td>
                           </tr>
                         );
                       })}
-
                       {previewMatches.length === 0 && (
                         <tr>
-                          <td colSpan={7} className="px-4 py-8 text-center text-slate-500 font-mono text-xs">
-                            No match data parsed. Paste CSV rows above or use the interactive builder.
+                          <td colSpan={6} className="px-4 py-8 text-center text-[var(--court-muted)]">
+                            No matches parsed yet.
                           </td>
                         </tr>
                       )}
@@ -668,42 +662,33 @@ export const PreloadScheduleModal: React.FC<PreloadScheduleModalProps> = ({
           )}
         </div>
 
-        {/* Modal Footer */}
+        {/* Footer */}
         {!resultSummary && (
-          <div className="p-4 sm:p-6 border-t border-slate-800 bg-slate-950/80 flex flex-wrap items-center justify-between gap-3 shrink-0">
-            <div className="flex items-center gap-2 text-xs font-mono text-slate-400">
-              <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
-              <span>
-                {autoLoadArenas
-                  ? `Will immediately arm ${seenArenas.size} arena(s) for start`
-                  : 'Will populate queue without loading arenas'}
-              </span>
-            </div>
+          <div className="px-6 py-4 border-t border-[var(--court-line-soft)] bg-[var(--court-subtle)] flex flex-wrap items-center justify-between gap-3 shrink-0">
+            <span className="text-xs text-[var(--court-muted)]">
+              {autoLoadArenas
+                ? `Arms ${seenArenas.size} cage(s) immediately with opening lineups.`
+                : 'Populates queue without modifying active cages.'}
+            </span>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
               <button
                 type="button"
                 disabled={loading}
                 onClick={onClose}
-                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-mono font-bold transition-colors"
+                className="px-4 py-2 rounded-lg bg-[var(--court-control-bg)] hover:bg-[var(--court-control-hover)] text-[var(--court-ink-secondary)] text-xs font-semibold"
               >
-                CANCEL
+                Cancel
               </button>
-
               <button
                 type="button"
                 disabled={loading || previewMatches.length === 0}
                 onClick={handleSubmitPreload}
-                className="px-5 py-2 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white text-xs font-mono font-black flex items-center gap-2 shadow-lg shadow-cyan-600/30 transition-all active:scale-95 disabled:opacity-50"
+                className="px-4 py-2 rounded-lg text-white text-xs font-semibold inline-flex items-center gap-1.5 disabled:opacity-50"
+                style={{ backgroundColor: 'var(--drone-blue-solid)' }}
               >
-                {loading ? (
-                  <span>ARMING ARENAS & PRELOADING...</span>
-                ) : (
-                  <>
-                    <UploadCloud className="w-4 h-4" />
-                    <span>PRELOAD & ARM ARENAS</span>
-                  </>
-                )}
+                <UploadCloud className="w-4 h-4" />
+                <span>{loading ? 'Loading...' : 'Preload & arm cages'}</span>
               </button>
             </div>
           </div>

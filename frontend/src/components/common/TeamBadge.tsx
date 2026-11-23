@@ -18,29 +18,34 @@ export const TeamBadge: React.FC<TeamBadgeProps> = ({
 }) => {
   const [imgError, setImgError] = useState(false);
 
-  // Reset error state if logoUrl changes
   useEffect(() => {
     setImgError(false);
   }, [logoUrl]);
 
   const sizeClasses = {
-    sm: { container: 'w-6 h-6 rounded-lg', icon: 'w-3.5 h-3.5', padding: 'p-0.5' },
-    md: { container: 'w-9 h-9 rounded-xl', icon: 'w-5 h-5', padding: 'p-1' },
-    lg: { container: 'w-12 h-12 rounded-xl', icon: 'w-7 h-7', padding: 'p-1.5' },
-    xl: { container: 'w-16 h-16 rounded-2xl', icon: 'w-9 h-9', padding: 'p-2' },
+    sm: { container: 'w-7 h-7 rounded-lg', icon: 'w-3.5 h-3.5', padding: 'p-0.5' },
+    md: { container: 'w-9 h-9 rounded-lg', icon: 'w-5 h-5', padding: 'p-1' },
+    lg: { container: 'w-12 h-12 rounded-xl', icon: 'w-6 h-6', padding: 'p-1.5' },
+    xl: { container: 'w-16 h-16 rounded-xl', icon: 'w-8 h-8', padding: 'p-2' },
   }[size];
 
-  const sideBgClasses = {
-    red: 'bg-red-600 shadow-md text-white',
-    blue: 'bg-blue-600 shadow-md text-white',
-    neutral: 'bg-slate-800 border border-slate-700 text-slate-300',
-  }[side];
+  const sideStyle: React.CSSProperties =
+    side === 'red'
+      ? { backgroundColor: 'var(--drone-red-solid)', color: '#FFFFFF' }
+      : side === 'blue'
+      ? { backgroundColor: 'var(--drone-blue-solid)', color: '#FFFFFF' }
+      : {
+          backgroundColor: 'var(--court-control-bg)',
+          border: '1px solid var(--court-line)',
+          color: 'var(--court-ink-secondary)',
+        };
 
   const hasValidLogo = !!logoUrl && !imgError;
 
   return (
     <div
-      className={`relative flex items-center justify-center font-bold overflow-hidden flex-shrink-0 transition-transform ${sizeClasses.container} ${sideBgClasses} ${className}`}
+      className={`relative flex items-center justify-center font-bold overflow-hidden flex-shrink-0 ${sizeClasses.container} ${className}`}
+      style={sideStyle}
       title={teamName}
     >
       {hasValidLogo ? (

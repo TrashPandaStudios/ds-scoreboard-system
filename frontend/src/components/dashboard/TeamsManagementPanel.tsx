@@ -21,14 +21,12 @@ export const TeamsManagementPanel: React.FC = () => {
   const [uploadingTeamId, setUploadingTeamId] = useState<number | null>(null);
   const [feedbackMessage, setFeedbackMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-  // New team modal state
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [newTeamName, setNewTeamName] = useState('');
   const [newTeamFile, setNewTeamFile] = useState<File | null>(null);
   const [newTeamPreview, setNewTeamPreview] = useState<string | null>(null);
   const [isSubmittingNew, setIsSubmittingNew] = useState(false);
 
-  // File input refs for uploading
   const fileInputRefs = useRef<{ [teamId: number]: HTMLInputElement | null }>({});
 
   const fetchTeams = async () => {
@@ -68,7 +66,7 @@ export const TeamsManagementPanel: React.FC = () => {
       });
 
       if (res.ok) {
-        setFeedbackMessage({ type: 'success', text: 'Team logo uploaded and pushed to active displays!' });
+        setFeedbackMessage({ type: 'success', text: 'Team logo updated across active displays.' });
         await fetchTeams();
       } else {
         const err = await res.text();
@@ -86,7 +84,7 @@ export const TeamsManagementPanel: React.FC = () => {
     try {
       const res = await fetch(`/api/teams/${teamId}/logo`, { method: 'DELETE' });
       if (res.ok) {
-        setFeedbackMessage({ type: 'success', text: 'Team logo removed. Reset to shield icon.' });
+        setFeedbackMessage({ type: 'success', text: 'Team logo removed.' });
         await fetchTeams();
       } else {
         setFeedbackMessage({ type: 'error', text: 'Failed to clear logo' });
@@ -98,7 +96,7 @@ export const TeamsManagementPanel: React.FC = () => {
   };
 
   const handleDeleteTeam = async (teamId: number, name: string) => {
-    if (!window.confirm(`Are you sure you want to delete team "${name}" from the registry?`)) {
+    if (!window.confirm(`Delete team "${name}" from the registry?`)) {
       return;
     }
 
@@ -124,7 +122,6 @@ export const TeamsManagementPanel: React.FC = () => {
     setFeedbackMessage(null);
 
     try {
-      // 1. Create team
       const createRes = await fetch('/api/teams', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -138,7 +135,6 @@ export const TeamsManagementPanel: React.FC = () => {
 
       const createdTeam: Team = await createRes.json();
 
-      // 2. Upload logo if attached
       if (newTeamFile && createdTeam.id) {
         const formData = new FormData();
         formData.append('file', newTeamFile);
@@ -148,7 +144,7 @@ export const TeamsManagementPanel: React.FC = () => {
         });
       }
 
-      setFeedbackMessage({ type: 'success', text: `Team "${createdTeam.name}" registered successfully!` });
+      setFeedbackMessage({ type: 'success', text: `Team "${createdTeam.name}" registered.` });
       setIsCreateModalOpen(false);
       setNewTeamName('');
       setNewTeamFile(null);
@@ -164,8 +160,7 @@ export const TeamsManagementPanel: React.FC = () => {
   const handleFileDrop = (teamId: number, e: React.DragEvent) => {
     e.preventDefault();
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      const file = e.dataTransfer.files[0];
-      handleUploadLogo(teamId, file);
+      handleUploadLogo(teamId, e.dataTransfer.files[0]);
     }
   };
 
@@ -174,69 +169,75 @@ export const TeamsManagementPanel: React.FC = () => {
   );
 
   return (
-    <div className="space-y-6">
-      {/* Action Header & Search */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-5 rounded-2xl bg-slate-900/80 border border-slate-800 shadow-xl backdrop-blur-md">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-cyan-500/20 text-cyan-400 flex items-center justify-center border border-cyan-500/40">
-            <Users className="w-5 h-5" />
-          </div>
-          <div>
-            <h2 className="text-xl font-display font-black text-white flex items-center gap-2">
-              Team Registry & Logo Library
-              <span className="text-xs font-mono font-bold bg-cyan-950 text-cyan-400 px-2 py-0.5 rounded-full border border-cyan-500/30">
-                {teams.length} {teams.length === 1 ? 'Team' : 'Teams'}
-              </span>
-            </h2>
-            <p className="text-xs text-slate-400">
-              Manage team identities, upload logos, and instantly push visual graphics to live OBS overlays and stadium screens.
-            </p>
-          </div>
+    <div className="flex flex-col gap-4">
+      {/* Header Bar */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-5 rounded-2xl bg-[var(--court-surface)] border border-[var(--court-line)]">
+        <div>
+          <h2 className="text-base font-bold text-[var(--court-ink)] flex items-center gap-2">
+            <span>Team registry &amp; logos</span>
+            <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-[var(--court-control-bg)] text-[var(--court-muted)] tabular-nums">
+              {teams.length}
+            </span>
+          </h2>
+          <p className="text-xs text-[var(--court-muted)] mt-0.5">
+            Upload or drop team logos to update live displays, public views, and OBS overlays immediately.
+          </p>
         </div>
 
-        <div className="flex items-center gap-3 w-full sm:w-auto">
-          <div className="relative flex-1 sm:w-64">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <div className="relative flex-1 sm:w-56">
+            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--court-muted)]" />
             <input
               type="text"
-              placeholder="Search teams..."
+              placeholder="Search teams"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 bg-slate-950/80 border border-slate-700/80 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition-colors"
+              className="w-full pl-9 pr-3 py-2 bg-[var(--court-subtle)] border border-[var(--court-line)] rounded-lg text-xs text-[var(--court-ink)] placeholder:text-[var(--court-muted)]"
             />
           </div>
 
           <button
+            type="button"
             onClick={() => setIsCreateModalOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white rounded-xl text-sm font-bold shadow-lg shadow-cyan-500/20 transition-all cursor-pointer whitespace-nowrap"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition-opacity hover:opacity-90"
+            style={{
+              backgroundColor: 'var(--court-active-pill-bg)',
+              color: 'var(--court-active-pill-fg)',
+            }}
           >
             <Plus className="w-4 h-4" />
-            <span>Add Team</span>
+            <span>Add team</span>
           </button>
         </div>
       </div>
 
-      {/* Feedback Toast */}
+      {/* Feedback Banner */}
       {feedbackMessage && (
         <div
-          className={`flex items-center justify-between gap-3 p-4 rounded-xl text-sm font-medium border animate-in fade-in slide-in-from-top-2 ${
+          className="flex items-center justify-between gap-3 px-4 py-3 rounded-xl text-xs font-semibold border"
+          style={
             feedbackMessage.type === 'success'
-              ? 'bg-emerald-950/80 text-emerald-300 border-emerald-500/50'
-              : 'bg-rose-950/80 text-rose-300 border-rose-500/50'
-          }`}
+              ? {
+                  backgroundColor: 'var(--signal-live-tint)',
+                  borderColor: 'var(--signal-live-border)',
+                  color: 'var(--signal-live-text)',
+                }
+              : {
+                  backgroundColor: 'var(--drone-red-tint)',
+                  borderColor: 'var(--drone-red-border)',
+                  color: 'var(--drone-red-text)',
+                }
+          }
         >
           <div className="flex items-center gap-2">
             {feedbackMessage.type === 'success' ? (
-              <CheckCircle2 className="w-5 h-5 text-emerald-400 flex-shrink-0" />
+              <CheckCircle2 className="w-4 h-4 shrink-0" />
             ) : (
-              <AlertTriangle className="w-5 h-5 text-rose-400 flex-shrink-0" />
+              <AlertTriangle className="w-4 h-4 shrink-0" />
             )}
             <span>{feedbackMessage.text}</span>
           </div>
-          <button
-            onClick={() => setFeedbackMessage(null)}
-            className="text-slate-400 hover:text-white p-1"
-          >
+          <button type="button" onClick={() => setFeedbackMessage(null)} className="p-1 opacity-75 hover:opacity-100">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -244,23 +245,25 @@ export const TeamsManagementPanel: React.FC = () => {
 
       {/* Teams Grid */}
       {filteredTeams.length === 0 ? (
-        <div className="flex flex-col items-center justify-center p-12 text-center rounded-2xl bg-slate-900/40 border border-slate-800/80">
-          <Users className="w-12 h-12 text-slate-600 mb-3" />
-          <h3 className="text-lg font-bold text-white mb-1">
-            {searchQuery ? 'No teams match your search' : 'No teams in registry yet'}
+        <div className="flex flex-col items-center justify-center p-12 text-center rounded-2xl bg-[var(--court-surface)] border border-[var(--court-line)]">
+          <Users className="w-9 h-9 text-[var(--court-muted)] mb-2" />
+          <h3 className="text-sm font-bold text-[var(--court-ink)]">
+            {isLoading ? 'Loading teams...' : searchQuery ? 'No matching teams' : 'No teams registered yet'}
           </h3>
-          <p className="text-xs text-slate-400 max-w-md mb-4">
+          <p className="text-xs text-[var(--court-muted)] max-w-md mt-1 mb-4">
             {searchQuery
-              ? 'Try adjusting your search keywords or clear the filter.'
-              : 'Teams are automatically registered when schedules are preloaded, or you can register new teams manually.'}
+              ? 'Try another search term or clear your filter.'
+              : 'Teams are registered automatically when a schedule is preloaded, or you can add them manually.'}
           </p>
-          {!searchQuery && (
+          {!searchQuery && !isLoading && (
             <button
+              type="button"
               onClick={() => setIsCreateModalOpen(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl text-sm font-bold shadow-lg shadow-cyan-600/20"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-white text-xs font-semibold"
+              style={{ backgroundColor: 'var(--drone-blue-solid)' }}
             >
               <Plus className="w-4 h-4" />
-              <span>Register First Team</span>
+              <span>Register first team</span>
             </button>
           )}
         </div>
@@ -273,50 +276,44 @@ export const TeamsManagementPanel: React.FC = () => {
                 key={team.id}
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={(e) => handleFileDrop(team.id, e)}
-                className="group relative flex flex-col justify-between p-5 rounded-2xl bg-slate-900/90 border border-slate-800/90 hover:border-cyan-500/50 shadow-lg hover:shadow-cyan-500/10 transition-all duration-200"
+                className="flex flex-col justify-between p-4 rounded-xl bg-[var(--court-surface)] border border-[var(--court-line)] hover:border-[var(--court-muted)] transition-colors"
               >
                 <div>
-                  {/* Top Row: Badge & Status */}
-                  <div className="flex items-start justify-between gap-3 mb-4">
+                  <div className="flex items-start justify-between gap-3 mb-3">
                     <div className="relative">
-                      <TeamBadge
-                        teamName={team.name}
-                        logoUrl={team.logoUrl}
-                        side="neutral"
-                        size="xl"
-                        className="rounded-2xl shadow-inner border border-slate-700/80"
-                      />
+                      <TeamBadge teamName={team.name} logoUrl={team.logoUrl} side="neutral" size="xl" />
                       {isUploading && (
-                        <div className="absolute inset-0 bg-slate-950/80 rounded-2xl flex items-center justify-center">
-                          <RefreshCw className="w-6 h-6 text-cyan-400 animate-spin" />
+                        <div className="absolute inset-0 bg-[var(--court-surface)]/80 rounded-xl flex items-center justify-center">
+                          <RefreshCw className="w-5 h-5 text-[var(--court-accent-link)] animate-spin" />
                         </div>
                       )}
                     </div>
 
-                    <div className="flex flex-col items-end gap-1">
-                      {team.logoUrl ? (
-                        <span className="text-[10px] font-mono font-bold text-emerald-400 bg-emerald-950/80 px-2 py-0.5 rounded-full border border-emerald-500/30">
-                          Custom Logo
-                        </span>
-                      ) : (
-                        <span className="text-[10px] font-mono font-bold text-slate-400 bg-slate-800/80 px-2 py-0.5 rounded-full border border-slate-700">
-                          Shield Default
-                        </span>
-                      )}
-                    </div>
+                    <span
+                      className="text-[11px] font-semibold px-2 py-0.5 rounded-full border"
+                      style={
+                        team.logoUrl
+                          ? {
+                              backgroundColor: 'var(--signal-live-tint)',
+                              borderColor: 'var(--signal-live-border)',
+                              color: 'var(--signal-live-text)',
+                            }
+                          : {
+                              backgroundColor: 'var(--court-control-bg)',
+                              borderColor: 'var(--court-line-soft)',
+                              color: 'var(--court-muted)',
+                            }
+                      }
+                    >
+                      {team.logoUrl ? 'Custom logo' : 'Default'}
+                    </span>
                   </div>
 
-                  {/* Team Details */}
-                  <h3 className="text-lg font-display font-black text-white tracking-wide truncate mb-1">
-                    {team.name}
-                  </h3>
-                  <p className="text-[11px] font-mono text-slate-500">
-                    ID: #{team.id} • Registered
-                  </p>
+                  <h3 className="text-base font-bold text-[var(--court-ink)] truncate">{team.name}</h3>
+                  <p className="text-xs text-[var(--court-muted)] mt-0.5">Team #{team.id}</p>
                 </div>
 
-                {/* Actions Bar */}
-                <div className="mt-5 pt-4 border-t border-slate-800/80 flex items-center justify-between gap-2">
+                <div className="mt-4 pt-3 border-t border-[var(--court-line-soft)] flex items-center gap-1.5">
                   <input
                     type="file"
                     ref={(el) => (fileInputRefs.current[team.id] = el)}
@@ -330,30 +327,33 @@ export const TeamsManagementPanel: React.FC = () => {
                   />
 
                   <button
+                    type="button"
                     onClick={() => fileInputRefs.current[team.id]?.click()}
                     disabled={isUploading}
-                    className="flex-1 flex items-center justify-center gap-1.5 py-1.5 px-3 bg-slate-800 hover:bg-cyan-600 text-slate-200 hover:text-white rounded-xl text-xs font-bold border border-slate-700/80 hover:border-cyan-500 transition-all cursor-pointer"
+                    className="flex-1 inline-flex items-center justify-center gap-1.5 py-1.5 px-2.5 bg-[var(--court-control-bg)] hover:bg-[var(--court-control-hover)] text-[var(--court-ink)] rounded-lg text-xs font-semibold border border-[var(--court-line)] transition-colors"
                   >
                     <UploadCloud className="w-3.5 h-3.5" />
-                    <span>{team.logoUrl ? 'Replace' : 'Upload Logo'}</span>
+                    <span>{team.logoUrl ? 'Replace logo' : 'Upload logo'}</span>
                   </button>
 
                   {team.logoUrl && (
                     <button
+                      type="button"
                       onClick={() => handleClearLogo(team.id)}
                       title="Clear custom logo"
-                      className="p-1.5 bg-slate-800/80 hover:bg-amber-950 text-slate-400 hover:text-amber-400 rounded-xl border border-slate-700 hover:border-amber-500/40 transition-colors"
+                      className="p-1.5 bg-[var(--court-control-bg)] hover:bg-[var(--signal-amber-tint)] text-[var(--court-muted)] hover:text-[var(--signal-amber-text)] rounded-lg border border-[var(--court-line)] transition-colors"
                     >
-                      <X className="w-4 h-4" />
+                      <X className="w-3.5 h-3.5" />
                     </button>
                   )}
 
                   <button
+                    type="button"
                     onClick={() => handleDeleteTeam(team.id, team.name)}
-                    title="Delete team from registry"
-                    className="p-1.5 bg-slate-800/80 hover:bg-rose-950 text-slate-400 hover:text-rose-400 rounded-xl border border-slate-700 hover:border-rose-500/40 transition-colors"
+                    title="Delete team"
+                    className="p-1.5 bg-[var(--court-control-bg)] hover:bg-[var(--drone-red-tint)] text-[var(--court-muted)] hover:text-[var(--drone-red-text)] rounded-lg border border-[var(--court-line)] transition-colors"
                   >
-                    <Trash2 className="w-4 h-4" />
+                    <Trash2 className="w-3.5 h-3.5" />
                   </button>
                 </div>
               </div>
@@ -364,31 +364,30 @@ export const TeamsManagementPanel: React.FC = () => {
 
       {/* Create Team Modal */}
       {isCreateModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-4">
-          <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl animate-in zoom-in-95 duration-200">
-            <div className="flex items-center justify-between pb-4 border-b border-slate-800">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-cyan-500/20 text-cyan-400 flex items-center justify-center border border-cyan-500/40">
-                  <Users className="w-4 h-4" />
-                </div>
-                <h3 className="text-lg font-display font-black text-white">Register New Team</h3>
-              </div>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm"
+          style={{ backgroundColor: 'var(--court-overlay-backdrop)' }}
+        >
+          <div className="w-full max-w-md bg-[var(--court-surface)] border border-[var(--court-line)] rounded-2xl p-6 shadow-2xl">
+            <div className="flex items-center justify-between pb-4 border-b border-[var(--court-line-soft)]">
+              <h3 className="text-lg font-bold text-[var(--court-ink)]">Register new team</h3>
               <button
+                type="button"
                 onClick={() => {
                   setIsCreateModalOpen(false);
                   setNewTeamPreview(null);
                   setNewTeamFile(null);
                 }}
-                className="text-slate-400 hover:text-white"
+                className="p-1.5 rounded-lg text-[var(--court-muted)] hover:text-[var(--court-ink)] hover:bg-[var(--court-control-bg)]"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4" />
               </button>
             </div>
 
             <form onSubmit={handleCreateTeamSubmit} className="space-y-4 mt-4">
               <div>
-                <label className="block text-xs font-mono font-bold text-slate-400 uppercase tracking-wider mb-1.5">
-                  Team Name *
+                <label className="block text-xs font-semibold text-[var(--court-ink-secondary)] mb-1.5">
+                  Team name
                 </label>
                 <input
                   type="text"
@@ -396,29 +395,29 @@ export const TeamsManagementPanel: React.FC = () => {
                   placeholder="e.g., Red Phoenix"
                   value={newTeamName}
                   onChange={(e) => setNewTeamName(e.target.value)}
-                  className="w-full px-4 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white text-sm focus:outline-none focus:border-cyan-500 font-medium"
+                  className="w-full px-3.5 py-2.5 bg-[var(--court-subtle)] border border-[var(--court-line)] rounded-lg text-[var(--court-ink)] text-sm"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-mono font-bold text-slate-400 uppercase tracking-wider mb-1.5">
-                  Team Logo (Optional)
+                <label className="block text-xs font-semibold text-[var(--court-ink-secondary)] mb-1.5">
+                  Team logo (optional)
                 </label>
-                <div className="flex items-center gap-4">
-                  <div className="w-16 h-16 rounded-2xl bg-slate-950 border border-slate-700 flex items-center justify-center overflow-hidden flex-shrink-0">
+                <div className="flex items-center gap-3">
+                  <div className="w-16 h-16 rounded-xl bg-[var(--court-subtle)] border border-[var(--court-line)] flex items-center justify-center overflow-hidden shrink-0">
                     {newTeamPreview ? (
                       <img src={newTeamPreview} alt="Preview" className="w-full h-full object-contain p-1" />
                     ) : (
-                      <ImageIcon className="w-6 h-6 text-slate-600" />
+                      <ImageIcon className="w-6 h-6 text-[var(--court-muted)]" />
                     )}
                   </div>
 
-                  <label className="flex-1 flex flex-col items-center justify-center px-4 py-3 border-2 border-dashed border-slate-700 hover:border-cyan-500 rounded-2xl cursor-pointer bg-slate-950/40 hover:bg-slate-950/80 transition-colors">
-                    <UploadCloud className="w-5 h-5 text-cyan-400 mb-1" />
-                    <span className="text-xs font-bold text-slate-300">
-                      {newTeamFile ? newTeamFile.name : 'Choose Logo File'}
+                  <label className="flex-1 flex flex-col items-center justify-center px-4 py-3 border border-dashed border-[var(--court-line)] hover:border-[var(--court-accent-link)] rounded-xl cursor-pointer bg-[var(--court-subtle)] transition-colors">
+                    <UploadCloud className="w-4 h-4 text-[var(--court-accent-link)] mb-1" />
+                    <span className="text-xs font-semibold text-[var(--court-ink)]">
+                      {newTeamFile ? newTeamFile.name : 'Choose logo file'}
                     </span>
-                    <span className="text-[10px] text-slate-500">PNG, SVG, JPG, WebP up to 5MB</span>
+                    <span className="text-[11px] text-[var(--court-muted)]">PNG, SVG, JPG, WebP up to 5MB</span>
                     <input
                       type="file"
                       className="hidden"
@@ -435,20 +434,21 @@ export const TeamsManagementPanel: React.FC = () => {
                 </div>
               </div>
 
-              <div className="pt-4 border-t border-slate-800 flex items-center justify-end gap-3">
+              <div className="pt-4 border-t border-[var(--court-line-soft)] flex items-center justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => setIsCreateModalOpen(false)}
-                  className="px-4 py-2 rounded-xl text-sm font-bold text-slate-400 hover:text-white"
+                  className="px-4 py-2 rounded-lg text-xs font-semibold text-[var(--court-muted)] hover:text-[var(--court-ink)]"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmittingNew || !newTeamName.trim()}
-                  className="px-5 py-2 rounded-xl text-sm font-bold bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 text-white shadow-lg shadow-cyan-600/20"
+                  className="px-4 py-2 rounded-lg text-xs font-semibold text-white disabled:opacity-50"
+                  style={{ backgroundColor: 'var(--drone-blue-solid)' }}
                 >
-                  {isSubmittingNew ? 'Saving...' : 'Register Team'}
+                  {isSubmittingNew ? 'Saving...' : 'Register team'}
                 </button>
               </div>
             </form>

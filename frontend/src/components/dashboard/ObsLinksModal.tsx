@@ -33,65 +33,65 @@ export const ObsLinksModal: React.FC<ObsLinksModalProps> = ({
   const dedicatedMonitors = [
     {
       id: 'monitor-red',
-      name: '🔴 Red Team Pilot Box HUD',
+      name: 'Red Team Pilot Box HUD',
       path: `/arena/${currentArenaId}/display/red`,
-      tag: 'Coach & Pilot Monitor',
-      description: 'Dedicated high-contrast HUD for Red Team bench with live score, striker role, penalties, and sync clock.',
+      tag: 'Pilot monitor',
+      description: 'Dedicated high-contrast HUD for Red Team bench with live score, penalties, and sync clock.',
     },
     {
       id: 'monitor-blue',
-      name: '🔵 Blue Team Pilot Box HUD',
+      name: 'Blue Team Pilot Box HUD',
       path: `/arena/${currentArenaId}/display/blue`,
-      tag: 'Coach & Pilot Monitor',
-      description: 'Dedicated high-contrast HUD for Blue Team bench with live score, striker role, penalties, and sync clock.',
+      tag: 'Pilot monitor',
+      description: 'Dedicated high-contrast HUD for Blue Team bench with live score, penalties, and sync clock.',
     },
     {
       id: 'monitor-timer',
-      name: '⏱️ Dedicated Stadium Jumbotron Clock',
+      name: 'Dedicated Stadium Clock',
       path: `/arena/${currentArenaId}/display/timer`,
-      tag: 'Central LED Wall / Clock',
-      description: 'Massive full-screen 10Hz authoritative match timer, animated phase alerts, and buzzer horn sync.',
+      tag: 'Central LED wall',
+      description: 'Full-screen authoritative match timer, phase alerts, and synchronized buzzer flash.',
     },
     {
       id: 'monitor-split',
-      name: '👥 Split Red / Blue Telemetry Monitor',
+      name: 'Split Red / Blue Telemetry Monitor',
       path: `/arena/${currentArenaId}/display/split`,
-      tag: 'Dual Pit / Analyst TV',
-      description: 'High-visibility side-by-side profile showing both teams, set scores, striker status, and match clock.',
+      tag: 'Dual pit TV',
+      description: 'Side-by-side layout showing both teams, set scores, penalties, and live clock.',
     },
     {
       id: 'monitor-crowd',
-      name: '📺 Main Stadium Crowd Scoreboard',
+      name: 'Main Stadium Crowd Scoreboard',
       path: `/arena/${currentArenaId}/display`,
-      tag: 'Spectator Display',
-      description: 'Complete crowd scoreboard with set tracking, hazard shootout banner, side-swap, and sponsor carousel.',
+      tag: 'Spectator display',
+      description: 'Full crowd scoreboard with set tracking, phase alerts, side-swap, and sponsor carousel.',
     },
   ];
 
   const overlays = [
     {
       id: 'lower-third',
-      name: 'Esports Lower-Third Broadcast Bar',
+      name: 'Lower-Third Broadcast Bar',
       path: `/arena/${currentArenaId}/overlay/lower-third`,
-      resolution: '1920 x 1080 (Custom CSS: transparent)',
+      resolution: '1920 × 1080 transparent',
       icon: Layers,
-      description: 'Sleek broadcast HUD positioned at the bottom of the stream with live scores, penalties, sets, and clock.',
+      description: 'Bottom stream overlay with live scores, penalties, sets, and authoritative clock.',
     },
     {
       id: 'top-bar',
-      name: 'Esports Top-Bar Broadcast Bar',
+      name: 'Top-Bar Broadcast Bar',
       path: `/arena/${currentArenaId}/overlay/top-bar`,
-      resolution: '1920 x 1080 (Custom CSS: transparent)',
+      resolution: '1920 × 1080 transparent',
       icon: Tv,
-      description: 'Sleek broadcast HUD positioned at the top of the stream with live scores, penalties, sets, and clock.',
+      description: 'Top stream overlay mirroring the lower-third score bar.',
     },
     {
       id: 'penalty-alert',
-      name: 'Dynamic Penalty Hazard Alert',
+      name: 'Penalty Shootout Alert',
       path: `/arena/${currentArenaId}/overlay/penalty-alert`,
-      resolution: '1920 x 1080',
+      resolution: '1920 × 1080 transparent',
       icon: AlertTriangle,
-      description: 'High-visibility broadcast alert banner that automatically appears during active penalty shootout phases.',
+      description: 'Transparent broadcast alert banner that appears automatically during penalty shootouts.',
     },
   ];
 
@@ -102,75 +102,83 @@ export const ObsLinksModal: React.FC<ObsLinksModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
-      <div className="w-full max-w-2xl rounded-3xl bg-slate-900 border-2 border-slate-700 shadow-2xl p-6 lg:p-8 relative">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm"
+      style={{ backgroundColor: 'var(--court-overlay-backdrop)' }}
+    >
+      <div className="w-full max-w-2xl rounded-2xl bg-[var(--court-surface)] border border-[var(--court-line)] shadow-2xl p-6 relative">
         <button
+          type="button"
           onClick={onClose}
-          className="absolute top-6 right-6 p-2 rounded-xl text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 transition-colors"
+          className="absolute top-5 right-5 p-1.5 rounded-lg text-[var(--court-muted)] hover:text-[var(--court-ink)] hover:bg-[var(--court-control-bg)]"
         >
           <X className="w-5 h-5" />
         </button>
 
-        <div className="flex flex-wrap items-center justify-between gap-4 mb-4 pr-10">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-purple-500/20 border border-purple-500/40 flex items-center justify-center">
-              <Layers className="w-5 h-5 text-purple-400" />
-            </div>
-            <div>
-              <h2 className="text-xl font-display font-black text-white">
-                Arena {currentArenaId} Display &amp; Broadcast Hub
-              </h2>
-              <p className="text-xs font-mono text-cyan-400">DEDICATED MULTI-MONITOR OUTPUTS &amp; OBS FEEDS</p>
-            </div>
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-4 pr-10">
+          <div>
+            <h2 className="text-xl font-bold text-[var(--court-ink)]">
+              Cage {currentArenaId} displays &amp; OBS links
+            </h2>
+            <p className="text-xs text-[var(--court-muted)] mt-0.5">
+              Copy URLs for stadium monitors or OBS Browser Sources.
+            </p>
           </div>
 
           {arenas && arenas.length > 1 && (
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-mono text-slate-400">Switch Cage:</span>
-              <select
-                value={currentArenaId}
-                onChange={(e) => {
-                  const newId = Number(e.target.value);
-                  setSelectedArenaId(newId);
-                  onSelectArena?.(newId);
-                }}
-                className="px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-700 text-xs font-mono text-white focus:outline-none focus:border-cyan-500"
-              >
-                {arenas.map((a) => (
-                  <option key={a.arenaId} value={a.arenaId}>
-                    {a.arenaName} (#{a.arenaId})
-                  </option>
-                ))}
-              </select>
-            </div>
+            <select
+              value={currentArenaId}
+              onChange={(e) => {
+                const newId = Number(e.target.value);
+                setSelectedArenaId(newId);
+                onSelectArena?.(newId);
+              }}
+              className="px-3 py-1.5 rounded-lg bg-[var(--court-subtle)] border border-[var(--court-line)] text-xs font-semibold text-[var(--court-ink)]"
+            >
+              {arenas.map((a) => (
+                <option key={a.arenaId} value={a.arenaId}>
+                  {a.arenaName} (#{a.arenaId})
+                </option>
+              ))}
+            </select>
           )}
         </div>
 
         {/* Tab Switcher */}
-        <div className="flex gap-2 p-1 rounded-2xl bg-slate-950 border border-slate-800 mb-6">
+        <div className="flex gap-1.5 p-1 rounded-xl bg-[var(--court-subtle)] border border-[var(--court-line-soft)] mb-5">
           <button
+            type="button"
             onClick={() => setActiveTab('monitors')}
-            className={`flex-1 py-2 rounded-xl text-xs font-mono font-bold transition-all ${
+            className="flex-1 py-2 rounded-lg text-xs font-semibold transition-colors"
+            style={
               activeTab === 'monitors'
-                ? 'bg-cyan-600 text-white shadow-md'
-                : 'text-slate-400 hover:text-slate-200'
-            }`}
+                ? {
+                    backgroundColor: 'var(--court-active-pill-bg)',
+                    color: 'var(--court-active-pill-fg)',
+                  }
+                : { color: 'var(--court-muted)' }
+            }
           >
-            🖥️ Dedicated Stadium &amp; Team Monitors ({dedicatedMonitors.length})
+            Stadium &amp; team monitors ({dedicatedMonitors.length})
           </button>
           <button
+            type="button"
             onClick={() => setActiveTab('obs')}
-            className={`flex-1 py-2 rounded-xl text-xs font-mono font-bold transition-all ${
+            className="flex-1 py-2 rounded-lg text-xs font-semibold transition-colors"
+            style={
               activeTab === 'obs'
-                ? 'bg-purple-600 text-white shadow-md'
-                : 'text-slate-400 hover:text-slate-200'
-            }`}
+                ? {
+                    backgroundColor: 'var(--court-active-pill-bg)',
+                    color: 'var(--court-active-pill-fg)',
+                  }
+                : { color: 'var(--court-muted)' }
+            }
           >
-            📡 OBS / vMix Overlays ({overlays.length})
+            OBS / vMix overlays ({overlays.length})
           </button>
         </div>
 
-        <div className="flex flex-col gap-3 max-h-[440px] overflow-y-auto pr-1">
+        <div className="flex flex-col gap-3 max-h-[420px] overflow-y-auto pr-1">
           {activeTab === 'monitors'
             ? dedicatedMonitors.map((mon) => {
                 const fullUrl = `${origin}${mon.path}`;
@@ -179,37 +187,39 @@ export const ObsLinksModal: React.FC<ObsLinksModalProps> = ({
                 return (
                   <div
                     key={mon.id}
-                    className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 flex flex-col gap-2 hover:border-cyan-500/40 transition-colors"
+                    className="p-3.5 rounded-xl bg-[var(--court-subtle)] border border-[var(--court-line-soft)] flex flex-col gap-2"
                   >
-                    <div className="flex items-center justify-between">
-                      <span className="font-display font-bold text-sm text-white">{mon.name}</span>
-                      <span className="text-[11px] font-mono text-cyan-400 bg-cyan-950/60 px-2 py-0.5 rounded border border-cyan-800">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-bold text-sm text-[var(--court-ink)]">{mon.name}</span>
+                      <span className="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-[var(--court-control-bg)] text-[var(--court-muted)]">
                         {mon.tag}
                       </span>
                     </div>
 
-                    <p className="text-xs text-slate-400">{mon.description}</p>
+                    <p className="text-xs text-[var(--court-muted)]">{mon.description}</p>
 
-                    <div className="flex items-center gap-2 mt-1">
+                    <div className="flex items-center gap-2 mt-0.5">
                       <input
                         type="text"
                         readOnly
                         value={fullUrl}
-                        className="flex-1 px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-700 text-xs font-mono text-slate-300 select-all"
+                        className="flex-1 px-3 py-1.5 rounded-lg bg-[var(--court-surface)] border border-[var(--court-line)] text-xs text-[var(--court-ink-secondary)] select-all"
                       />
                       <button
+                        type="button"
                         onClick={() => handleCopy(mon.id, fullUrl)}
-                        className="px-3 py-1.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-mono font-bold flex items-center gap-1.5 transition-colors"
+                        className="px-3 py-1.5 rounded-lg text-white text-xs font-semibold inline-flex items-center gap-1.5"
+                        style={{ backgroundColor: 'var(--drone-blue-solid)' }}
                       >
-                        {isCopied ? <Check className="w-4 h-4 text-emerald-300" /> : <Copy className="w-4 h-4" />}
-                        <span>{isCopied ? 'COPIED' : 'COPY'}</span>
+                        {isCopied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                        <span>{isCopied ? 'Copied' : 'Copy'}</span>
                       </button>
                       <a
                         href={mon.path}
                         target="_blank"
                         rel="noreferrer"
-                        className="p-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition-colors"
-                        title="Open in new window"
+                        className="p-1.5 rounded-lg bg-[var(--court-control-bg)] hover:bg-[var(--court-control-hover)] text-[var(--court-ink-secondary)] border border-[var(--court-line)]"
+                        title="Open in new tab"
                       >
                         <ExternalLink className="w-4 h-4" />
                       </a>
@@ -225,39 +235,41 @@ export const ObsLinksModal: React.FC<ObsLinksModalProps> = ({
                 return (
                   <div
                     key={ov.id}
-                    className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 flex flex-col gap-2 hover:border-purple-500/40 transition-colors"
+                    className="p-3.5 rounded-xl bg-[var(--court-subtle)] border border-[var(--court-line-soft)] flex flex-col gap-2"
                   >
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2">
-                        <Icon className="w-4 h-4 text-purple-400" />
-                        <span className="font-display font-bold text-sm text-white">{ov.name}</span>
+                        <Icon className="w-4 h-4" style={{ color: 'var(--signal-intermission)' }} />
+                        <span className="font-bold text-sm text-[var(--court-ink)]">{ov.name}</span>
                       </div>
-                      <span className="text-[11px] font-mono text-purple-400 bg-purple-950/60 px-2 py-0.5 rounded border border-purple-800">
+                      <span className="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-[var(--court-control-bg)] text-[var(--court-muted)]">
                         {ov.resolution}
                       </span>
                     </div>
 
-                    <p className="text-xs text-slate-400">{ov.description}</p>
+                    <p className="text-xs text-[var(--court-muted)]">{ov.description}</p>
 
-                    <div className="flex items-center gap-2 mt-1">
+                    <div className="flex items-center gap-2 mt-0.5">
                       <input
                         type="text"
                         readOnly
                         value={fullUrl}
-                        className="flex-1 px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-700 text-xs font-mono text-slate-300 select-all"
+                        className="flex-1 px-3 py-1.5 rounded-lg bg-[var(--court-surface)] border border-[var(--court-line)] text-xs text-[var(--court-ink-secondary)] select-all"
                       />
                       <button
+                        type="button"
                         onClick={() => handleCopy(ov.id, fullUrl)}
-                        className="px-3 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-mono font-bold flex items-center gap-1.5 transition-colors"
+                        className="px-3 py-1.5 rounded-lg text-white text-xs font-semibold inline-flex items-center gap-1.5"
+                        style={{ backgroundColor: 'var(--drone-blue-solid)' }}
                       >
-                        {isCopied ? <Check className="w-4 h-4 text-emerald-300" /> : <Copy className="w-4 h-4" />}
-                        <span>{isCopied ? 'COPIED' : 'COPY'}</span>
+                        {isCopied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                        <span>{isCopied ? 'Copied' : 'Copy'}</span>
                       </button>
                       <a
                         href={ov.path}
                         target="_blank"
                         rel="noreferrer"
-                        className="p-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition-colors"
+                        className="p-1.5 rounded-lg bg-[var(--court-control-bg)] hover:bg-[var(--court-control-hover)] text-[var(--court-ink-secondary)] border border-[var(--court-line)]"
                         title="Preview in new tab"
                       >
                         <ExternalLink className="w-4 h-4" />
@@ -268,12 +280,13 @@ export const ObsLinksModal: React.FC<ObsLinksModalProps> = ({
               })}
         </div>
 
-        <div className="mt-6 flex justify-end">
+        <div className="mt-5 pt-4 border-t border-[var(--court-line-soft)] flex justify-end">
           <button
+            type="button"
             onClick={onClose}
-            className="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-mono text-xs font-bold transition-colors"
+            className="px-4 py-2 rounded-lg bg-[var(--court-control-bg)] hover:bg-[var(--court-control-hover)] text-[var(--court-ink)] text-xs font-semibold"
           >
-            CLOSE
+            Close
           </button>
         </div>
       </div>

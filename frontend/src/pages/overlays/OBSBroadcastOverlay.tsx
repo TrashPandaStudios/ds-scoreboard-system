@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom';
 import { useArenaStore } from '../../store/arenaStore';
 import { useArenaWebSocket } from '../../hooks/useArenaWebSocket';
 import { useAuthoritativeTimer } from '../../hooks/useAuthoritativeTimer';
-import { Shield, AlertTriangle } from 'lucide-react';
+import { AlertTriangle } from 'lucide-react';
 import { TeamBadge } from '../../components/common/TeamBadge';
 
 export interface OBSBroadcastOverlayProps {
@@ -34,7 +34,7 @@ export const OBSBroadcastOverlay: React.FC<OBSBroadcastOverlayProps> = ({ positi
     timeRemainingMs: 180000,
     totalSetDurationMs: 180000,
     timerRunning: false,
-    phase: 'NORMAL_PHASE',
+    phase: 'NORMAL_PHASE' as const,
     sideSwap: false,
   };
 
@@ -42,14 +42,14 @@ export const OBSBroadcastOverlay: React.FC<OBSBroadcastOverlayProps> = ({ positi
     serverRemainingMs: state.timeRemainingMs,
     totalDurationMs: state.totalSetDurationMs,
     timerRunning: state.timerRunning,
+    phase: state.phase,
   });
 
   const isBuzzerFiring =
     activeBuzzerArenaId === arenaId && Date.now() - buzzerTriggerTimestamp < 2500;
+  const isPenaltyPhase = state.phase === 'PENALTY_PHASE' || state.phase === 'SUDDEN_DEATH';
 
-  const isPenaltyPhase = state.phase === 'PENALTY_PHASE';
-
-  // Force body/root background to transparent for OBS Browser Source
+  // Keep transparent background for OBS Browser Source compositing
   useEffect(() => {
     document.documentElement.style.background = 'transparent';
     document.body.style.background = 'transparent';
@@ -65,133 +65,112 @@ export const OBSBroadcastOverlay: React.FC<OBSBroadcastOverlayProps> = ({ positi
   const rightTeamName = rightTeam === 'red' ? state.teamRed : state.teamBlue;
   const leftTeamLogo = leftTeam === 'red' ? state.teamRedLogoUrl : state.teamBlueLogoUrl;
   const rightTeamLogo = rightTeam === 'red' ? state.teamRedLogoUrl : state.teamBlueLogoUrl;
+  const leftScore = leftTeam === 'red' ? state.redScore : state.blueScore;
+  const rightScore = rightTeam === 'red' ? state.redScore : state.blueScore;
+  const leftSets = leftTeam === 'red' ? state.redSetScore : state.blueSetScore;
+  const rightSets = rightTeam === 'red' ? state.redSetScore : state.blueSetScore;
+  const leftPen = leftTeam === 'red' ? state.redPenalties : state.bluePenalties;
+  const rightPen = rightTeam === 'red' ? state.redPenalties : state.bluePenalties;
 
-  const penaltyCallout = isPenaltyPhase && (
-    <div className="flex items-center justify-center gap-2 py-1.5 px-4 rounded-xl bg-amber-950/90 border border-amber-500 text-amber-300 text-xs font-mono font-black uppercase tracking-widest shadow-xl animate-pulse self-center">
-      <AlertTriangle className="w-4 h-4 text-amber-400" />
-      <span>PENALTY SHOOTOUT IN PROGRESS</span>
+  const phaseCallout = isPenaltyPhase && (
+    <div className="flex items-center justify-center gap-2 py-1.5 px-4 rounded-xl bg-[#151B23]/95 border border-[#D29922] text-[#F2CC60] text-xs font-bold shadow-xl self-center">
+      <AlertTriangle className="w-4 h-4 text-[#D29922]" />
+      <span>
+        {state.phase === 'SUDDEN_DEATH' ? 'Sudden death overtime' : 'Penalty shootout in progress'}
+      </span>
     </div>
   );
 
   const mainBroadcastBar = (
-    <div className="flex items-stretch rounded-2xl overflow-hidden bg-slate-950/95 border-2 border-slate-700/80 shadow-[0_16px_40px_rgba(0,0,0,0.8)] backdrop-blur-md">
-      {/* Left Team (Red or Blue) */}
+    <div className="flex items-stretch rounded-2xl overflow-hidden bg-[#151B23]/95 border border-[#30363D] shadow-[0_14px_36px_rgba(0,0,0,0.65)] backdrop-blur-md">
+      {/* Left Team */}
       <div
-        className={`flex-1 flex items-center justify-between px-6 py-3 border-r border-slate-800 ${
-          leftTeam === 'red' ? 'bg-gradient-to-r from-red-950/80 to-transparent' : 'bg-gradient-to-r from-blue-950/80 to-transparent'
+        className={`flex-1 flex items-center justify-between px-5 py-3 border-r border-[#242B35] border-l-4 ${
+          leftTeam === 'red'
+            ? 'border-l-[#F85149] bg-gradient-to-r from-[#F85149]/15 to-transparent'
+            : 'border-l-[#388BFD] bg-gradient-to-r from-[#388BFD]/15 to-transparent'
         }`}
       >
-        <div className="flex items-center gap-3">
-          <TeamBadge
-            teamName={leftTeamName}
-            logoUrl={leftTeamLogo}
-            side={leftTeam}
-            size="md"
-          />
-          <div>
-            <span className="text-[10px] font-mono font-black text-slate-400 uppercase tracking-wider block">
-              {leftTeam === 'red' ? 'RED TEAM' : 'BLUE TEAM'} (SETS: {leftTeam === 'red' ? state.redSetScore : state.blueSetScore})
+        <div className="flex items-center gap-3 min-w-0">
+          <TeamBadge teamName={leftTeamName} logoUrl={leftTeamLogo} side={leftTeam} size="md" />
+          <div className="min-w-0">
+            <span
+              className="text-xs font-semibold block"
+              style={{ color: leftTeam === 'red' ? '#FF7B72' : '#79C0FF' }}
+            >
+              {leftSets} {leftSets === 1 ? 'set' : 'sets'}
             </span>
-            <span className="text-xl font-display font-black text-white tracking-wide">
+            <span className="spectator-numeral text-2xl font-extrabold text-[#F0F6FC] truncate block leading-tight">
               {leftTeamName}
             </span>
           </div>
         </div>
 
-        <div className="flex items-center gap-4">
-          {/* Penalty Counter Badge */}
-          <div
-            className={`flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg text-xs font-mono font-black border transition-all duration-300 ${
-              (leftTeam === 'red' ? state.redPenalties : state.bluePenalties) > 0
-                ? leftTeam === 'red'
-                  ? 'bg-rose-950/80 text-rose-300 border-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.4)]'
-                  : 'bg-amber-950/80 text-amber-300 border-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.4)]'
-                : 'bg-slate-900/80 text-slate-500 border-slate-800'
-            }`}
-          >
-            <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">PENALTIES</span>
-            <span className="tabular-nums">
-              {leftTeam === 'red' ? state.redPenalties : state.bluePenalties}
+        <div className="flex items-center gap-3.5">
+          {leftPen > 0 && (
+            <span className="px-2 py-0.5 rounded-md bg-[#D29922]/20 border border-[#D29922]/60 text-[#F2CC60] text-xs font-bold tabular-nums">
+              {leftPen}P
             </span>
-          </div>
-
-          {/* Large Score */}
+          )}
           <span
-            className={`text-5xl font-display font-black tabular-nums tracking-tight ${
-              leftTeam === 'red' ? 'text-red-500 glow-red' : 'text-blue-400 glow-blue'
-            }`}
+            className="spectator-numeral text-5xl font-black leading-none"
+            style={{ color: leftTeam === 'red' ? '#F85149' : '#388BFD' }}
           >
-            {leftTeam === 'red' ? state.redScore : state.blueScore}
+            {leftScore}
           </span>
         </div>
       </div>
 
-      {/* Center Clock & Set Ticker */}
-      <div className="w-48 bg-slate-900/90 flex flex-col items-center justify-center px-4 py-2 border-r border-slate-800">
+      {/* Center Clock */}
+      <div className="w-44 bg-[#1C232D] flex flex-col items-center justify-center px-4 py-2 border-r border-[#242B35]">
         <span
-          className={`font-mono font-black text-3xl tabular-nums tracking-tight ${
-            isPenaltyPhase
-              ? 'text-amber-400 glow-amber'
-              : state.timerRunning
-              ? 'text-white'
-              : 'text-amber-300 opacity-90'
-          }`}
+          className="spectator-numeral text-4xl font-black leading-none"
+          style={{
+            color: isPenaltyPhase ? '#F2CC60' : state.timerRunning ? '#F0F6FC' : '#C9D1D9',
+          }}
         >
           {formattedTime}
         </span>
-        <span className="text-[10px] font-mono text-cyan-400 font-bold uppercase tracking-widest mt-0.5">
-          SET {state.currentSet} OF {state.maxSets}
+        <span className="text-[11px] font-semibold text-[#8B949E] mt-1">
+          Set {state.currentSet} of {state.maxSets}
         </span>
       </div>
 
       {/* Right Team */}
       <div
-        className={`flex-1 flex items-center justify-between px-6 py-3 ${
-          rightTeam === 'red' ? 'bg-gradient-to-l from-red-950/80 to-transparent' : 'bg-gradient-to-l from-blue-950/80 to-transparent'
+        className={`flex-1 flex items-center justify-between px-5 py-3 border-r-4 ${
+          rightTeam === 'red'
+            ? 'border-r-[#F85149] bg-gradient-to-l from-[#F85149]/15 to-transparent'
+            : 'border-r-[#388BFD] bg-gradient-to-l from-[#388BFD]/15 to-transparent'
         }`}
       >
-        <div className="flex items-center gap-4">
-          {/* Large Score */}
+        <div className="flex items-center gap-3.5">
           <span
-            className={`text-5xl font-display font-black tabular-nums tracking-tight ${
-              rightTeam === 'red' ? 'text-red-500 glow-red' : 'text-blue-400 glow-blue'
-            }`}
+            className="spectator-numeral text-5xl font-black leading-none"
+            style={{ color: rightTeam === 'red' ? '#F85149' : '#388BFD' }}
           >
-            {rightTeam === 'red' ? state.redScore : state.blueScore}
+            {rightScore}
           </span>
-
-          {/* Penalty Counter Badge */}
-          <div
-            className={`flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg text-xs font-mono font-black border transition-all duration-300 ${
-              (rightTeam === 'red' ? state.redPenalties : state.bluePenalties) > 0
-                ? rightTeam === 'red'
-                  ? 'bg-rose-950/80 text-rose-300 border-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.4)]'
-                  : 'bg-amber-950/80 text-amber-300 border-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.4)]'
-                : 'bg-slate-900/80 text-slate-500 border-slate-800'
-            }`}
-          >
-            <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">PENALTIES</span>
-            <span className="tabular-nums">
-              {rightTeam === 'red' ? state.redPenalties : state.bluePenalties}
+          {rightPen > 0 && (
+            <span className="px-2 py-0.5 rounded-md bg-[#D29922]/20 border border-[#D29922]/60 text-[#F2CC60] text-xs font-bold tabular-nums">
+              {rightPen}P
             </span>
-          </div>
+          )}
         </div>
 
-        <div className="flex items-center gap-3 text-right">
-          <div>
-            <span className="text-[10px] font-mono font-black text-slate-400 uppercase tracking-wider block">
-              {rightTeam === 'red' ? 'RED TEAM' : 'BLUE TEAM'} (SETS: {rightTeam === 'red' ? state.redSetScore : state.blueSetScore})
+        <div className="flex items-center gap-3 text-right min-w-0">
+          <div className="min-w-0">
+            <span
+              className="text-xs font-semibold block"
+              style={{ color: rightTeam === 'red' ? '#FF7B72' : '#79C0FF' }}
+            >
+              {rightSets} {rightSets === 1 ? 'set' : 'sets'}
             </span>
-            <span className="text-xl font-display font-black text-white tracking-wide">
+            <span className="spectator-numeral text-2xl font-extrabold text-[#F0F6FC] truncate block leading-tight">
               {rightTeamName}
             </span>
           </div>
-          <TeamBadge
-            teamName={rightTeamName}
-            logoUrl={rightTeamLogo}
-            side={rightTeam}
-            size="md"
-          />
+          <TeamBadge teamName={rightTeamName} logoUrl={rightTeamLogo} side={rightTeam} size="md" />
         </div>
       </div>
     </div>
@@ -201,15 +180,13 @@ export const OBSBroadcastOverlay: React.FC<OBSBroadcastOverlayProps> = ({ positi
     <div
       className={`w-screen h-screen flex flex-col ${
         position === 'top' ? 'justify-start' : 'justify-end'
-      } p-8 select-none overflow-hidden transition-all duration-200 ${
-        isBuzzerFiring ? 'buzzer-active-flash' : ''
-      }`}
+      } p-8 select-none overflow-hidden ${isBuzzerFiring ? 'buzzer-active-flash' : ''}`}
       style={{ background: 'transparent' }}
     >
       <div className="w-full max-w-5xl mx-auto flex flex-col gap-2">
-        {position === 'bottom' && penaltyCallout}
+        {position === 'bottom' && phaseCallout}
         {mainBroadcastBar}
-        {position === 'top' && penaltyCallout}
+        {position === 'top' && phaseCallout}
       </div>
     </div>
   );

@@ -12,12 +12,17 @@ export const ConnectionBadge: React.FC = () => {
   if (transportMode === 'WS' && isConnected) {
     return (
       <div
-        className="flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-mono"
-        title="Connected via native WebSocket with instant mutation push"
+        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-semibold"
+        style={{
+          backgroundColor: 'var(--signal-live-tint)',
+          borderColor: 'var(--signal-live-border)',
+          color: 'var(--signal-live-text)',
+        }}
+        title="Connected via native WebSocket with instant updates"
       >
-        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+        <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ backgroundColor: 'var(--signal-live)' }} />
         <Wifi className="w-3.5 h-3.5" />
-        <span>{totalInFlight > 0 ? `SYNCING (${totalInFlight})` : 'LIVE SYNC'}</span>
+        <span>{totalInFlight > 0 ? `Syncing (${totalInFlight})` : 'Live sync'}</span>
       </div>
     );
   }
@@ -25,31 +30,48 @@ export const ConnectionBadge: React.FC = () => {
   if (transportMode === 'HTTP_FALLBACK') {
     return (
       <div
-        className="flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/15 border border-amber-500/40 text-amber-300 text-xs font-mono"
-        title="WebSocket interrupted by RF congestion — automatic HTTP fallback is keeping state & commands live"
+        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-semibold"
+        style={{
+          backgroundColor: 'var(--signal-amber-tint)',
+          borderColor: 'var(--signal-amber-border)',
+          color: 'var(--signal-amber-text)',
+        }}
+        title="WebSocket interrupted by RF congestion — automatic HTTP fallback is active"
       >
         <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-        <span>{totalInFlight > 0 ? `HTTP SYNC (${totalInFlight})` : 'HTTP RESYNC'}</span>
+        <span>{totalInFlight > 0 ? `HTTP sync (${totalInFlight})` : 'Auto-updating'}</span>
       </div>
     );
   }
 
   if (isConnecting) {
     return (
-      <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-mono">
+      <div
+        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-semibold"
+        style={{
+          backgroundColor: 'var(--signal-amber-tint)',
+          borderColor: 'var(--signal-amber-border)',
+          color: 'var(--signal-amber-text)',
+        }}
+      >
         <Loader2 className="w-3.5 h-3.5 animate-spin" />
-        <span>{totalQueued > 0 ? `QUEUED (${totalQueued})` : 'RECONNECTING'}</span>
+        <span>{totalQueued > 0 ? `Queued (${totalQueued})` : 'Reconnecting'}</span>
       </div>
     );
   }
 
   return (
     <div
-      className="flex items-center gap-2 px-3 py-1 rounded-full bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs font-mono"
+      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-semibold"
+      style={{
+        backgroundColor: 'var(--drone-red-tint)',
+        borderColor: 'var(--drone-red-border)',
+        color: 'var(--drone-red-text)',
+      }}
       title={connectionError || 'Disconnected — retrying automatically'}
     >
       <WifiOff className="w-3.5 h-3.5" />
-      <span>{totalQueued > 0 ? `OFFLINE (${totalQueued} QUEUED)` : 'OFFLINE'}</span>
+      <span>{totalQueued > 0 ? `Offline (${totalQueued} queued)` : 'Offline'}</span>
     </div>
   );
 };

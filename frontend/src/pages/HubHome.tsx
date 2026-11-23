@@ -5,8 +5,232 @@ import { useArenaWebSocket } from '../hooks/useArenaWebSocket';
 import { HeaderNav } from '../components/common/HeaderNav';
 import { AddArenaModal } from '../components/dashboard/AddArenaModal';
 import { DeleteArenaConfirmModal, DeletableArenaInfo } from '../components/dashboard/DeleteArenaConfirmModal';
+import { TeamBadge } from '../components/common/TeamBadge';
+import { getSpectatorPhaseMeta } from '../components/public/PublicLiveCard';
+import { useAuthoritativeTimer } from '../hooks/useAuthoritativeTimer';
 import { ArenaSummary } from '../types/scoreboard';
-import { Tv, Sliders, Zap, Plus, Trash2, LayoutDashboard, Globe } from 'lucide-react';
+import { Tv, Sliders, Plus, Trash2, LayoutDashboard, Globe, ExternalLink } from 'lucide-react';
+
+const HubCageRow: React.FC<{
+  cageId: number;
+  cageName: string;
+  summary?: ArenaSummary;
+  onDelete: (target: DeletableArenaInfo) => void;
+}> = ({ cageId, cageName, summary, onDelete }) => {
+  const { formattedTime } = useAuthoritativeTimer({
+    serverRemainingMs: summary?.timeRemainingMs ?? 180000,
+    totalDurationMs: summary?.totalSetDurationMs ?? 180000,
+    timerRunning: summary?.timerRunning ?? false,
+    phase: summary?.phase ?? 'IDLE',
+  });
+
+  const phaseMeta = getSpectatorPhaseMeta(summary?.phase ?? 'IDLE', summary?.timerRunning ?? false);
+
+  return (
+    <div className="rounded-2xl bg-[var(--court-surface)] border border-[var(--court-line)] overflow-hidden flex flex-col">
+      {/* Cage Header Strip */}
+      <div className="px-5 py-3.5 bg-[var(--court-subtle)] border-b border-[var(--court-line-soft)] flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <span className="text-xs font-bold px-2 py-0.5 rounded-md bg-[var(--court-control-bg)] border border-[var(--court-line)] text-[var(--court-ink)]">
+            Cage {cageId}
+          </span>
+          <h3 className="text-base font-bold text-[var(--court-ink)] truncate">{cageName}</h3>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <span
+            className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold border"
+            style={phaseMeta.pillStyle}
+          >
+            <span
+              className={`w-1.5 h-1.5 rounded-full ${phaseMeta.pulse ? 'animate-pulse' : ''}`}
+              style={{ backgroundColor: phaseMeta.dotColor }}
+            />
+            {phaseMeta.label}
+          </span>
+
+          <button
+            type="button"
+            onClick={() =>
+              onDelete(
+                summary || {
+                  arenaId: cageId,
+                  arenaName: cageName,
+                }
+              )
+            }
+            className="p-1.5 rounded-lg text-[var(--court-muted)] hover:text-[var(--drone-red-text)] hover:bg-[var(--drone-red-tint)] transition-colors"
+            title={`Remove ${cageName}`}
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      </div>
+
+      {/* Live Split Match Preview */}
+      {summary ? (
+        <div className="px-5 py-4 border-b border-[var(--court-line-soft)]">
+          <div className="flex items-center justify-between text-xs text-[var(--court-muted)] mb-3">
+            <span>
+              Match {summary.matchNumber} — Set {summary.currentSet} of {summary.maxSets}
+            </span>
+            <span className="spectator-numeral text-lg font-extrabold text-[var(--court-ink)]">
+              {formattedTime}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+            <div className="flex items-center gap-2 min-w-0">
+              <TeamBadge teamName={summary.teamRed} logoUrl={summary.teamRedLogoUrl} side="red" size="sm" />
+              <div className="min-w-0">
+                <div className="text-sm font-bold text-[var(--court-ink)] truncate">{summary.teamRed}</div>
+                <div className="text-[11px] text-[var(--court-muted)] tabular-nums">
+                  {summary.redSetScore} {summary.redSetScore === 1 ? 'set' : 'sets'}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[var(--court-control-bg)] border border-[var(--court-line-soft)]">
+              <span className="spectator-numeral text-2xl font-black text-[var(--drone-red)]">
+                {summary.redScore}
+              </span>
+              <span className="text-xs text-[var(--court-muted)]">–</span>
+              <span className="spectator-numeral text-2xl font-black text-[var(--drone-blue)]">
+                {summary.blueScore}
+              </span>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 min-w-0 text-right">
+              <div className="min-w-0">
+                <div className="text-sm font-bold text-[var(--court-ink)] truncate">{summary.teamBlue}</div>
+                <div className="text-[11px] text-[var(--court-muted)] tabular-nums">
+                  {summary.blueSetScore} {summary.blueSetScore === 1 ? 'set' : 'sets'}
+                </div>
+              </div>
+              <TeamBadge teamName={summary.teamBlue} logoUrl={summary.teamBlueLogoUrl} side="blue" size="sm" />
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="px-5 py-6 border-b border-[var(--court-line-soft)] text-xs text-[var(--court-muted)]">
+          Ready for match assignment
+        </div>
+      )}
+
+      {/* Action Launchers */}
+      <div className="p-4 flex flex-col gap-3 mt-auto">
+        <div className="grid grid-cols-2 gap-2">
+          <Link
+            to={`/arena/${cageId}/display`}
+            className="py-2 px-3 rounded-lg bg-[var(--court-control-bg)] hover:bg-[var(--court-control-hover)] border border-[var(--court-line)] text-xs font-semibold text-[var(--court-ink)] inline-flex items-center justify-center gap-1.5 transition-colors"
+          >
+            <Tv className="w-3.5 h-3.5 text-[var(--court-accent-link)]" />
+            <span>Stadium display</span>
+          </Link>
+
+          <Link
+            to={`/arena/${cageId}/referee`}
+            className="py-2 px-3 rounded-lg text-xs font-semibold inline-flex items-center justify-center gap-1.5 transition-opacity hover:opacity-90"
+            style={{
+              backgroundColor: 'var(--court-active-pill-bg)',
+              color: 'var(--court-active-pill-fg)',
+            }}
+          >
+            <Sliders className="w-3.5 h-3.5" />
+            <span>Referee desk</span>
+          </Link>
+        </div>
+
+        {/* Dedicated Monitor Links */}
+        <div className="flex flex-col gap-1.5">
+          <span className="text-[11px] font-medium text-[var(--court-muted)]">Dedicated monitors</span>
+          <div className="grid grid-cols-2 gap-1.5">
+            <Link
+              to={`/arena/${cageId}/display/red`}
+              target="_blank"
+              className="py-1.5 px-2.5 rounded-lg border text-xs font-semibold inline-flex items-center justify-between transition-colors"
+              style={{
+                backgroundColor: 'var(--drone-red-tint)',
+                borderColor: 'var(--drone-red-border)',
+                color: 'var(--drone-red-text)',
+              }}
+            >
+              <span>Red HUD</span>
+              <ExternalLink className="w-3 h-3 opacity-70" />
+            </Link>
+            <Link
+              to={`/arena/${cageId}/display/blue`}
+              target="_blank"
+              className="py-1.5 px-2.5 rounded-lg border text-xs font-semibold inline-flex items-center justify-between transition-colors"
+              style={{
+                backgroundColor: 'var(--drone-blue-tint)',
+                borderColor: 'var(--drone-blue-border)',
+                color: 'var(--drone-blue-text)',
+              }}
+            >
+              <span>Blue HUD</span>
+              <ExternalLink className="w-3 h-3 opacity-70" />
+            </Link>
+            <Link
+              to={`/arena/${cageId}/display/timer`}
+              target="_blank"
+              className="py-1.5 px-2.5 rounded-lg border text-xs font-semibold inline-flex items-center justify-between transition-colors"
+              style={{
+                backgroundColor: 'var(--signal-amber-tint)',
+                borderColor: 'var(--signal-amber-border)',
+                color: 'var(--signal-amber-text)',
+              }}
+            >
+              <span>Big clock</span>
+              <ExternalLink className="w-3 h-3 opacity-70" />
+            </Link>
+            <Link
+              to={`/arena/${cageId}/display/split`}
+              target="_blank"
+              className="py-1.5 px-2.5 rounded-lg border text-xs font-semibold inline-flex items-center justify-between transition-colors"
+              style={{
+                backgroundColor: 'var(--signal-intermission-tint)',
+                borderColor: 'var(--signal-intermission-border)',
+                color: 'var(--signal-intermission-text)',
+              }}
+            >
+              <span>Split teams</span>
+              <ExternalLink className="w-3 h-3 opacity-70" />
+            </Link>
+          </div>
+        </div>
+
+        {/* OBS Overlays */}
+        <div className="flex flex-col gap-1.5">
+          <span className="text-[11px] font-medium text-[var(--court-muted)]">OBS overlays</span>
+          <div className="grid grid-cols-3 gap-1.5">
+            <Link
+              to={`/arena/${cageId}/overlay/lower-third`}
+              target="_blank"
+              className="py-1.5 px-2 rounded-lg bg-[var(--court-subtle)] hover:bg-[var(--court-control-hover)] border border-[var(--court-line-soft)] text-[11px] font-semibold text-[var(--court-ink-secondary)] text-center transition-colors"
+            >
+              Lower third
+            </Link>
+            <Link
+              to={`/arena/${cageId}/overlay/top-bar`}
+              target="_blank"
+              className="py-1.5 px-2 rounded-lg bg-[var(--court-subtle)] hover:bg-[var(--court-control-hover)] border border-[var(--court-line-soft)] text-[11px] font-semibold text-[var(--court-ink-secondary)] text-center transition-colors"
+            >
+              Top bar
+            </Link>
+            <Link
+              to={`/arena/${cageId}/overlay/penalty-alert`}
+              target="_blank"
+              className="py-1.5 px-2 rounded-lg bg-[var(--court-subtle)] hover:bg-[var(--court-control-hover)] border border-[var(--court-line-soft)] text-[11px] font-semibold text-[var(--court-ink-secondary)] text-center transition-colors"
+            >
+              Penalty alert
+            </Link>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export const HubHome: React.FC = () => {
   useArenaWebSocket();
@@ -25,252 +249,96 @@ export const HubHome: React.FC = () => {
   };
 
   useEffect(() => {
-    document.title = 'Drone Soccer Scoreboard & Arena Client';
+    document.title = 'Drone Soccer Arena Hub';
   }, []);
 
   const defaultArenas = [
-    { id: 1, name: 'Arena 1 - Alpha Cage', desc: 'Main Stadium Show Cage' },
-    { id: 2, name: 'Arena 2 - Bravo Cage', desc: 'Tournament Flight Cage B' },
-    { id: 3, name: 'Arena 3 - Charlie Cage', desc: 'Tournament Flight Cage C' },
+    { id: 1, name: 'Arena 1 - Alpha Cage' },
+    { id: 2, name: 'Arena 2 - Bravo Cage' },
+    { id: 3, name: 'Arena 3 - Charlie Cage' },
   ];
 
   const displayedArenas =
     arenaSummaries.length > 0
-      ? arenaSummaries.map((s) => ({
-        id: s.arenaId,
-        name: s.arenaName,
-        desc: `Drone Soccer Arena #${s.arenaId}`,
-      }))
+      ? [...arenaSummaries]
+          .sort((a, b) => a.arenaId - b.arenaId)
+          .map((s) => ({ id: s.arenaId, name: s.arenaName }))
       : defaultArenas;
 
   return (
-    <div className="min-h-screen bg-[#080b11] text-slate-100 flex flex-col select-none">
+    <div className="app-shell min-h-screen flex flex-col select-none">
       <HeaderNav variant="client" />
 
-      {/* Hero Section */}
-      <main className="max-w-7xl mx-auto px-4 lg:px-8 py-10 flex-1 flex flex-col justify-center w-full">
-        <div className="text-center max-w-3xl mx-auto mb-10">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 font-mono text-xs mb-4">
-            <Zap className="w-3.5 h-3.5 animate-pulse" />
-            <span>FIDA / FAI MULTI-ARENA SCOREBOARD ENGINE</span>
+      <main className="max-w-7xl mx-auto px-4 lg:px-8 py-8 flex-1 w-full flex flex-col gap-6">
+        {/* Compact Left-Aligned Page Bar */}
+        <div className="flex flex-wrap items-end justify-between gap-4 pb-5 border-b border-[var(--court-line)]">
+          <div>
+            <h1 className="spectator-numeral text-3xl sm:text-4xl font-black text-[var(--court-ink)] leading-none">
+              Active flight cages ({displayedArenas.length})
+            </h1>
+            <p className="text-sm text-[var(--court-muted)] mt-1.5">
+              Launch stadium scoreboards, referee consoles, dedicated pilot monitors, and broadcast overlays.
+            </p>
           </div>
 
-          <h1 className="text-4xl sm:text-6xl font-display font-black tracking-tight text-white mb-4">
-            DRONE SOCCER <span className="bg-gradient-to-r from-cyan-400 via-blue-500 to-indigo-500 bg-clip-text text-transparent">ARENA CLIENT</span>
-          </h1>
-          <p className="text-slate-400 text-base sm:text-lg">
-            High-precision 10Hz authoritative timer sync, dedicated multi-cage referee consoles, crowd stadium displays, and monitor HUDs.
-          </p>
-        </div>
-
-        {/* Arenas Grid Header Bar */}
-        <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
-          <div className="flex items-center gap-2.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse" />
-            <h2 className="text-xl font-display font-black text-white">
-              ACTIVE FLIGHT CAGES ({displayedArenas.length})
-            </h2>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2">
             <Link
               to="/live"
               target="_blank"
-              className="px-3.5 py-2 rounded-xl bg-emerald-950/60 hover:bg-emerald-900/70 text-emerald-300 hover:text-white border border-emerald-700/60 text-xs font-mono font-bold flex items-center gap-2 transition-colors"
-              title="Open the public read-only live matches & results portal"
+              className="px-3.5 py-2 rounded-lg border text-xs font-semibold inline-flex items-center gap-1.5 transition-colors"
+              style={{
+                backgroundColor: 'var(--signal-live-tint)',
+                borderColor: 'var(--signal-live-border)',
+                color: 'var(--signal-live-text)',
+              }}
             >
-              <Globe className="w-4 h-4 text-emerald-400" />
-              <span>PUBLIC LIVE</span>
+              <Globe className="w-4 h-4" />
+              <span>Public live portal</span>
             </Link>
 
             <Link
               to="/master"
-              className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 text-xs font-mono font-bold flex items-center gap-2 transition-colors"
+              className="px-3.5 py-2 rounded-lg bg-[var(--court-control-bg)] hover:bg-[var(--court-control-hover)] border border-[var(--court-line)] text-xs font-semibold text-[var(--court-ink)] inline-flex items-center gap-1.5 transition-colors"
             >
-              <LayoutDashboard className="w-4 h-4 text-cyan-400" />
-              <span>ADMIN PANEL</span>
+              <LayoutDashboard className="w-4 h-4 text-[var(--court-accent-link)]" />
+              <span>Admin panel</span>
             </Link>
 
             <button
+              type="button"
               onClick={() => setIsAddArenaModalOpen(true)}
-              className="px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white text-xs font-mono font-black flex items-center gap-2 shadow-lg shadow-cyan-600/20 transition-all active:scale-95"
-              title="Deploy a new authoritative drone arena cage at runtime"
+              className="px-3.5 py-2 rounded-lg text-xs font-semibold inline-flex items-center gap-1.5 transition-opacity hover:opacity-90"
+              style={{
+                backgroundColor: 'var(--court-active-pill-bg)',
+                color: 'var(--court-active-pill-fg)',
+              }}
             >
-              <Plus className="w-4 h-4 stroke-[3]" />
-              <span>ADD ARENA</span>
+              <Plus className="w-4 h-4" />
+              <span>Add arena</span>
             </button>
           </div>
         </div>
 
         {/* Arenas Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {displayedArenas.map((cage) => {
-            const summary = arenaSummaries.find((s) => s.arenaId === cage.id);
-
-            return (
-              <div
-                key={cage.id}
-                className="flex flex-col justify-between p-6 rounded-3xl bg-slate-900/80 border-2 border-slate-800 hover:border-cyan-500/50 transition-all shadow-xl group"
-              >
-                <div>
-                  <div className="flex items-center justify-between mb-4">
-                    <span className="text-xs font-mono font-bold text-cyan-400 bg-cyan-950/60 px-3 py-1 rounded-lg border border-cyan-800">
-                      CAGE {cage.id}
-                    </span>
-                    <div className="flex items-center gap-2">
-                      <span className="flex items-center gap-1.5 text-[10px] font-mono text-emerald-400">
-                        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                        <span>Live</span>
-                      </span>
-
-                      <button
-                        onClick={() => {
-                          const targetArena: DeletableArenaInfo = summary || {
-                            arenaId: cage.id,
-                            arenaName: cage.name,
-                          };
-                          setArenaToDelete(targetArena);
-                        }}
-                        className="p-1 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-950/50 border border-transparent hover:border-rose-700/50 transition-colors"
-                        title={`Decommission ${cage.name}`}
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </div>
-
-                  <h3 className="text-2xl font-display font-bold text-white mb-1 group-hover:text-cyan-300 transition-colors">
-                    {cage.name}
-                  </h3>
-                  <p className="text-xs text-slate-400 mb-6">{cage.desc}</p>
-
-                  {/* Telemetry Preview */}
-                  {summary ? (
-                    <div className="p-3 rounded-2xl bg-slate-950 border border-slate-800 mb-6">
-                      <div className="flex justify-between items-center text-xs font-mono text-slate-400 mb-1">
-                        <span>
-                          {summary.matchNumber} (Set {summary.currentSet}/{summary.maxSets})
-                        </span>
-                        <span className="text-cyan-400 font-bold">{summary.phase}</span>
-                      </div>
-                      <div className="flex justify-between items-center text-sm font-bold">
-                        <span className="text-red-400">
-                          {summary.teamRed}: {summary.redScore}
-                        </span>
-                        <span className="text-slate-600 font-mono">VS</span>
-                        <span className="text-blue-400">
-                          {summary.teamBlue}: {summary.blueScore}
-                        </span>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="p-3 rounded-2xl bg-slate-950 border border-slate-800 mb-6 text-xs font-mono text-slate-500">
-                      Ready for match load
-                    </div>
-                  )}
-                </div>
-
-                {/* Direct Entry Buttons */}
-                <div className="flex flex-col gap-2.5 pt-4 border-t border-slate-800">
-                  {/* Primary Main Display & Referee */}
-                  <div className="grid grid-cols-2 gap-2">
-                    <Link
-                      to={`/arena/${cage.id}/display`}
-                      className="py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-cyan-950/60 hover:text-cyan-300 border border-slate-700 hover:border-cyan-500/40 text-xs font-mono font-bold flex items-center justify-center gap-1.5 transition-all text-center"
-                    >
-                      <Tv className="w-4 h-4 text-cyan-400" />
-                      <span>MAIN DISPLAY</span>
-                    </Link>
-
-                    <Link
-                      to={`/arena/${cage.id}/referee`}
-                      className="py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-purple-950/60 hover:text-purple-300 border border-slate-700 hover:border-purple-500/40 text-xs font-mono font-bold flex items-center justify-center gap-1.5 transition-all text-center"
-                    >
-                      <Sliders className="w-4 h-4 text-purple-400" />
-                      <span>REFEREE DESK</span>
-                    </Link>
-                  </div>
-
-                  {/* Dedicated Separate Monitor Views */}
-                  <div className="flex flex-col gap-1.5 p-2 rounded-2xl bg-slate-950/60 border border-slate-800">
-                    <span className="text-[10px] font-mono text-slate-400 uppercase font-bold px-1">
-                      Dedicated Scoreboard Screens:
-                    </span>
-                    <div className="grid grid-cols-2 gap-1.5">
-                      <Link
-                        to={`/arena/${cage.id}/display/red`}
-                        target="_blank"
-                        className="py-1.5 px-2 rounded-lg bg-red-950/30 hover:bg-red-900/50 border border-red-800/40 text-[11px] font-mono font-bold text-red-400 hover:text-red-300 flex items-center justify-center gap-1 transition-colors"
-                      >
-                        <span>🔴 Red Team HUD</span>
-                      </Link>
-                      <Link
-                        to={`/arena/${cage.id}/display/blue`}
-                        target="_blank"
-                        className="py-1.5 px-2 rounded-lg bg-blue-950/30 hover:bg-blue-900/50 border border-blue-800/40 text-[11px] font-mono font-bold text-blue-400 hover:text-blue-300 flex items-center justify-center gap-1 transition-colors"
-                      >
-                        <span>🔵 Blue Team HUD</span>
-                      </Link>
-                      <Link
-                        to={`/arena/${cage.id}/display/timer`}
-                        target="_blank"
-                        className="py-1.5 px-2 rounded-lg bg-amber-950/30 hover:bg-amber-900/50 border border-amber-800/40 text-[11px] font-mono font-bold text-amber-300 hover:text-amber-200 flex items-center justify-center gap-1 transition-colors"
-                      >
-                        <span>⏱️ Big Clock</span>
-                      </Link>
-                      <Link
-                        to={`/arena/${cage.id}/display/split`}
-                        target="_blank"
-                        className="py-1.5 px-2 rounded-lg bg-purple-950/30 hover:bg-purple-900/50 border border-purple-800/40 text-[11px] font-mono font-bold text-purple-300 hover:text-purple-200 flex items-center justify-center gap-1 transition-colors"
-                      >
-                        <span>👥 Split Teams</span>
-                      </Link>
-                    </div>
-                  </div>
-
-                  {/* OBS Overlays */}
-                  <div className="grid grid-cols-3 gap-1.5">
-                    <Link
-                      to={`/arena/${cage.id}/overlay/lower-third`}
-                      target="_blank"
-                      className="py-1.5 px-2 rounded-lg bg-slate-950 hover:bg-slate-800 text-[10px] font-mono text-slate-400 hover:text-purple-300 border border-slate-800 transition-colors text-center"
-                    >
-                      OBS Lower
-                    </Link>
-                    <Link
-                      to={`/arena/${cage.id}/overlay/top-bar`}
-                      target="_blank"
-                      className="py-1.5 px-2 rounded-lg bg-slate-950 hover:bg-slate-800 text-[10px] font-mono text-slate-400 hover:text-purple-300 border border-slate-800 transition-colors text-center"
-                    >
-                      OBS Top
-                    </Link>
-                    <Link
-                      to={`/arena/${cage.id}/overlay/penalty-alert`}
-                      target="_blank"
-                      className="py-1.5 px-2 rounded-lg bg-slate-950 hover:bg-slate-800 text-[10px] font-mono text-slate-400 hover:text-amber-300 border border-slate-800 transition-colors text-center"
-                    >
-                      OBS Alert
-                    </Link>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          {displayedArenas.map((cage) => (
+            <HubCageRow
+              key={cage.id}
+              cageId={cage.id}
+              cageName={cage.name}
+              summary={arenaSummaries.find((s) => s.arenaId === cage.id)}
+              onDelete={(target) => setArenaToDelete(target)}
+            />
+          ))}
         </div>
       </main>
 
-      <footer className="border-t border-slate-800/80 py-6 text-center text-xs font-mono text-slate-500">
-        Drone Soccer Multi-Arena Client • Dedicated 10Hz Synchronization Scoped Per Arena
-      </footer>
-
-      {/* Dynamic Arena Creation Modal */}
       <AddArenaModal
         isOpen={isAddArenaModalOpen}
         onClose={() => setIsAddArenaModalOpen(false)}
         nextArenaId={nextArenaId}
       />
 
-      {/* Arena Decommission Safety Confirmation Modal */}
       <DeleteArenaConfirmModal
         isOpen={arenaToDelete !== null}
         arena={arenaToDelete}

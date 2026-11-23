@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ScheduledMatch, ArenaSummary } from '../../types/scoreboard';
-import { Calendar, Plus, PlayCircle, Trash2, UploadCloud, Clock, ShieldCheck } from 'lucide-react';
+import { Plus, PlayCircle, Trash2, UploadCloud, ShieldCheck } from 'lucide-react';
 
 interface ScheduleQueueManagerProps {
   queue: ScheduledMatch[];
@@ -40,7 +40,6 @@ export const ScheduleQueueManager: React.FC<ScheduleQueueManagerProps> = ({
     }
   }, [arenas, arenaId]);
 
-  // Identify the earliest match for each arena cage to badge as opening match
   const firstMatchIdByArena = new Map<number, number>();
   queue.forEach((item) => {
     if (item.status !== 'COMPLETED' && !firstMatchIdByArena.has(item.arenaId)) {
@@ -67,80 +66,84 @@ export const ScheduleQueueManager: React.FC<ScheduleQueueManagerProps> = ({
   };
 
   return (
-    <div className="flex flex-col gap-4 p-6 rounded-3xl bg-slate-900/90 border-2 border-slate-800 shadow-xl">
+    <div className="flex flex-col rounded-2xl bg-[var(--court-surface)] border border-[var(--court-line)] overflow-hidden">
       {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-4">
-        <div className="flex items-center gap-2.5">
-          <Calendar className="w-5 h-5 text-cyan-400" />
-          <div>
-            <h3 className="text-lg font-display font-bold text-white">Tournament Match Queue</h3>
-            <span className="text-xs font-mono text-slate-400">
-              {queue.length} match(es) scheduled • {firstMatchIdByArena.size} cage(s) with opening lineups
-            </span>
-          </div>
+      <div className="px-5 py-4 bg-[var(--court-subtle)] border-b border-[var(--court-line-soft)] flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h3 className="text-base font-bold text-[var(--court-ink)]">Tournament match queue</h3>
+          <span className="text-xs text-[var(--court-muted)]">
+            {queue.length} scheduled matches across {firstMatchIdByArena.size} cages
+          </span>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
           {onOpenPreload && (
             <button
+              type="button"
               onClick={onOpenPreload}
-              className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-mono text-xs font-black flex items-center gap-1.5 shadow-md shadow-cyan-600/20 transition-all active:scale-95"
-              title="Preload full tournament schedule from CSV or spreadsheet"
+              className="px-3 py-1.5 rounded-lg text-white text-xs font-semibold inline-flex items-center gap-1.5 transition-opacity hover:opacity-90"
+              style={{ backgroundColor: 'var(--drone-blue-solid)' }}
             >
-              <UploadCloud className="w-4 h-4" />
-              <span>PRELOAD / IMPORT SCHEDULE</span>
+              <UploadCloud className="w-3.5 h-3.5" />
+              <span>Preload / import</span>
             </button>
           )}
 
           {onPrimeArenas && queue.length > 0 && (
             <button
+              type="button"
               onClick={onPrimeArenas}
-              className="px-3.5 py-1.5 rounded-xl bg-emerald-950/70 hover:bg-emerald-900/80 border border-emerald-600/60 text-emerald-300 font-mono text-xs font-bold flex items-center gap-1.5 transition-colors"
-              title="Set all cages to their first scheduled matches right now"
+              className="px-3 py-1.5 rounded-lg border text-xs font-semibold inline-flex items-center gap-1.5 transition-colors"
+              style={{
+                backgroundColor: 'var(--signal-live-tint)',
+                borderColor: 'var(--signal-live-border)',
+                color: 'var(--signal-live-text)',
+              }}
             >
-              <ShieldCheck className="w-4 h-4 text-emerald-400" />
-              <span>PRIME 1ST MATCHES</span>
+              <ShieldCheck className="w-3.5 h-3.5" />
+              <span>Prime opening matches</span>
             </button>
           )}
 
           <button
+            type="button"
             onClick={() => setShowAddForm(!showAddForm)}
-            className="px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white font-mono text-xs font-bold flex items-center gap-1.5 border border-slate-700 transition-colors"
+            className="px-3 py-1.5 rounded-lg bg-[var(--court-control-bg)] hover:bg-[var(--court-control-hover)] text-[var(--court-ink)] border border-[var(--court-line)] text-xs font-semibold inline-flex items-center gap-1.5 transition-colors"
           >
-            <Plus className="w-4 h-4" />
-            <span>{showAddForm ? 'CANCEL' : 'ADD MATCH'}</span>
+            <Plus className="w-3.5 h-3.5" />
+            <span>{showAddForm ? 'Cancel' : 'Add match'}</span>
           </button>
         </div>
       </div>
 
-      {/* Quick Add Match Form */}
+      {/* Add Match Form */}
       {showAddForm && (
         <form
           onSubmit={handleAddMatch}
-          className="p-4 rounded-2xl bg-slate-950 border border-cyan-500/30 flex flex-col gap-3 animate-fadeIn"
+          className="p-5 bg-[var(--court-subtle)] border-b border-[var(--court-line-soft)] flex flex-col gap-3"
         >
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
-              <label className="block text-[10px] font-mono text-slate-400 mb-1">MATCH #</label>
+              <label className="block text-xs font-semibold text-[var(--court-muted)] mb-1">Match number</label>
               <input
                 type="text"
                 placeholder="e.g. M-105"
                 value={matchNumber}
                 onChange={(e) => setMatchNumber(e.target.value)}
-                className="w-full px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs font-mono text-white focus:outline-none focus:border-cyan-500"
+                className="w-full px-3 py-2 rounded-lg bg-[var(--court-surface)] border border-[var(--court-line)] text-xs text-[var(--court-ink)]"
               />
             </div>
             <div>
-              <label className="block text-[10px] font-mono text-slate-400 mb-1">ASSIGN ARENA</label>
+              <label className="block text-xs font-semibold text-[var(--court-muted)] mb-1">Assign cage</label>
               <select
                 value={arenaId}
                 onChange={(e) => setArenaId(Number(e.target.value))}
-                className="w-full px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs font-mono text-slate-300 focus:outline-none focus:border-cyan-500"
+                className="w-full px-3 py-2 rounded-lg bg-[var(--court-surface)] border border-[var(--court-line)] text-xs text-[var(--court-ink)]"
               >
                 {arenas.length > 0 ? (
                   arenas.map((a) => (
                     <option key={a.arenaId} value={a.arenaId}>
-                      {a.arenaName} (ID: #{a.arenaId})
+                      {a.arenaName} (#{a.arenaId})
                     </option>
                   ))
                 ) : (
@@ -153,54 +156,61 @@ export const ScheduleQueueManager: React.FC<ScheduleQueueManagerProps> = ({
               </select>
             </div>
             <div>
-              <label className="block text-[10px] font-mono text-slate-400 mb-1">TOURNAMENT</label>
+              <label className="block text-xs font-semibold text-[var(--court-muted)] mb-1">Tournament</label>
               <input
                 type="text"
                 value={tournamentName}
                 onChange={(e) => setTournamentName(e.target.value)}
-                className="w-full px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs font-mono text-white focus:outline-none focus:border-cyan-500"
+                className="w-full px-3 py-2 rounded-lg bg-[var(--court-surface)] border border-[var(--court-line)] text-xs text-[var(--court-ink)]"
               />
             </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-[10px] font-mono text-red-400 font-bold mb-1">RED TEAM</label>
+              <label className="block text-xs font-semibold mb-1" style={{ color: 'var(--drone-red-text)' }}>
+                Red team
+              </label>
               <input
                 type="text"
                 required
-                placeholder="Team Red Name"
+                placeholder="Team Red name"
                 value={teamRed}
                 onChange={(e) => setTeamRed(e.target.value)}
-                className="w-full px-3 py-1.5 rounded-lg bg-slate-900 border border-red-500/40 text-xs font-mono text-white focus:outline-none focus:border-red-400"
+                className="w-full px-3 py-2 rounded-lg bg-[var(--court-surface)] border text-xs text-[var(--court-ink)]"
+                style={{ borderColor: 'var(--drone-red-border)' }}
               />
             </div>
             <div>
-              <label className="block text-[10px] font-mono text-blue-400 font-bold mb-1">BLUE TEAM</label>
+              <label className="block text-xs font-semibold mb-1" style={{ color: 'var(--drone-blue-text)' }}>
+                Blue team
+              </label>
               <input
                 type="text"
                 required
-                placeholder="Team Blue Name"
+                placeholder="Team Blue name"
                 value={teamBlue}
                 onChange={(e) => setTeamBlue(e.target.value)}
-                className="w-full px-3 py-1.5 rounded-lg bg-slate-900 border border-blue-500/40 text-xs font-mono text-white focus:outline-none focus:border-blue-400"
+                className="w-full px-3 py-2 rounded-lg bg-[var(--court-surface)] border text-xs text-[var(--court-ink)]"
+                style={{ borderColor: 'var(--drone-blue-border)' }}
               />
             </div>
           </div>
 
-          <div className="flex justify-end gap-2 mt-1">
+          <div className="flex justify-end">
             <button
               type="submit"
-              className="px-4 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-mono font-bold"
+              className="px-4 py-2 rounded-lg text-white text-xs font-semibold transition-opacity hover:opacity-90"
+              style={{ backgroundColor: 'var(--drone-blue-solid)' }}
             >
-              SAVE TO QUEUE
+              Save to queue
             </button>
           </div>
         </form>
       )}
 
       {/* Queue List */}
-      <div className="flex flex-col gap-2.5">
+      <div className="divide-y divide-[var(--court-line-soft)]">
         {queue.map((item) => {
           const isFirstOnCage = firstMatchIdByArena.get(item.arenaId) === item.id;
           const isArmedOrActive = item.status === 'IN_PROGRESS';
@@ -208,61 +218,77 @@ export const ScheduleQueueManager: React.FC<ScheduleQueueManagerProps> = ({
           return (
             <div
               key={item.id}
-              className={`flex flex-wrap items-center justify-between gap-3 p-3.5 rounded-2xl border transition-all ${
-                isArmedOrActive
-                  ? 'bg-slate-950 border-cyan-500/50 shadow-md shadow-cyan-950/20'
-                  : isFirstOnCage
-                  ? 'bg-slate-950/90 border-emerald-500/40'
-                  : 'bg-slate-950/80 border-slate-800 hover:border-slate-700'
-              }`}
+              className="px-5 py-3.5 flex flex-wrap items-center justify-between gap-3 hover:bg-[var(--court-hover)] transition-colors"
             >
               <div className="flex flex-wrap items-center gap-3">
-                <span className="text-xs font-mono font-bold text-cyan-400 bg-cyan-950/60 px-2.5 py-1 rounded-lg border border-cyan-800">
+                <span className="text-xs font-bold px-2.5 py-1 rounded-md bg-[var(--court-control-bg)] border border-[var(--court-line)] text-[var(--court-ink)]">
                   {item.matchNumber}
                 </span>
 
-                <span className="text-xs font-mono text-slate-400 bg-slate-900 px-2 py-0.5 rounded border border-slate-800">
-                  Cage {item.arenaId}
-                </span>
+                <span className="text-xs text-[var(--court-muted)]">Cage {item.arenaId}</span>
 
-                <div className="flex items-center gap-2 text-xs font-semibold">
-                  <span className="text-red-400 font-mono">{item.teamRed}</span>
-                  <span className="text-slate-600 font-mono text-[10px]">VS</span>
-                  <span className="text-blue-400 font-mono">{item.teamBlue}</span>
+                <div className="flex items-center gap-2 text-sm font-semibold">
+                  <span style={{ color: 'var(--drone-red-text)' }}>{item.teamRed}</span>
+                  <span className="text-xs font-normal text-[var(--court-muted)]">vs</span>
+                  <span style={{ color: 'var(--drone-blue-text)' }}>{item.teamBlue}</span>
                 </div>
 
                 {isArmedOrActive && (
-                  <span className="px-2 py-0.5 rounded-md bg-cyan-950 border border-cyan-600/60 text-cyan-300 text-[10px] font-mono font-black uppercase flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
-                    <span>LOADED ON CAGE</span>
+                  <span
+                    className="px-2 py-0.5 rounded-full border text-[11px] font-semibold inline-flex items-center gap-1"
+                    style={{
+                      backgroundColor: 'var(--signal-info-tint)',
+                      borderColor: 'var(--signal-info-border)',
+                      color: 'var(--signal-info-text)',
+                    }}
+                  >
+                    <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ backgroundColor: 'var(--signal-info)' }} />
+                    <span>Loaded on cage</span>
                   </span>
                 )}
 
                 {isFirstOnCage && !isArmedOrActive && (
-                  <span className="px-2 py-0.5 rounded-md bg-emerald-950/80 border border-emerald-600/50 text-emerald-300 text-[10px] font-mono font-black uppercase flex items-center gap-1">
-                    <ShieldCheck className="w-3 h-3 text-emerald-400" />
-                    <span>1ST MATCH ON CAGE {item.arenaId}</span>
+                  <span
+                    className="px-2 py-0.5 rounded-full border text-[11px] font-semibold inline-flex items-center gap-1"
+                    style={{
+                      backgroundColor: 'var(--signal-live-tint)',
+                      borderColor: 'var(--signal-live-border)',
+                      color: 'var(--signal-live-text)',
+                    }}
+                  >
+                    <ShieldCheck className="w-3 h-3" />
+                    <span>Next on cage {item.arenaId}</span>
                   </span>
                 )}
               </div>
 
               <div className="flex items-center gap-2">
                 <button
+                  type="button"
                   onClick={() => onPushToArena(item)}
-                  className={`px-3 py-1.5 rounded-xl border text-xs font-mono font-bold flex items-center gap-1.5 transition-colors ${
+                  className="px-3 py-1.5 rounded-lg border text-xs font-semibold inline-flex items-center gap-1.5 transition-colors"
+                  style={
                     isArmedOrActive
-                      ? 'bg-cyan-600/30 hover:bg-cyan-600/50 border-cyan-500/60 text-cyan-200'
-                      : 'bg-slate-800 hover:bg-cyan-600/30 border-slate-700 hover:border-cyan-500/40 text-slate-300 hover:text-cyan-300'
-                  }`}
-                  title={`Stage ${item.matchNumber} into Cage ${item.arenaId} engine`}
+                      ? {
+                          backgroundColor: 'var(--signal-info-tint)',
+                          borderColor: 'var(--signal-info-border)',
+                          color: 'var(--signal-info-text)',
+                        }
+                      : {
+                          backgroundColor: 'var(--court-control-bg)',
+                          borderColor: 'var(--court-line)',
+                          color: 'var(--court-ink)',
+                        }
+                  }
                 >
-                  <PlayCircle className="w-3.5 h-3.5 text-cyan-400" />
-                  <span>{isArmedOrActive ? 'RE-ARM CAGE' : `LOAD CAGE ${item.arenaId}`}</span>
+                  <PlayCircle className="w-3.5 h-3.5" />
+                  <span>{isArmedOrActive ? 'Re-arm cage' : `Load cage ${item.arenaId}`}</span>
                 </button>
 
                 <button
+                  type="button"
                   onClick={() => onDeleteMatch(item.id)}
-                  className="p-1.5 rounded-xl bg-slate-800 hover:bg-rose-900/50 text-slate-400 hover:text-rose-400 border border-slate-700 transition-colors"
+                  className="p-1.5 rounded-lg bg-[var(--court-control-bg)] hover:bg-[var(--drone-red-tint)] text-[var(--court-muted)] hover:text-[var(--drone-red-text)] border border-[var(--court-line)] transition-colors"
                   title="Remove match from queue"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
@@ -273,20 +299,22 @@ export const ScheduleQueueManager: React.FC<ScheduleQueueManagerProps> = ({
         })}
 
         {queue.length === 0 && (
-          <div className="text-center py-10 rounded-2xl bg-slate-950/40 border border-dashed border-slate-800 flex flex-col items-center gap-3">
-            <UploadCloud className="w-8 h-8 text-slate-600" />
-            <div className="flex flex-col gap-1">
-              <span className="text-xs font-mono text-slate-400 font-bold">No tournament matches loaded yet.</span>
-              <span className="text-[11px] font-mono text-slate-500">
-                Click "PRELOAD / IMPORT SCHEDULE" above to import teams and first matches.
-              </span>
+          <div className="py-12 px-4 text-center flex flex-col items-center gap-3">
+            <UploadCloud className="w-8 h-8 text-[var(--court-muted)]" />
+            <div>
+              <p className="text-sm font-semibold text-[var(--court-ink)]">No matches in the queue</p>
+              <p className="text-xs text-[var(--court-muted)] mt-0.5">
+                Import a CSV schedule or add matches manually to arm your flight cages.
+              </p>
             </div>
             {onOpenPreload && (
               <button
+                type="button"
                 onClick={onOpenPreload}
-                className="mt-1 px-4 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-mono text-xs font-bold transition-all shadow-md shadow-cyan-600/20"
+                className="px-4 py-2 rounded-lg text-white text-xs font-semibold transition-opacity hover:opacity-90"
+                style={{ backgroundColor: 'var(--drone-blue-solid)' }}
               >
-                PRELOAD EVENT SCHEDULE
+                Preload event schedule
               </button>
             )}
           </div>
