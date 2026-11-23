@@ -6,6 +6,7 @@ import { RefereeConsole } from './pages/RefereeConsole';
 import { MasterDashboard } from './pages/MasterDashboard';
 import { PublicLiveHub } from './pages/PublicLiveHub';
 import { PublicMatchDetail } from './pages/PublicMatchDetail';
+import { PublicArenaDisplay } from './pages/PublicArenaDisplay';
 import { OBSLowerThird } from './pages/overlays/OBSLowerThird';
 import { OBSTopBar } from './pages/overlays/OBSTopBar';
 import { OBSPenaltyAlert } from './pages/overlays/OBSPenaltyAlert';
@@ -63,22 +64,28 @@ export const App: React.FC = () => {
           <Route path="/" element={<PublicLiveHub />} />
           <Route path="/live" element={<PublicLiveHub />} />
           <Route path="/live/arena/:id" element={<PublicMatchDetail publicPortalMode={true} />} />
+          <Route path="/live/arena/:id/display" element={<PublicArenaDisplay publicPortalMode={true} />} />
+          <Route path="/live/arena/:id/info" element={<PublicArenaDisplay publicPortalMode={true} />} />
+          <Route path="/live/arena/:id/board" element={<PublicArenaDisplay publicPortalMode={true} />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>
     );
   }
 
-  // Full Staff / LAN Portal (also exposes /live & /live/arena/:id for previewing or LAN sharing)
+  // Full Staff / LAN Portal (also exposes /live & /live/arena/:id/* for previewing or LAN sharing)
   return (
     <BrowserRouter>
       <Routes>
         {/* Portal Home */}
         <Route path="/" element={<HubHome />} />
 
-        {/* Public Live Spectator Portal (Preview / LAN Share) */}
+        {/* Public Live Spectator Portal & Arena Info Displays (Preview / LAN Share) */}
         <Route path="/live" element={<PublicLiveHub />} />
         <Route path="/live/arena/:id" element={<PublicMatchDetail publicPortalMode={false} />} />
+        <Route path="/live/arena/:id/display" element={<PublicArenaDisplay publicPortalMode={false} />} />
+        <Route path="/live/arena/:id/info" element={<PublicArenaDisplay publicPortalMode={false} />} />
+        <Route path="/live/arena/:id/board" element={<PublicArenaDisplay publicPortalMode={false} />} />
 
         {/* Stadium Display */}
         <Route path="/arena/:id/display" element={<CrowdDisplay />} />

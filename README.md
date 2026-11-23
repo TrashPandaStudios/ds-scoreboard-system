@@ -54,8 +54,16 @@ Built with **Java 17 / Spring Boot 3**, **Spring WebSocket (STOMP)**, embedded *
 - Tournament Match Queuing & Arena assignment.
 - Sponsor partner banner manager.
 
-### 7. Public Live Spectator Portal (`/live` & Dedicated Port `8081` + Optional Cloudflare Tunnel)
+### 7. Public Live Spectator Portal & Arena Info Displays (`/live`, `/live/arena/:id/display` & Dedicated Port `8081` + Optional Cloudflare Tunnel)
 - Mobile-first, read-only public interface for spectators to browse all active flight cages, click into any match for a live scoreboard & set-by-set breakdown, view completed results, and check the upcoming schedule.
+- **Public Arena Information Displays (`/live/arena/:id/display`, aliased at `/live/arena/:id/info` & `/live/arena/:id/board`)**:
+  - Designed for tournament TVs, staging monitors, pit displays, and spectators via the Cloudflare-tunneled public portal.
+  - Displays **Current Match Running**, **Next Match (On Deck)**, and **Upcoming Matches Queue** (plus optional Set Breakdown, Recent Results, and Sponsors) with live WebSocket sync.
+  - **Configurable Visibility (Interactive Drawer & URL Query Parameters)**:
+    - Hide any elements via `?hide=current,clock,scores,next,upcoming,header,controls` (or `?current=0`, `?next=0`, `?upcoming=0`).
+    - Show extra sections via `?show=sets,recent,sponsors`, or restrict strictly with `?only=next,upcoming`.
+    - Clean kiosk mode with `?kiosk=1` (hides toolbar controls; press `C` to reopen Customize drawer, `F` for fullscreen), queue limit `?limit=5`, and theme lock `?theme=dark|light`.
+    - Built-in presets (`?preset=full|staging|current-next|scoreboard`), e.g. `/live/arena/1/display?hide=current&kiosk=1` for pit/staging queues.
 - Served automatically on a dedicated read-only HTTP port (`PUBLIC_PORT=8081`, mapped to `8090` in Docker Compose) and also previewable on LAN at `/live`.
 - **Optional Cloudflare Tunnel**: Pass `CLOUDFLARE_TUNNEL_TOKEN` (via `.env` or environment variable) and `cloudflared` automatically starts inside the container — no extra container or open firewall ports required.
 - **Read-Only Security Lockdown**: All requests arriving on `PUBLIC_PORT` (`8081`) or via Cloudflare Tunnel headers (`CF-Ray` / `CF-Connecting-IP`) are strictly restricted at both the HTTP and WebSocket STOMP layers:
@@ -146,6 +154,13 @@ Vite dev server runs on `http://localhost:3000` and automatically proxies `/api`
 ### REST Endpoints
 | Method | Endpoint | Description |
 | --- | --- | --- |
+| `GET` | `/api/public/context` | Public/staff portal mode detection |
+| `GET` | `/api/public/overview` | All arenas, recent results, schedule, and sponsors for public hub |
+| `GET` | `/api/public/arenas` | Public list of active arenas with live summary, next match, and upcoming count |
+| `GET` | `/api/public/arenas/{id}` | Full public arena details (`currentMatch`, `nextMatch`, `upcomingMatches`, `recentMatches`, `sponsors`) |
+| `GET` | `/api/public/arenas/{id}/current` | Currently running match state for a specific arena |
+| `GET` | `/api/public/arenas/{id}/next` | Next scheduled match on deck for a specific arena |
+| `GET` | `/api/public/arenas/{id}/upcoming` | Upcoming scheduled queue for a specific arena (`?limit=N&includeNext=true\|false`) |
 | `GET` | `/api/arenas` | Get all active arena telemetry summaries |
 | `GET` | `/api/arenas/{id}` | Get full arena state snapshot |
 | `POST` | `/api/arenas/{id}/command` | Dispatch control command |

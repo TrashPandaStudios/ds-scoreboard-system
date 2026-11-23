@@ -87,7 +87,11 @@ class PublicPortalSecurityTest {
         String[] allowedPaths = {
                 "/api/public/context",
                 "/api/public/overview",
+                "/api/public/arenas",
                 "/api/public/arenas/1",
+                "/api/public/arenas/1/current",
+                "/api/public/arenas/1/next",
+                "/api/public/arenas/1/upcoming",
                 "/api/arenas",
                 "/api/arenas/2",
                 "/api/matches",
@@ -151,8 +155,15 @@ class PublicPortalSecurityTest {
             assertEquals("/", res.getHeader("Location"));
         }
 
-        // Public live routes pass through cleanly
-        for (String publicRoute : new String[]{"/", "/live", "/live/arena/1"}) {
+        // Public live routes (including arena info displays) pass through cleanly
+        for (String publicRoute : new String[]{
+                "/",
+                "/live",
+                "/live/arena/1",
+                "/live/arena/1/display",
+                "/live/arena/1/info",
+                "/live/arena/1/board"
+        }) {
             MockHttpServletRequest req = new MockHttpServletRequest("GET", publicRoute);
             req.setLocalPort(8081);
             MockHttpServletResponse res = new MockHttpServletResponse();

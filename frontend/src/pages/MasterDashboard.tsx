@@ -407,6 +407,7 @@ export const MasterDashboard: React.FC = () => {
         arenaId={selectedObsArenaId || sortedArenas[0]?.arenaId || 1}
         arenas={sortedArenas}
         onSelectArena={(id) => setSelectedObsArenaId(id)}
+        publicSiteUrl={publicPortalStatus?.publicSiteUrl}
       />
 
       <AdminIntermissionModal

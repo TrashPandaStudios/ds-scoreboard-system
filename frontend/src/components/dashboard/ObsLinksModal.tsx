@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Copy, Check, ExternalLink, Layers, Tv, AlertTriangle } from 'lucide-react';
+import { X, Copy, Check, ExternalLink, Layers, Tv, AlertTriangle, Globe } from 'lucide-react';
 import { ArenaSummary } from '../../types/scoreboard';
 
 interface ObsLinksModalProps {
@@ -8,6 +8,7 @@ interface ObsLinksModalProps {
   arenaId: number;
   arenas?: ArenaSummary[];
   onSelectArena?: (id: number) => void;
+  publicSiteUrl?: string;
 }
 
 export const ObsLinksModal: React.FC<ObsLinksModalProps> = ({
@@ -16,19 +17,27 @@ export const ObsLinksModal: React.FC<ObsLinksModalProps> = ({
   arenaId,
   arenas,
   onSelectArena,
+  publicSiteUrl,
 }) => {
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'monitors' | 'obs'>('monitors');
+  const [activeTab, setActiveTab] = useState<'monitors' | 'public' | 'obs'>('monitors');
   const [selectedArenaId, setSelectedArenaId] = useState<number>(arenaId);
+  const [useTunnelBase, setUseTunnelBase] = useState<boolean>(Boolean(publicSiteUrl));
 
   useEffect(() => {
     setSelectedArenaId(arenaId);
   }, [arenaId]);
 
+  useEffect(() => {
+    setUseTunnelBase(Boolean(publicSiteUrl));
+  }, [publicSiteUrl]);
+
   if (!isOpen) return null;
 
   const currentArenaId = selectedArenaId;
   const origin = window.location.origin;
+  const trimmedPublicBase = (publicSiteUrl || '').trim().replace(/\/+$/, '');
+  const publicBase = useTunnelBase && trimmedPublicBase ? trimmedPublicBase : origin;
 
   const dedicatedMonitors = [
     {
@@ -65,6 +74,49 @@ export const ObsLinksModal: React.FC<ObsLinksModalProps> = ({
       path: `/arena/${currentArenaId}/display`,
       tag: 'Spectator display',
       description: 'Full crowd scoreboard with set tracking, phase alerts, side-swap, and sponsor carousel.',
+    },
+  ];
+
+  const publicArenaDisplays = [
+    {
+      id: 'public-arena-full',
+      name: 'Public Arena Info Display (Full)',
+      path: `/live/arena/${currentArenaId}/display`,
+      tag: 'Cloudflare public',
+      description:
+        'Live current match, highlighted next match on deck, and upcoming queue with live Customize controls.',
+    },
+    {
+      id: 'public-arena-staging',
+      name: 'Pit / Staging Queue Display (No Current Match)',
+      path: `/live/arena/${currentArenaId}/display?hide=current&kiosk=1`,
+      tag: 'Staging TV',
+      description:
+        'Hides the live match and interactive controls so waiting pilots see Next Match and Upcoming Queue.',
+    },
+    {
+      id: 'public-arena-current-next',
+      name: 'Hallway Signage (Current + Next Match)',
+      path: `/live/arena/${currentArenaId}/display?hide=upcoming&kiosk=1`,
+      tag: 'Hallway TV',
+      description:
+        'Clean unattended signage showing only the currently running match and the next match on deck.',
+    },
+    {
+      id: 'public-arena-detail',
+      name: 'Public Spectator Arena Page',
+      path: `/live/arena/${currentArenaId}`,
+      tag: 'Spectator mobile',
+      description:
+        'Mobile-friendly public arena view with live scoreboard, set breakdown, next match, queue, and earlier results.',
+    },
+    {
+      id: 'public-arena-api',
+      name: 'Public Arena JSON API',
+      path: `/api/public/arenas/${currentArenaId}`,
+      tag: 'REST JSON',
+      description:
+        'Read-only JSON payload with currentMatch, nextMatch, and upcomingMatches (also /current, /next, /upcoming).',
     },
   ];
 
@@ -159,7 +211,23 @@ export const ObsLinksModal: React.FC<ObsLinksModalProps> = ({
                 : { color: 'var(--court-muted)' }
             }
           >
-            Stadium &amp; team monitors ({dedicatedMonitors.length})
+            Stadium monitors ({dedicatedMonitors.length})
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('public')}
+            className="flex-1 py-2 rounded-lg text-xs font-semibold transition-colors inline-flex items-center justify-center gap-1.5"
+            style={
+              activeTab === 'public'
+                ? {
+                    backgroundColor: 'var(--court-active-pill-bg)',
+                    color: 'var(--court-active-pill-fg)',
+                  }
+                : { color: 'var(--court-muted)' }
+            }
+          >
+            <Globe className="w-3.5 h-3.5" />
+            <span>Public arena displays ({publicArenaDisplays.length})</span>
           </button>
           <button
             type="button"
@@ -174,9 +242,49 @@ export const ObsLinksModal: React.FC<ObsLinksModalProps> = ({
                 : { color: 'var(--court-muted)' }
             }
           >
-            OBS / vMix overlays ({overlays.length})
+            OBS / vMix ({overlays.length})
           </button>
         </div>
+
+        {activeTab === 'public' && trimmedPublicBase && (
+          <div className="mb-3 px-3.5 py-2.5 rounded-xl bg-[var(--court-subtle)] border border-[var(--court-line-soft)] flex flex-wrap items-center justify-between gap-2 text-xs">
+            <span className="text-[var(--court-muted)]">
+              URL origin: <strong className="text-[var(--court-ink)]">{publicBase}</strong>
+            </span>
+            <div className="inline-flex rounded-lg border border-[var(--court-line)] overflow-hidden">
+              <button
+                type="button"
+                onClick={() => setUseTunnelBase(true)}
+                className="px-2.5 py-1 text-[11px] font-semibold"
+                style={
+                  useTunnelBase
+                    ? {
+                        backgroundColor: 'var(--signal-live-tint)',
+                        color: 'var(--signal-live-text)',
+                      }
+                    : { color: 'var(--court-muted)' }
+                }
+              >
+                Public tunnel
+              </button>
+              <button
+                type="button"
+                onClick={() => setUseTunnelBase(false)}
+                className="px-2.5 py-1 text-[11px] font-semibold border-l border-[var(--court-line)]"
+                style={
+                  !useTunnelBase
+                    ? {
+                        backgroundColor: 'var(--court-control-bg)',
+                        color: 'var(--court-ink)',
+                      }
+                    : { color: 'var(--court-muted)' }
+                }
+              >
+                Local LAN
+              </button>
+            </div>
+          </div>
+        )}
 
         <div className="flex flex-col gap-3 max-h-[420px] overflow-y-auto pr-1">
           {activeTab === 'monitors'
@@ -216,6 +324,61 @@ export const ObsLinksModal: React.FC<ObsLinksModalProps> = ({
                       </button>
                       <a
                         href={mon.path}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="p-1.5 rounded-lg bg-[var(--court-control-bg)] hover:bg-[var(--court-control-hover)] text-[var(--court-ink-secondary)] border border-[var(--court-line)]"
+                        title="Open in new tab"
+                      >
+                        <ExternalLink className="w-4 h-4" />
+                      </a>
+                    </div>
+                  </div>
+                );
+              })
+            : activeTab === 'public'
+            ? publicArenaDisplays.map((item) => {
+                const fullUrl = `${publicBase}${item.path}`;
+                const isCopied = copiedKey === item.id;
+
+                return (
+                  <div
+                    key={item.id}
+                    className="p-3.5 rounded-xl bg-[var(--court-subtle)] border border-[var(--court-line-soft)] flex flex-col gap-2"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-bold text-sm text-[var(--court-ink)]">{item.name}</span>
+                      <span
+                        className="text-[11px] font-semibold px-2 py-0.5 rounded-md border"
+                        style={{
+                          backgroundColor: 'var(--signal-live-tint)',
+                          color: 'var(--signal-live-text)',
+                          borderColor: 'var(--signal-live-border)',
+                        }}
+                      >
+                        {item.tag}
+                      </span>
+                    </div>
+
+                    <p className="text-xs text-[var(--court-muted)]">{item.description}</p>
+
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <input
+                        type="text"
+                        readOnly
+                        value={fullUrl}
+                        className="flex-1 px-3 py-1.5 rounded-lg bg-[var(--court-surface)] border border-[var(--court-line)] text-xs text-[var(--court-ink-secondary)] select-all"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleCopy(item.id, fullUrl)}
+                        className="px-3 py-1.5 rounded-lg text-white text-xs font-semibold inline-flex items-center gap-1.5"
+                        style={{ backgroundColor: 'var(--drone-blue-solid)' }}
+                      >
+                        {isCopied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                        <span>{isCopied ? 'Copied' : 'Copy'}</span>
+                      </button>
+                      <a
+                        href={fullUrl}
                         target="_blank"
                         rel="noreferrer"
                         className="p-1.5 rounded-lg bg-[var(--court-control-bg)] hover:bg-[var(--court-control-hover)] text-[var(--court-ink-secondary)] border border-[var(--court-line)]"

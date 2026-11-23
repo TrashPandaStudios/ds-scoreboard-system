@@ -197,6 +197,19 @@ const HubCageRow: React.FC<{
               <span>Split teams</span>
               <ExternalLink className="w-3 h-3 opacity-70" />
             </Link>
+            <Link
+              to={`/live/arena/${cageId}/display`}
+              target="_blank"
+              className="col-span-2 py-1.5 px-2.5 rounded-lg border text-xs font-semibold inline-flex items-center justify-between transition-colors"
+              style={{
+                backgroundColor: 'var(--signal-live-tint)',
+                borderColor: 'var(--signal-live-border)',
+                color: 'var(--signal-live-text)',
+              }}
+            >
+              <span>Public arena info display (current + queue)</span>
+              <ExternalLink className="w-3 h-3 opacity-70" />
+            </Link>
           </div>
         </div>
 

@@ -109,10 +109,59 @@ export interface PublicOverviewResponse {
   serverEpochMs: number;
 }
 
+export interface PublicScheduledMatch extends ScheduledMatch {
+  teamRedLogoUrl?: string | null;
+  teamBlueLogoUrl?: string | null;
+  queuePosition?: number;
+  next?: boolean;
+}
+
+export interface PublicArenaListItem {
+  arenaId: number;
+  arenaName: string;
+  currentMatch: ArenaSummary;
+  nextMatch: PublicScheduledMatch | null;
+  upcomingCount: number;
+}
+
+export interface PublicArenasResponse {
+  arenas: PublicArenaListItem[];
+  serverEpochMs: number;
+}
+
 export interface PublicArenaDetailResponse {
   arena: ArenaState;
-  upcomingMatches: ScheduledMatch[];
+  currentMatch?: ArenaState;
+  nextMatch?: PublicScheduledMatch | null;
+  upcomingMatches: PublicScheduledMatch[];
+  upcomingCount?: number;
   recentMatches: MatchRecord[];
+  sponsors?: SponsorItem[];
+  serverEpochMs: number;
+}
+
+export interface PublicArenaCurrentResponse {
+  arenaId: number;
+  arenaName: string;
+  currentMatch: ArenaState;
+  serverEpochMs: number;
+}
+
+export interface PublicArenaNextResponse {
+  arenaId: number;
+  arenaName: string;
+  nextMatch: PublicScheduledMatch | null;
+  hasNextMatch: boolean;
+  upcomingCount: number;
+  serverEpochMs: number;
+}
+
+export interface PublicArenaUpcomingResponse {
+  arenaId: number;
+  arenaName: string;
+  nextMatch: PublicScheduledMatch | null;
+  upcomingMatches: PublicScheduledMatch[];
+  totalUpcoming: number;
   serverEpochMs: number;
 }
 
