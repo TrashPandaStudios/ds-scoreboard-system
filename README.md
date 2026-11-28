@@ -54,6 +54,7 @@ Built with **Java 17 / Spring Boot 3**, **Spring WebSocket (STOMP)**, embedded *
 - Multi-cage telemetry grid (Arena 1, 2, 3...) with active scores, running clocks, and emergency pause buttons.
 - OBS Discovery Hub with copyable URLs, resolution badges, and live previews.
 - Match History & Auditing table with granular set-by-set breakdown and CSV export.
+- Expand a saved match to view its audit log. Goal entries credit the striker assigned when the referee recorded the goal. Score corrections that remove a credited goal also record whose credit was removed.
 - Tournament Match Queuing & Arena assignment.
 - Use **Teams → Manage players** to add, rename, or remove players for manually registered and schedule-imported teams.
 - Sponsor partner banner manager.
@@ -175,6 +176,7 @@ Vite dev server runs on `http://localhost:3000` and automatically proxies `/api`
 | `POST` | `/api/arenas/emergency-resume` | Resume all cages |
 | `GET` | `/api/matches` | Get historical match records |
 | `GET` | `/api/matches/audit-logs` | Get event audit log |
+| `GET` | `/api/matches/{id}/audit-logs` | Get the audit log for a saved match |
 | `GET` / `POST` | `/api/queue` | Manage scheduled match queue |
 | `GET` / `POST` | `/api/sponsors` | Manage partner sponsor carousel |
 

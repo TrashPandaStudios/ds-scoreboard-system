@@ -1,5 +1,6 @@
 package com.dronesoccer.scoreboard.model.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -22,6 +23,10 @@ public class AuditLogEntry {
 
     private Long arenaId;
     private Long matchId;
+
+    @JsonIgnore
+    @Column(length = 36)
+    private String matchAuditKey;
 
     @Column(nullable = false)
     private String eventType; // e.g. "SCORE_RED_PLUS", "TIMER_PAUSE", "SET_AWARD_RED", "BUZZER_FIRED"

@@ -17,6 +17,7 @@ public class ArenaStateDTO {
 
     // Match Metadata
     private Long matchId;
+    private String matchSessionId;
     private String matchNumber;
     private String tournamentName;
 

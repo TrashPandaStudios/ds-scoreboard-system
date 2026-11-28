@@ -36,6 +36,7 @@ export interface ArenaState {
   arenaId: number;
   arenaName: string;
   matchId: number | null;
+  matchSessionId?: string;
   matchNumber: string;
   tournamentName: string;
   teamRed: string;
@@ -92,6 +93,7 @@ export interface ArenaCheckInMatch {
   matchEnded: boolean;
   red: CheckInTeam;
   blue: CheckInTeam;
+  arenaState?: ArenaState;
 }
 
 export interface ArenaCheckInView {
@@ -251,7 +253,9 @@ export interface MatchControlCommand {
   arenaId?: number;
   commandId?: string;
   expectedMatchNumber?: string;
+  expectedMatchSessionId?: string;
   expectedSet?: number;
+  observedStateVersion?: number;
   intValue?: number;
   longValue?: number;
   stringValue?: string;
@@ -333,7 +337,7 @@ export interface MatchRecord {
 export interface AuditLogEntry {
   id: number;
   arenaId: number;
-  matchId: number;
+  matchId: number | null;
   eventType: string;
   description: string;
   payloadJson?: string;

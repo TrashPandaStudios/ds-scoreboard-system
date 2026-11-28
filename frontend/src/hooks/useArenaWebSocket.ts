@@ -1,7 +1,7 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { Client, IMessage } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
-import { useArenaStore } from '../store/arenaStore';
+import { isCommandStaleForState, useArenaStore } from '../store/arenaStore';
 import {
   ArenaState,
   ArenaSummary,
@@ -167,15 +167,7 @@ export function useArenaWebSocket(arenaId?: number, options: UseArenaWebSocketOp
           const currentArena = state.arenaStates[targetArenaId];
 
           // Client-side stale guardrail before sending (server also enforces this)
-          if (
-            currentArena &&
-            ((head.expectedMatchNumber &&
-              currentArena.matchNumber &&
-              head.expectedMatchNumber !== currentArena.matchNumber) ||
-              (head.expectedSet != null &&
-                currentArena.currentSet != null &&
-                head.expectedSet !== currentArena.currentSet))
-          ) {
+          if (currentArena && isCommandStaleForState(head, currentArena)) {
             removeOutboxCommand(targetArenaId, head.commandId);
             continue;
           }
@@ -492,12 +484,15 @@ export function useArenaWebSocket(arenaId?: number, options: UseArenaWebSocketOp
       if (DURABLE_DELTA_COMMANDS.has(type) && arenaId === targetArenaId) {
         const expectedMatchNumber = currentArena?.matchNumber;
         const expectedSet = currentArena?.currentSet;
+        const isGoal = type === 'ADD_RED_SCORE' || type === 'ADD_BLUE_SCORE';
         const command: MatchControlCommand = {
           type,
           arenaId: targetArenaId,
           commandId,
           expectedMatchNumber,
+          expectedMatchSessionId: currentArena?.matchSessionId,
           expectedSet,
+          observedStateVersion: isGoal ? currentArena?.stateVersion : undefined,
           ...payload,
         };
 

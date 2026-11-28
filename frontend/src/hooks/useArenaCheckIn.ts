@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { staffRequest } from '../api/staffRequest';
+import { useArenaStore } from '../store/arenaStore';
 import { ArenaCheckInMatch, ArenaCheckInView, TeamSide } from '../types/scoreboard';
 
 export function useArenaCheckIn(arenaId: number, includeRosters: boolean) {
@@ -51,6 +52,7 @@ export function useArenaCheckIn(arenaId: number, includeRosters: boolean) {
       void refresh();
       throw error;
     }
+    if (updated.arenaState) useArenaStore.getState().setArenaState(arenaId, updated.arenaState);
     readSequence.current++;
     setView((current) => {
       if (current?.match.matchToken !== updated.matchToken

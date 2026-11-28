@@ -95,7 +95,11 @@ function persistOutbox(outbox: Record<number, QueuedCommand[]>) {
   }
 }
 
-function isCommandStaleForState(item: QueuedCommand, state: ArenaState): boolean {
+export function isCommandStaleForState(item: QueuedCommand, state: ArenaState): boolean {
+  if (item.payload.expectedMatchSessionId && state.matchSessionId
+    && item.payload.expectedMatchSessionId !== state.matchSessionId) {
+    return true;
+  }
   if (item.expectedMatchNumber && state.matchNumber && item.expectedMatchNumber !== state.matchNumber) {
     return true;
   }

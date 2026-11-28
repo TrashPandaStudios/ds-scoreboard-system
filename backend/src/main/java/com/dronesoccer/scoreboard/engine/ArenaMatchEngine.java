@@ -23,9 +23,12 @@ import java.util.EnumMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.NavigableMap;
 import java.util.Objects;
+import java.util.TreeMap;
 import java.util.UUID;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.stream.Collectors;
 
 @Slf4j
 public class ArenaMatchEngine {
@@ -45,6 +48,7 @@ public class ArenaMatchEngine {
 
     // Match Metadata
     private Long currentMatchId;
+    private String matchAuditKey = UUID.randomUUID().toString();
     private String matchNumber = "TBD";
     private String tournamentName = "";
 
@@ -57,10 +61,14 @@ public class ArenaMatchEngine {
     private UUID checkInMatchToken;
     private boolean matchStarted;
     private final Map<Side, Lineup> lineups = new EnumMap<>(Side.class);
+    private final Map<Side, NavigableMap<Long, TeamPlayerDTO>> strikerHistory =
+            Map.of(Side.RED, new TreeMap<>(), Side.BLUE, new TreeMap<>());
 
     // Live Set State
     private int redScore = 0;
     private int blueScore = 0;
+    private final Map<Side, NavigableMap<Integer, TeamPlayerDTO>> goalCredits =
+            Map.of(Side.RED, new TreeMap<>(), Side.BLUE, new TreeMap<>());
     private int redSetScore = 0;
     private int blueSetScore = 0;
     private int redPenalties = 0;
@@ -220,7 +228,7 @@ public class ArenaMatchEngine {
         // 1. Trigger hardware buzzer & WebSocket buzzer event
         buzzerService.triggerBuzzer(arenaId, "Timer 00:00 Expired in " + phase);
         broadcastBuzzerEvent("TIMER_ZERO");
-        auditService.logEvent(arenaId, currentMatchId, "BUZZER_ZERO", "Timer hit 00:00 in " + phase, null);
+        audit("BUZZER_ZERO", "Timer hit 00:00 in " + phase);
 
         // 2. Automated state progression based on phase
         if (phase == MatchPhase.COUNTDOWN) {
@@ -251,6 +259,10 @@ public class ArenaMatchEngine {
         stateLock.lock();
         try {
             // Reject stale offline-replayed commands if the match or set has already moved on
+            if (command.getExpectedMatchSessionId() != null && !matchAuditKey.equals(command.getExpectedMatchSessionId())) {
+                log.warn("Arena {} - Ignoring command '{}' from a previous match session", arenaId, command.getCommandId());
+                return;
+            }
             if (command.getExpectedMatchNumber() != null
                     && !command.getExpectedMatchNumber().isBlank()
                     && !command.getExpectedMatchNumber().equals(this.matchNumber)) {
@@ -287,9 +299,9 @@ public class ArenaMatchEngine {
                 case ADJUST_TIMER_SECONDS -> adjustTimer(command.getIntValue() != null ? command.getIntValue() : 0);
                 case SET_TIMER_EXACT_MS -> setTimerExact(command.getLongValue() != null ? command.getLongValue() : 0);
                 
-                case ADD_RED_SCORE -> addScore(true, 1);
+                case ADD_RED_SCORE -> addScore(true, 1, command.getObservedStateVersion());
                 case SUB_RED_SCORE -> addScore(true, -1);
-                case ADD_BLUE_SCORE -> addScore(false, 1);
+                case ADD_BLUE_SCORE -> addScore(false, 1, command.getObservedStateVersion());
                 case SUB_BLUE_SCORE -> addScore(false, -1);
                 case SET_RED_SCORE -> setScore(true, command.getIntValue() != null ? command.getIntValue() : 0);
                 case SET_BLUE_SCORE -> setScore(false, command.getIntValue() != null ? command.getIntValue() : 0);
@@ -309,7 +321,7 @@ public class ArenaMatchEngine {
                 case SWAP_SIDES -> {
                     sideSwap = !sideSwap;
                     recentEvent = "Arena Sides Swapped";
-                    auditService.logEvent(arenaId, currentMatchId, "SWAP_SIDES", "Side swap toggled to " + sideSwap, null);
+                    audit("SWAP_SIDES", "Side swap toggled to " + sideSwap);
                 }
 
                 case SET_PHASE -> {
@@ -330,7 +342,7 @@ public class ArenaMatchEngine {
                     buzzerService.triggerBuzzer(arenaId, "Manual Referee Buzzer");
                     broadcastBuzzerEvent("MANUAL");
                     recentEvent = "Manual Buzzer Fired";
-                    auditService.logEvent(arenaId, currentMatchId, "BUZZER_MANUAL", "Manual Buzzer Triggered", null);
+                    audit("BUZZER_MANUAL", "Manual Buzzer Triggered");
                 }
 
                 case LOAD_MATCH -> loadMatch(command);
@@ -434,7 +446,7 @@ public class ArenaMatchEngine {
                 phase = MatchPhase.NORMAL_PHASE;
             }
             recentEvent = "Timer Started";
-            auditService.logEvent(arenaId, currentMatchId, "TIMER_START", "Timer started at " + timeRemainingMs + "ms", null);
+            audit("TIMER_START", "Timer started at " + timeRemainingMs + "ms");
         }
     }
 
@@ -454,7 +466,7 @@ public class ArenaMatchEngine {
             timeRemainingMs = Math.max(0, timerInitialRemainingMs - elapsedMs);
             timerRunning = false;
             recentEvent = "Timer Paused";
-            auditService.logEvent(arenaId, currentMatchId, "TIMER_PAUSE", "Timer paused at " + timeRemainingMs + "ms", null);
+            audit("TIMER_PAUSE", "Timer paused at " + timeRemainingMs + "ms");
         }
     }
 
@@ -485,15 +497,15 @@ public class ArenaMatchEngine {
     }
 
     public void addScore(boolean isRed, int delta) {
-        if (isRed) {
-            redScore = Math.max(0, redScore + delta);
-            recentEvent = "Red Score " + (delta > 0 ? "+1" : "-1") + " (" + redScore + ")";
-            auditService.logEvent(arenaId, currentMatchId, delta > 0 ? "SCORE_RED_PLUS" : "SCORE_RED_MINUS", "Red Score: " + redScore, null);
-        } else {
-            blueScore = Math.max(0, blueScore + delta);
-            recentEvent = "Blue Score " + (delta > 0 ? "+1" : "-1") + " (" + blueScore + ")";
-            auditService.logEvent(arenaId, currentMatchId, delta > 0 ? "SCORE_BLUE_PLUS" : "SCORE_BLUE_MINUS", "Blue Score: " + blueScore, null);
-        }
+        addScore(isRed, delta, null);
+    }
+
+    private void addScore(boolean isRed, int delta, Long observedStateVersion) {
+        int previousScore = isRed ? redScore : blueScore;
+        int score = (int) Math.max(0, Math.min(Integer.MAX_VALUE, (long) previousScore + delta));
+        Side side = isRed ? Side.RED : Side.BLUE;
+        recentEvent = (isRed ? "Red" : "Blue") + " Score " + (delta > 0 ? "+1" : "-1") + " (" + score + ")";
+        updateScore(side, score, false, observedStateVersion);
 
         // Sudden death rule: first team to score (+1) immediately wins the set
         if (phase == MatchPhase.SUDDEN_DEATH && delta > 0) {
@@ -503,24 +515,69 @@ public class ArenaMatchEngine {
     }
 
     public void setScore(boolean isRed, int score) {
-        if (isRed) {
-            redScore = Math.max(0, score);
-            recentEvent = "Red Score set to " + redScore;
-        } else {
-            blueScore = Math.max(0, score);
-            recentEvent = "Blue Score set to " + blueScore;
-        }
+        int newScore = Math.max(0, score);
+        recentEvent = (isRed ? "Red" : "Blue") + " Score set to " + newScore;
+        updateScore(isRed ? Side.RED : Side.BLUE, newScore, true, null);
     }
+
+    private void updateScore(Side side, int score, boolean override, Long observedStateVersion) {
+        int previousScore = side == Side.RED ? redScore : blueScore;
+        if (score == previousScore) return;
+        if (side == Side.RED) redScore = score;
+        else blueScore = score;
+
+        NavigableMap<Integer, TeamPlayerDTO> credits = goalCredits.get(side);
+        Map<TeamPlayerDTO, Integer> creditChanges = new LinkedHashMap<>();
+        if (score < previousScore) {
+            var removed = credits.tailMap(score, false);
+            removed.values().forEach(player -> creditChanges.merge(player, -1, Integer::sum));
+            removed.clear();
+        } else if (!override) {
+            long version = observedStateVersion == null ? stateVersion : observedStateVersion;
+            var assigned = strikerHistory.get(side).floorEntry(version);
+            if (assigned != null && assigned.getValue() != null) {
+                TeamPlayerDTO striker = assigned.getValue();
+                for (int prior = previousScore; prior < score; prior++) {
+                    credits.put(prior + 1, striker);
+                }
+                creditChanges.put(striker, score - previousScore);
+            }
+        }
+
+        String team = side == Side.RED ? teamRed : teamBlue;
+        boolean scored = score > previousScore;
+        String event = "SCORE_" + side + (override ? "_SET" : scored ? "_PLUS" : "_MINUS");
+        String description = "Set " + currentSet + " · " + team + " · "
+                + (override || !scored ? "Score correction " : "Score ") + previousScore + " → " + score;
+        if (!creditChanges.isEmpty()) {
+            String scorers = creditChanges.entrySet().stream()
+                    .map(entry -> entry.getKey().name() + (Math.abs(entry.getValue()) == 1 ? "" : " ×" + Math.abs(entry.getValue())))
+                    .collect(Collectors.joining(", "));
+            description += scored ? ". Credited to " + scorers : ". Removed credit from " + scorers;
+        } else if (scored && !override) {
+            description += ". Unattributed goal.";
+        }
+        var changes = creditChanges.entrySet().stream()
+                .map(entry -> new StrikerCredit(entry.getKey().id(), entry.getKey().name(), entry.getValue()))
+                .toList();
+        auditService.logEvent(arenaId, currentMatchId, matchAuditKey, event, description,
+                new ScoreAudit(currentSet, side, team, previousScore, score, changes));
+    }
+
+    private record StrikerCredit(UUID playerId, String playerName, int goals) {}
+
+    private record ScoreAudit(int setNumber, Side side, String team, int previousScore, int score,
+                              List<StrikerCredit> strikerCredits) {}
 
     public void addPenalty(boolean isRed, int delta) {
         if (isRed) {
             redPenalties = Math.max(0, redPenalties + delta);
             recentEvent = "Red Penalty " + (delta > 0 ? "+1" : "-1") + " (Total: " + redPenalties + ")";
-            auditService.logEvent(arenaId, currentMatchId, "PENALTY_RED", "Red Penalties: " + redPenalties, null);
+            audit("PENALTY_RED", "Red Penalties: " + redPenalties);
         } else {
             bluePenalties = Math.max(0, bluePenalties + delta);
             recentEvent = "Blue Penalty " + (delta > 0 ? "+1" : "-1") + " (Total: " + bluePenalties + ")";
-            auditService.logEvent(arenaId, currentMatchId, "PENALTY_BLUE", "Blue Penalties: " + bluePenalties, null);
+            audit("PENALTY_BLUE", "Blue Penalties: " + bluePenalties);
         }
     }
 
@@ -551,7 +608,7 @@ public class ArenaMatchEngine {
         } else if (newPhase == MatchPhase.NORMAL_PHASE) {
             recentEvent = "NORMAL GAMEPLAY Phase";
         }
-        auditService.logEvent(arenaId, currentMatchId, "PHASE_CHANGE", "Phase changed to " + newPhase, null);
+        audit("PHASE_CHANGE", "Phase changed to " + newPhase);
     }
 
     public void startCountdown() {
@@ -576,7 +633,7 @@ public class ArenaMatchEngine {
         this.totalSetDurationMs = 0;
         startTimerInternal();
         recentEvent = "SUDDEN DEATH Started - First Goal Wins!";
-        auditService.logEvent(arenaId, currentMatchId, "SUDDEN_DEATH_START", recentEvent, null);
+        audit("SUDDEN_DEATH_START", recentEvent);
     }
 
     public void startIntermission() {
@@ -585,8 +642,7 @@ public class ArenaMatchEngine {
         boolean setAlreadyAwarded = completedSets.stream().anyMatch(s -> s.getSetNumber() == currentSet);
         if (setAlreadyAwarded && currentSet < maxSets && phase != MatchPhase.MATCH_ENDED) {
             currentSet++;
-            redScore = 0;
-            blueScore = 0;
+            resetSetScores();
             redPenalties = 0;
             bluePenalties = 0;
         }
@@ -618,8 +674,7 @@ public class ArenaMatchEngine {
         }
         String overrideSuffix = isAdminOverride ? " (Admin Override)" : "";
         recentEvent = "Intermission Duration set to " + (durationMs / 1000) + "s" + overrideSuffix;
-        auditService.logEvent(arenaId, currentMatchId, "INTERMISSION_CONFIG",
-                "Intermission duration set to " + durationMs + "ms" + overrideSuffix, null);
+        audit("INTERMISSION_CONFIG", "Intermission duration set to " + durationMs + "ms" + overrideSuffix);
     }
 
     public long getIntermissionDurationMs() {
@@ -674,7 +729,7 @@ public class ArenaMatchEngine {
         matchStarted = true;
 
         recentEvent = "Set " + currentSet + " Awarded to " + winner;
-        auditService.logEvent(arenaId, currentMatchId, "SET_AWARD", "Set " + currentSet + " Winner: " + winner, null);
+        audit("SET_AWARD", "Set " + currentSet + " Winner: " + winner);
 
         // Check if match won
         int setsNeededToWin = (maxSets / 2) + 1;
@@ -711,7 +766,7 @@ public class ArenaMatchEngine {
             this.setWinnerBanner.setActive(false);
             this.setWinnerBanner = null;
             recentEvent = "Winner Banner Dismissed";
-            auditService.logEvent(arenaId, currentMatchId, "BANNER_DISMISS", "Winner banner dismissed", null);
+            audit("BANNER_DISMISS", "Winner banner dismissed");
         }
     }
 
@@ -719,8 +774,7 @@ public class ArenaMatchEngine {
         if (currentSet < maxSets) {
             dismissWinnerBanner();
             currentSet++;
-            redScore = 0;
-            blueScore = 0;
+            resetSetScores();
             redPenalties = 0;
             bluePenalties = 0;
             resetSetTimer();
@@ -747,7 +801,7 @@ public class ArenaMatchEngine {
             matchWinner = "TIE";
         }
         recentEvent = "MATCH CONCLUDED - Winner: " + matchWinner;
-        auditService.logEvent(arenaId, currentMatchId, "MATCH_END", "Match Ended. Winner: " + matchWinner, null);
+        audit("MATCH_END", "Match Ended. Winner: " + matchWinner);
 
         // Persist to database
         saveMatchToDatabase();
@@ -757,6 +811,7 @@ public class ArenaMatchEngine {
         try {
             MatchRecord record = MatchRecord.builder()
                     .id(currentMatchId)
+                    .matchAuditKey(matchAuditKey)
                     .matchNumber(matchNumber)
                     .arenaId(arenaId)
                     .tournamentName(tournamentName)
@@ -845,7 +900,7 @@ public class ArenaMatchEngine {
 
         resetMatchState();
         recentEvent = "Loaded Match " + this.matchNumber + " (" + this.teamRed + " vs " + this.teamBlue + ")";
-        auditService.logEvent(arenaId, currentMatchId, "MATCH_LOAD", recentEvent, null);
+        audit("MATCH_LOAD", recentEvent);
     }
 
     public void loadMatchDirect(String red, String blue, String matchNum, String tournament) {
@@ -865,7 +920,7 @@ public class ArenaMatchEngine {
 
             resetMatchState();
             recentEvent = "Loaded Match " + this.matchNumber + " (" + this.teamRed + " vs " + this.teamBlue + ")";
-            auditService.logEvent(arenaId, currentMatchId, "MATCH_LOAD", recentEvent, null);
+            audit("MATCH_LOAD", recentEvent);
             stateVersion++;
         } finally {
             stateLock.unlock();
@@ -887,8 +942,8 @@ public class ArenaMatchEngine {
         if (matchNum != null && !matchNum.isBlank()) this.matchNumber = matchNum;
         boolean redChanged = !previousRed.strip().equalsIgnoreCase(teamRed.strip());
         boolean blueChanged = !previousBlue.strip().equalsIgnoreCase(teamBlue.strip());
-        if (redChanged) lineups.remove(Side.RED);
-        if (blueChanged) lineups.remove(Side.BLUE);
+        if (redChanged) clearLineup(Side.RED);
+        if (blueChanged) clearLineup(Side.BLUE);
         if (redChanged || blueChanged) refreshCheckInMatchToken();
         recentEvent = "Updated Teams: " + this.teamRed + " vs " + this.teamBlue;
     }
@@ -896,17 +951,18 @@ public class ArenaMatchEngine {
     public void resetMatch() {
         resetMatchState();
         recentEvent = "Match Reset to Beginning";
-        auditService.logEvent(arenaId, currentMatchId, "MATCH_RESET", "Match Reset", null);
+        audit("MATCH_RESET", "Match Reset");
     }
 
     private void resetMatchState() {
         pauseTimer();
         currentMatchId = null;
+        matchAuditKey = UUID.randomUUID().toString();
         lineups.clear();
+        strikerHistory.values().forEach(Map::clear);
         refreshCheckInMatchToken();
         matchStarted = false;
-        redScore = 0;
-        blueScore = 0;
+        resetSetScores();
         redSetScore = 0;
         blueSetScore = 0;
         redPenalties = 0;
@@ -920,6 +976,21 @@ public class ArenaMatchEngine {
         totalSetDurationMs = defaultSetDurationMs;
     }
 
+    private void resetSetScores() {
+        redScore = 0;
+        blueScore = 0;
+        goalCredits.values().forEach(Map::clear);
+    }
+
+    private void clearLineup(Side side) {
+        lineups.remove(side);
+        strikerHistory.get(side).put(stateVersion + 1, null);
+    }
+
+    private void audit(String event, String description) {
+        auditService.logEvent(arenaId, currentMatchId, matchAuditKey, event, description, null);
+    }
+
     private void refreshCheckInMatchToken() {
         checkInMatchToken = hasNamedTeam(teamRed) && hasNamedTeam(teamBlue) ? UUID.randomUUID() : null;
     }
@@ -931,17 +1002,23 @@ public class ArenaMatchEngine {
     public ArenaCheckInDTO getCheckIn() {
         stateLock.lock();
         try {
-            return new ArenaCheckInDTO(arenaName, matchNumber, checkInMatchToken, canCheckIn(),
-                    phase == MatchPhase.MATCH_ENDED,
-                    new ArenaCheckInDTO.Team(teamRed, teamRedLogoUrl, lineups.get(Side.RED)),
-                    new ArenaCheckInDTO.Team(teamBlue, teamBlueLogoUrl, lineups.get(Side.BLUE)));
+            return checkInSnapshot(null);
         } finally {
             stateLock.unlock();
         }
     }
 
+    private ArenaCheckInDTO checkInSnapshot(ArenaStateDTO arenaState) {
+        return new ArenaCheckInDTO(arenaName, matchNumber, checkInMatchToken, canCheckIn(),
+                phase == MatchPhase.MATCH_ENDED,
+                new ArenaCheckInDTO.Team(teamRed, teamRedLogoUrl, lineups.get(Side.RED)),
+                new ArenaCheckInDTO.Team(teamBlue, teamBlueLogoUrl, lineups.get(Side.BLUE)),
+                arenaState);
+    }
+
     public ArenaCheckInDTO checkInTeam(UUID matchToken, Side side, UUID lineupVersion,
                                       List<TeamPlayerDTO> players, UUID strikerId) {
+        ArenaCheckInDTO snapshot;
         stateLock.lock();
         try {
             requireCurrentLineup(matchToken, side, lineupVersion);
@@ -949,22 +1026,27 @@ public class ArenaMatchEngine {
                 throw new ResponseStatusException(HttpStatus.CONFLICT, "Lineups close when the match starts.");
             }
             String details;
+            TeamPlayerDTO striker = null;
             if (players.isEmpty() && strikerId == null) {
                 details = "Checked in without registered players.";
             } else {
-                TeamPlayerDTO striker = findStriker(players, strikerId);
+                striker = findStriker(players, strikerId);
                 details = "Flying players: " + String.join(", ", players.stream().map(TeamPlayerDTO::name).toList())
                         + ". Striker: " + striker.name();
             }
             lineups.put(side, new Lineup(UUID.randomUUID(), List.copyOf(players), strikerId));
-            auditService.logEvent(arenaId, currentMatchId, "TEAM_CHECK_IN", checkInAuditPrefix(side) + details, null);
-            return getCheckIn();
+            strikerHistory.get(side).put(++stateVersion, striker);
+            audit("TEAM_CHECK_IN", checkInAuditPrefix(side) + details);
+            snapshot = checkInSnapshot(toDTO());
         } finally {
             stateLock.unlock();
         }
+        broadcastState();
+        return snapshot;
     }
 
     public ArenaCheckInDTO changeStriker(UUID matchToken, Side side, UUID lineupVersion, UUID strikerId) {
+        ArenaCheckInDTO snapshot;
         stateLock.lock();
         try {
             Lineup lineup = requireCurrentLineup(matchToken, side, lineupVersion);
@@ -975,15 +1057,17 @@ public class ArenaMatchEngine {
                 throw new ResponseStatusException(HttpStatus.CONFLICT, "Check in a flying lineup before changing the striker.");
             }
             TeamPlayerDTO striker = findStriker(lineup.players(), strikerId);
-            if (!strikerId.equals(lineup.strikerId())) {
-                lineups.put(side, new Lineup(UUID.randomUUID(), lineup.players(), strikerId));
-                auditService.logEvent(arenaId, currentMatchId, "STRIKER_CHANGE",
-                        checkInAuditPrefix(side) + "New striker: " + striker.name(), null);
-            }
-            return getCheckIn();
+            if (strikerId.equals(lineup.strikerId())) return checkInSnapshot(toDTO());
+
+            lineups.put(side, new Lineup(UUID.randomUUID(), lineup.players(), strikerId));
+            strikerHistory.get(side).put(++stateVersion, striker);
+            audit("STRIKER_CHANGE", checkInAuditPrefix(side) + "New striker " + striker.name());
+            snapshot = checkInSnapshot(toDTO());
         } finally {
             stateLock.unlock();
         }
+        broadcastState();
+        return snapshot;
     }
 
     private boolean canCheckIn() {
@@ -1029,6 +1113,7 @@ public class ArenaMatchEngine {
                     .arenaId(arenaId)
                     .arenaName(arenaName)
                     .matchId(currentMatchId)
+                    .matchSessionId(matchAuditKey)
                     .matchNumber(matchNumber)
                     .tournamentName(tournamentName)
                     .teamRed(teamRed)

@@ -5,6 +5,7 @@ import com.dronesoccer.scoreboard.model.entity.MatchRecord;
 import com.dronesoccer.scoreboard.repository.AuditLogEntryRepository;
 import com.dronesoccer.scoreboard.repository.MatchRecordRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.CacheControl;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -33,6 +34,14 @@ public class MatchHistoryRestController {
     @GetMapping("/arena/{arenaId}")
     public ResponseEntity<List<MatchRecord>> getMatchesByArena(@PathVariable Long arenaId) {
         return ResponseEntity.ok(matchRecordRepository.findByArenaIdOrderByCreatedAtDesc(arenaId));
+    }
+
+    @GetMapping("/{id}/audit-logs")
+    public ResponseEntity<List<AuditLogEntry>> getMatchAuditLogs(@PathVariable Long id) {
+        return matchRecordRepository.findById(id)
+                .map(match -> ResponseEntity.ok().cacheControl(CacheControl.noStore())
+                        .body(auditLogEntryRepository.findForMatch(id, match.getMatchAuditKey())))
+                .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     @GetMapping("/audit-logs")

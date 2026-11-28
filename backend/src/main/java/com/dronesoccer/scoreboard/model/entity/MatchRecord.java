@@ -1,5 +1,6 @@
 package com.dronesoccer.scoreboard.model.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.*;
@@ -26,6 +27,10 @@ public class MatchRecord {
 
     private Long arenaId;
     private String tournamentName;
+
+    @JsonIgnore
+    @Column(length = 36)
+    private String matchAuditKey;
 
     @Column(nullable = false)
     private String teamRed;

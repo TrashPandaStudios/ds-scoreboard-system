@@ -119,6 +119,7 @@ class PublicPortalSecurityTest {
 
         String[] blockedPaths = {
                 "/api/matches/audit-logs",
+                "/api/matches/42/audit-logs",
                 "/api/arenas/hardware/status",
                 "/api/arenas/config/intermission",
                 "/api/arenas/1/check-in",

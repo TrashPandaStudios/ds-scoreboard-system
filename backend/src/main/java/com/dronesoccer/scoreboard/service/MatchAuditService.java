@@ -2,6 +2,7 @@ package com.dronesoccer.scoreboard.service;
 
 import com.dronesoccer.scoreboard.model.entity.AuditLogEntry;
 import com.dronesoccer.scoreboard.repository.AuditLogEntryRepository;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PreDestroy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,6 +20,7 @@ import java.util.concurrent.TimeUnit;
 public class MatchAuditService {
 
     private final AuditLogEntryRepository auditLogEntryRepository;
+    private final ObjectMapper objectMapper;
 
     // Dedicated single-threaded daemon writer so SQLite disk I/O never blocks ArenaMatchEngine.stateLock
     private final ExecutorService auditWriterExecutor = Executors.newSingleThreadExecutor(r -> {
@@ -27,16 +29,18 @@ public class MatchAuditService {
         return t;
     });
 
-    public void logEvent(Long arenaId, Long matchId, String eventType, String description, String payloadJson) {
+    public void logEvent(Long arenaId, Long matchId, String matchAuditKey, String eventType, String description,
+                         Object payload) {
         LocalDateTime eventTime = LocalDateTime.now();
         auditWriterExecutor.execute(() -> {
             try {
                 AuditLogEntry entry = AuditLogEntry.builder()
                         .arenaId(arenaId)
                         .matchId(matchId)
+                        .matchAuditKey(matchAuditKey)
                         .eventType(eventType)
                         .description(description)
-                        .payloadJson(payloadJson)
+                        .payloadJson(payload == null ? null : objectMapper.writeValueAsString(payload))
                         .timestamp(eventTime)
                         .build();
 

@@ -1,10 +1,13 @@
 package com.dronesoccer.scoreboard.model.dto;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+
 import java.util.List;
 import java.util.UUID;
 
 public record ArenaCheckInDTO(String arenaName, String matchNumber, UUID matchToken,
-                              boolean canCheckIn, boolean matchEnded, Team red, Team blue) {
+                              boolean canCheckIn, boolean matchEnded, Team red, Team blue,
+                              @JsonInclude(JsonInclude.Include.NON_NULL) ArenaStateDTO arenaState) {
 
     public enum Side { RED, BLUE }
 

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { MatchRecord } from '../../types/scoreboard';
+import { MatchAuditLog } from './MatchAuditLog';
 import { Search, Download, Trophy, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface MatchHistoryTableProps {
@@ -116,7 +117,7 @@ export const MatchHistoryTable: React.FC<MatchHistoryTableProps> = ({ matches })
               <th className="py-3 px-4 font-semibold">Blue team</th>
               <th className="py-3 px-4 font-semibold">Winner</th>
               <th className="py-3 px-4 font-semibold">Status</th>
-              <th className="py-3 px-4 font-semibold text-right">Sets detail</th>
+              <th className="py-3 px-4 font-semibold text-right">Details</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-[var(--court-line-soft)]">
@@ -176,6 +177,8 @@ export const MatchHistoryTable: React.FC<MatchHistoryTableProps> = ({ matches })
                     <td className="py-3 px-4 text-right">
                       <button
                         type="button"
+                        aria-label={`Details for match ${m.matchNumber}`}
+                        aria-expanded={isExpanded}
                         onClick={() => setExpandedMatchId(isExpanded ? null : m.id)}
                         className="p-1.5 rounded-lg bg-[var(--court-control-bg)] hover:bg-[var(--court-control-hover)] text-[var(--court-ink-secondary)] transition-colors"
                       >
@@ -184,11 +187,11 @@ export const MatchHistoryTable: React.FC<MatchHistoryTableProps> = ({ matches })
                     </td>
                   </tr>
 
-                  {isExpanded && m.setRecords && m.setRecords.length > 0 && (
+                  {isExpanded && (
                     <tr className="bg-[var(--court-subtle)]">
                       <td colSpan={8} className="p-4">
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                          {m.setRecords.map((set) => (
+                          {m.setRecords?.map((set) => (
                             <div
                               key={set.id}
                               className="p-3 rounded-lg bg-[var(--court-surface)] border border-[var(--court-line-soft)]"
@@ -224,6 +227,7 @@ export const MatchHistoryTable: React.FC<MatchHistoryTableProps> = ({ matches })
                         {m.notes && (
                           <p className="text-xs text-[var(--court-muted)] mt-2.5">Notes: {m.notes}</p>
                         )}
+                        <MatchAuditLog matchId={m.id} />
                       </td>
                     </tr>
                   )}

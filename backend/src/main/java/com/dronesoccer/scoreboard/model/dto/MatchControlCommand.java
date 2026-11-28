@@ -66,7 +66,9 @@ public class MatchControlCommand {
     private Long arenaId;
     private String commandId;
     private String expectedMatchNumber;
+    private String expectedMatchSessionId;
     private Integer expectedSet;
+    private Long observedStateVersion;
     private Integer intValue;
     private Long longValue;
     private String stringValue;

@@ -8,11 +8,16 @@ import com.dronesoccer.scoreboard.engine.ArenaMatchEngine;
 import com.dronesoccer.scoreboard.model.dto.ArenaCheckInDTO.Side;
 import com.dronesoccer.scoreboard.model.dto.MatchControlCommand;
 import com.dronesoccer.scoreboard.model.dto.TeamPlayerDTO;
+import com.dronesoccer.scoreboard.model.entity.MatchRecord;
+import com.dronesoccer.scoreboard.repository.MatchRecordRepository;
 import com.dronesoccer.scoreboard.service.HardwareBuzzerService;
 import com.dronesoccer.scoreboard.service.MatchAuditService;
 import com.dronesoccer.scoreboard.service.TeamRosterService;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -29,14 +34,18 @@ class ArenaCheckInTest {
     private ArenaMatchEngine arena;
     private ArenaCheckInRestController controller;
     private TeamRosterService rosters;
+    private MatchAuditService audit;
+    private MatchRecordRepository matches;
     private List<UUID> redIds;
     private List<UUID> blueIds;
     private UUID token;
 
     @BeforeEach
     void setUp() {
+        audit = mock(MatchAuditService.class);
+        matches = mock(MatchRecordRepository.class);
         arena = new ArenaMatchEngine(1L, "Arena 1", mock(SimpMessagingTemplate.class),
-                mock(HardwareBuzzerService.class), null, null, mock(MatchAuditService.class),
+                mock(HardwareBuzzerService.class), matches, null, audit,
                 180000, 60000, 90000, 30000);
 
         ArenaManagerService arenas = mock(ArenaManagerService.class);
@@ -159,6 +168,85 @@ class ArenaCheckInTest {
         assertNotEquals(token, arena.getCheckIn().matchToken());
         assertNull(arena.getCheckIn().red().lineup());
         assertRejected(409, () -> controller.checkInTeam(1L, Side.RED, checkIn(redIds)));
+    }
+
+    @Test
+    void creditsTheActiveStrikerAndKeepsEarlierCreditForARetriedGoal() {
+        var red = controller.checkInTeam(1L, Side.RED, checkIn(redIds)).red().lineup();
+        command(START_TIMER);
+        command(ADD_RED_SCORE);
+        var beforeSwitch = arena.toDTO();
+        controller.changeStriker(1L, Side.RED, new StrikerRequest(token, red.version(), redIds.get(1)));
+        command(ADD_RED_SCORE);
+
+        var queuedGoal = MatchControlCommand.builder()
+                .type(ADD_RED_SCORE)
+                .commandId("queued-before-switch")
+                .expectedMatchSessionId(beforeSwitch.getMatchSessionId())
+                .observedStateVersion(beforeSwitch.getStateVersion())
+                .build();
+        arena.processCommand(queuedGoal);
+        arena.processCommand(queuedGoal);
+        command(SUB_RED_SCORE);
+
+        List<JsonNode> goals = auditedScores("SCORE_RED_PLUS", 3);
+        assertCredit(goals.get(0), redIds.get(0), 1);
+        assertCredit(goals.get(1), redIds.get(1), 1);
+        assertCredit(goals.get(2), redIds.get(0), 1);
+        assertCredit(auditedScores("SCORE_RED_MINUS", 1).get(0), redIds.get(0), -1);
+        assertEquals(2, arena.toDTO().getRedScore());
+
+        when(matches.save(any(MatchRecord.class))).thenAnswer(invocation -> {
+            MatchRecord saved = invocation.getArgument(0);
+            saved.setId(42L);
+            return saved;
+        });
+        command(CONFIRM_MATCH_END);
+        verify(matches).save(argThat(match -> beforeSwitch.getMatchSessionId().equals(match.getMatchAuditKey())));
+
+        arena.loadMatchDirect("Red Phoenix", "Blue Comets", "M-101", "Tournament");
+        queuedGoal.setCommandId("unprocessed-tap-from-previous-match");
+        arena.processCommand(queuedGoal);
+        assertNotEquals(beforeSwitch.getMatchSessionId(), arena.toDTO().getMatchSessionId());
+        assertEquals(0, arena.toDTO().getRedScore());
+    }
+
+    @Test
+    void recordsUnattributedGoalsAndReversesCreditsOnScoreOverrides() {
+        var red = controller.checkInTeam(1L, Side.RED, checkIn(redIds)).red().lineup();
+        command(START_TIMER);
+        command(ADD_BLUE_SCORE);
+        command(ADD_RED_SCORE);
+        controller.changeStriker(1L, Side.RED, new StrikerRequest(token, red.version(), redIds.get(1)));
+        command(ADD_RED_SCORE);
+
+        arena.processCommand(MatchControlCommand.builder().type(SET_RED_SCORE).intValue(4).build());
+        arena.processCommand(MatchControlCommand.builder().type(SET_RED_SCORE).intValue(0).build());
+
+        assertTrue(auditedScores("SCORE_BLUE_PLUS", 1).get(0).path("strikerCredits").isEmpty());
+        List<JsonNode> overrides = auditedScores("SCORE_RED_SET", 2);
+        assertTrue(overrides.get(0).path("strikerCredits").isEmpty());
+        assertEquals(2, overrides.get(1).path("strikerCredits").size());
+        assertCredit(overrides.get(1), redIds.get(0), -1);
+        assertCredit(overrides.get(1), redIds.get(1), -1);
+    }
+
+    private List<JsonNode> auditedScores(String type, int count) {
+        ArgumentCaptor<Object> payloads = ArgumentCaptor.forClass(Object.class);
+        verify(audit, times(count)).logEvent(eq(1L), isNull(), eq(arena.toDTO().getMatchSessionId()), eq(type),
+                anyString(), payloads.capture());
+        ObjectMapper mapper = new ObjectMapper();
+        return payloads.getAllValues().stream().<JsonNode>map(mapper::valueToTree).toList();
+    }
+
+    private void assertCredit(JsonNode score, UUID playerId, int goals) {
+        for (JsonNode credit : score.path("strikerCredits")) {
+            if (credit.path("playerId").asText().equals(playerId.toString())) {
+                assertEquals(goals, credit.path("goals").asInt());
+                return;
+            }
+        }
+        fail("Missing credit for player " + playerId);
     }
 
     private void command(MatchControlCommand.CommandType type) {
