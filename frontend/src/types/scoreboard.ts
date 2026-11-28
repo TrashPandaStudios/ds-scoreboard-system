@@ -65,6 +65,41 @@ export interface ArenaState {
   completedSets: SetSummary[];
 }
 
+export interface TeamPlayer {
+  id: string;
+  name: string;
+}
+
+export type TeamSide = 'red' | 'blue';
+
+export interface MatchLineup {
+  version: string;
+  players: TeamPlayer[];
+  strikerId: string | null;
+}
+
+export interface CheckInTeam {
+  name: string;
+  logoUrl: string | null;
+  lineup: MatchLineup | null;
+}
+
+export interface ArenaCheckInMatch {
+  arenaName: string;
+  matchNumber: string;
+  matchToken: string | null;
+  canCheckIn: boolean;
+  matchEnded: boolean;
+  red: CheckInTeam;
+  blue: CheckInTeam;
+}
+
+export interface ArenaCheckInView {
+  match: ArenaCheckInMatch;
+  redRoster: TeamPlayer[];
+  blueRoster: TeamPlayer[];
+}
+
 export interface ArenaSummary {
   arenaId: number;
   arenaName: string;

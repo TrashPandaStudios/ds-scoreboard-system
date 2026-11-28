@@ -184,7 +184,7 @@ export const SetManagementCard: React.FC<SetManagementCardProps> = ({
         <button
           type="button"
           onClick={() => {
-            if (window.confirm('Reset this entire match back to Set 1 and clear scores?')) {
+            if (window.confirm('Reset this match to Set 1 and clear the scores and check-ins?')) {
               onResetMatch();
             }
           }}

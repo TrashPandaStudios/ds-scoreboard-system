@@ -4,9 +4,13 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "teams")
@@ -31,4 +35,10 @@ public class Team {
 
     @Builder.Default
     private LocalDateTime updatedAt = LocalDateTime.now();
+
+    @OneToMany(mappedBy = "team", cascade = CascadeType.REMOVE)
+    @EqualsAndHashCode.Exclude
+    @ToString.Exclude
+    @Builder.Default
+    private List<TeamPlayer> players = new ArrayList<>();
 }

@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { HubHome } from './pages/HubHome';
 import { CrowdDisplay } from './pages/CrowdDisplay';
 import { RefereeConsole } from './pages/RefereeConsole';
+import { ArenaCheckIn } from './pages/ArenaCheckIn';
 import { MasterDashboard } from './pages/MasterDashboard';
 import { PublicLiveHub } from './pages/PublicLiveHub';
 import { PublicMatchDetail } from './pages/PublicMatchDetail';
@@ -108,6 +109,7 @@ export const App: React.FC = () => {
         <Route path="/arena/:id/referee" element={<RefereeConsole />} />
         <Route path="/referee" element={<Navigate to="/arena/1/referee" replace />} />
         <Route path="/arena/:id/admin" element={<RefereeConsole />} />
+        <Route path="/arena/:id/check-in" element={<ArenaCheckIn />} />
 
         {/* Admin Panel & Master Tournament Dashboard */}
         <Route path="/admin" element={<Navigate to="/master" replace />} />

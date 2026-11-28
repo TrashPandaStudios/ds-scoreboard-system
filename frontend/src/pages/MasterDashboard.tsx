@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useArenaStore } from '../store/arenaStore';
 import { useArenaWebSocket } from '../hooks/useArenaWebSocket';
 import { HeaderNav } from '../components/common/HeaderNav';
@@ -43,7 +44,10 @@ export const MasterDashboard: React.FC = () => {
   const [isAddArenaModalOpen, setIsAddArenaModalOpen] = useState(false);
   const [isPreloadModalOpen, setIsPreloadModalOpen] = useState(false);
   const [arenaToDelete, setArenaToDelete] = useState<ArenaSummary | null>(null);
-  const [activeTab, setActiveTab] = useState<'TELEMETRY' | 'HISTORY' | 'QUEUE' | 'SPONSORS' | 'TEAMS'>('TELEMETRY');
+  const [searchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState<'TELEMETRY' | 'HISTORY' | 'QUEUE' | 'SPONSORS' | 'TEAMS'>(
+    searchParams.get('tab') === 'teams' ? 'TEAMS' : 'TELEMETRY'
+  );
   const [publicPortalStatus, setPublicPortalStatus] = useState<PublicPortalSystemStatus | null>(null);
   const [copiedPublicUrl, setCopiedPublicUrl] = useState(false);
 
@@ -307,7 +311,7 @@ export const MasterDashboard: React.FC = () => {
               { id: 'HISTORY', label: 'Match history', count: matches.length },
               { id: 'QUEUE', label: 'Match queue', count: queue.length },
               { id: 'SPONSORS', label: 'Sponsors', count: sponsors.length },
-              { id: 'TEAMS', label: 'Teams & logos' },
+              { id: 'TEAMS', label: 'Teams' },
             ] as const
           ).map((tab) => {
             const active = activeTab === tab.id;
@@ -396,7 +400,7 @@ export const MasterDashboard: React.FC = () => {
           />
         )}
 
-        {/* Tab 5: Teams & Logos */}
+        {/* Tab 5: Teams */}
         {activeTab === 'TEAMS' && <TeamsManagementPanel />}
       </main>
 

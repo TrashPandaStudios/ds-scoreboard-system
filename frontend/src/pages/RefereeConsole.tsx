@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { useArenaStore, getPendingDeltas } from '../store/arenaStore';
 import { useArenaWebSocket } from '../hooks/useArenaWebSocket';
 import { useRefereeHotkeys } from '../hooks/useRefereeHotkeys';
@@ -13,9 +13,10 @@ import { TeamOverrideModal } from '../components/referee/TeamOverrideModal';
 import { HotkeyLegendModal } from '../components/referee/HotkeyLegendModal';
 import { IntermissionConfigModal } from '../components/referee/IntermissionConfigModal';
 import { SetEndResolutionModal } from '../components/referee/SetEndResolutionModal';
+import { MatchStrikers } from '../components/referee/MatchStrikers';
 import { getSpectatorPhaseMeta } from '../components/public/PublicLiveCard';
 import { CommandType } from '../types/scoreboard';
-import { Keyboard, Edit3, ShieldAlert, Coffee, Trophy } from 'lucide-react';
+import { Keyboard, Edit3, ShieldAlert, Coffee, Trophy, ClipboardCheck } from 'lucide-react';
 
 export const RefereeConsole: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -250,6 +251,14 @@ export const RefereeConsole: React.FC = () => {
               </select>
             )}
 
+            <Link
+              to={`/arena/${arenaId}/check-in`}
+              className="px-3 py-2 rounded-lg bg-[var(--court-control-bg)] hover:bg-[var(--court-control-hover)] text-[var(--court-ink)] border border-[var(--court-line)] text-xs font-semibold inline-flex items-center gap-1.5"
+            >
+              <ClipboardCheck className="w-4 h-4 text-[var(--court-accent-link)]" />
+              Team check-in
+            </Link>
+
             <button
               type="button"
               onClick={() => setIsHotkeyLegendOpen(true)}
@@ -388,6 +397,8 @@ export const RefereeConsole: React.FC = () => {
               </div>
             );
           })()}
+
+        <MatchStrikers key={arenaId} arenaId={arenaId} />
 
         {/* Central Authoritative Timer & Clock Bar */}
         <TimerControlBar

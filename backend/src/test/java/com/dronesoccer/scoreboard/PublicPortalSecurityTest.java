@@ -121,6 +121,8 @@ class PublicPortalSecurityTest {
                 "/api/matches/audit-logs",
                 "/api/arenas/hardware/status",
                 "/api/arenas/config/intermission",
+                "/api/arenas/1/check-in",
+                "/api/teams/1/players",
                 "/api/sponsors/all",
                 "/api/queue/template",
                 "/api/system/public-portal"
@@ -142,7 +144,9 @@ class PublicPortalSecurityTest {
 
     @Test
     void testPublicPortalRedirectsStaffSpaRoutesToRoot() throws Exception {
-        String[] staffRoutes = {"/master", "/admin", "/admin-panel", "/referee", "/arena/1/referee", "/arena/1/admin"};
+        String[] staffRoutes = {
+                "/master", "/admin", "/admin-panel", "/referee", "/arena/1/referee", "/arena/1/admin", "/arena/1/check-in"
+        };
         for (String route : staffRoutes) {
             MockHttpServletRequest req = new MockHttpServletRequest("GET", route);
             req.setLocalPort(8081);

@@ -40,6 +40,9 @@ Built with **Java 17 / Spring Boot 3**, **Spring WebSocket (STOMP)**, embedded *
   | `B` | Trigger Physical / Audio Buzzer |
 - Inline click-to-edit overrides for Team Names, Scores, Penalties, and Clock (+10s, -10s, Reset 03:00, custom time).
 - Set awarding (Red, Blue, Tie), side-swap toggle, and match persistence.
+- Each arena has a **Team check-in** page at `/arena/:id/check-in`. After loading a match, select either team, choose one to five flying players, and select one of them as striker. Then check in the other team or return to the referee console.
+- If a team has no registered players, the referee can choose **Check in without players** and continue.
+- Referees can start any match without check-in. Once play starts, the flying lineup is fixed. Use **Change striker** on the referee console to select another player from that lineup during the match. Loading or resetting a match clears the previous check-ins.
 
 ### 5. Transparent OBS Broadcast Overlays (`/arena/:id/overlay/*`)
 - Dedicated zero-background (`background: transparent !important;`) endpoints:
@@ -52,6 +55,7 @@ Built with **Java 17 / Spring Boot 3**, **Spring WebSocket (STOMP)**, embedded *
 - OBS Discovery Hub with copyable URLs, resolution badges, and live previews.
 - Match History & Auditing table with granular set-by-set breakdown and CSV export.
 - Tournament Match Queuing & Arena assignment.
+- Use **Teams → Manage players** to add, rename, or remove players for manually registered and schedule-imported teams.
 - Sponsor partner banner manager.
 
 ### 7. Public Live Spectator Portal & Arena Info Displays (`/live`, `/live/arena/:id/display` & Dedicated Port `8081` + Optional Cloudflare Tunnel)

@@ -18,6 +18,7 @@ export function useRefereeHotkeys({ enabled = true, onCommand }: RefereeHotkeyOp
         (activeEl.tagName === 'INPUT' ||
           activeEl.tagName === 'TEXTAREA' ||
           activeEl.tagName === 'SELECT' ||
+          activeEl.closest('[data-referee-hotkeys="off"]') ||
           (activeEl as HTMLElement).isContentEditable ||
           activeEl.getAttribute('role') === 'textbox')
       ) {

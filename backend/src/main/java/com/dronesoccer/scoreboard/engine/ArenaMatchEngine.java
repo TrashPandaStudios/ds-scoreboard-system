@@ -1,6 +1,8 @@
 package com.dronesoccer.scoreboard.engine;
 
 import com.dronesoccer.scoreboard.model.dto.*;
+import com.dronesoccer.scoreboard.model.dto.ArenaCheckInDTO.Lineup;
+import com.dronesoccer.scoreboard.model.dto.ArenaCheckInDTO.Side;
 import com.dronesoccer.scoreboard.model.entity.MatchRecord;
 import com.dronesoccer.scoreboard.model.entity.SetRecord;
 import com.dronesoccer.scoreboard.repository.MatchRecordRepository;
@@ -10,14 +12,19 @@ import com.dronesoccer.scoreboard.service.MatchAuditService;
 import com.dronesoccer.scoreboard.service.TeamLogoResolver;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.EnumMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.UUID;
 import java.util.concurrent.locks.ReentrantLock;
 
 @Slf4j
@@ -47,6 +54,9 @@ public class ArenaMatchEngine {
     private String teamRedLogoUrl;
     private String teamBlueLogoUrl;
     private TeamLogoResolver teamLogoResolver;
+    private UUID checkInMatchToken;
+    private boolean matchStarted;
+    private final Map<Side, Lineup> lineups = new EnumMap<>(Side.class);
 
     // Live Set State
     private int redScore = 0;
@@ -429,6 +439,10 @@ public class ArenaMatchEngine {
     }
 
     private void startTimerInternal() {
+        if (phase == MatchPhase.IDLE || phase == MatchPhase.COUNTDOWN || phase == MatchPhase.NORMAL_PHASE
+                || phase == MatchPhase.PENALTY_PHASE || phase == MatchPhase.SUDDEN_DEATH) {
+            matchStarted = true;
+        }
         timerRunning = true;
         timerStartNano = System.nanoTime();
         timerInitialRemainingMs = timeRemainingMs;
@@ -545,9 +559,7 @@ public class ArenaMatchEngine {
         this.phase = MatchPhase.COUNTDOWN;
         this.timeRemainingMs = 5000;
         this.totalSetDurationMs = 5000;
-        this.timerRunning = true;
-        this.timerStartNano = System.nanoTime();
-        this.timerInitialRemainingMs = 5000;
+        startTimerInternal();
         this.recentEvent = "5-Second Countdown Started";
     }
 
@@ -562,9 +574,7 @@ public class ArenaMatchEngine {
         this.phase = MatchPhase.SUDDEN_DEATH;
         this.timeRemainingMs = 0;
         this.totalSetDurationMs = 0;
-        this.timerRunning = true;
-        this.timerStartNano = System.nanoTime();
-        this.timerInitialRemainingMs = 0;
+        startTimerInternal();
         recentEvent = "SUDDEN DEATH Started - First Goal Wins!";
         auditService.logEvent(arenaId, currentMatchId, "SUDDEN_DEATH_START", recentEvent, null);
     }
@@ -661,6 +671,7 @@ public class ArenaMatchEngine {
 
         completedSets.removeIf(s -> s.getSetNumber() == currentSet);
         completedSets.add(setSummary);
+        matchStarted = true;
 
         recentEvent = "Set " + currentSet + " Awarded to " + winner;
         auditService.logEvent(arenaId, currentMatchId, "SET_AWARD", "Set " + currentSet + " Winner: " + winner, null);
@@ -863,6 +874,8 @@ public class ArenaMatchEngine {
     }
 
     public void updateTeams(String red, String blue, String matchNum) {
+        String previousRed = teamRed;
+        String previousBlue = teamBlue;
         if (red != null && !red.isBlank()) {
             this.teamRed = red;
             this.teamRedLogoUrl = teamLogoResolver != null ? teamLogoResolver.resolveLogoUrl(this.teamRed) : null;
@@ -872,6 +885,11 @@ public class ArenaMatchEngine {
             this.teamBlueLogoUrl = teamLogoResolver != null ? teamLogoResolver.resolveLogoUrl(this.teamBlue) : null;
         }
         if (matchNum != null && !matchNum.isBlank()) this.matchNumber = matchNum;
+        boolean redChanged = !previousRed.strip().equalsIgnoreCase(teamRed.strip());
+        boolean blueChanged = !previousBlue.strip().equalsIgnoreCase(teamBlue.strip());
+        if (redChanged) lineups.remove(Side.RED);
+        if (blueChanged) lineups.remove(Side.BLUE);
+        if (redChanged || blueChanged) refreshCheckInMatchToken();
         recentEvent = "Updated Teams: " + this.teamRed + " vs " + this.teamBlue;
     }
 
@@ -884,6 +902,9 @@ public class ArenaMatchEngine {
     private void resetMatchState() {
         pauseTimer();
         currentMatchId = null;
+        lineups.clear();
+        refreshCheckInMatchToken();
+        matchStarted = false;
         redScore = 0;
         blueScore = 0;
         redSetScore = 0;
@@ -897,6 +918,97 @@ public class ArenaMatchEngine {
         completedSets.clear();
         timeRemainingMs = defaultSetDurationMs;
         totalSetDurationMs = defaultSetDurationMs;
+    }
+
+    private void refreshCheckInMatchToken() {
+        checkInMatchToken = hasNamedTeam(teamRed) && hasNamedTeam(teamBlue) ? UUID.randomUUID() : null;
+    }
+
+    private boolean hasNamedTeam(String name) {
+        return !name.isBlank() && !"TBD".equalsIgnoreCase(name.strip());
+    }
+
+    public ArenaCheckInDTO getCheckIn() {
+        stateLock.lock();
+        try {
+            return new ArenaCheckInDTO(arenaName, matchNumber, checkInMatchToken, canCheckIn(),
+                    phase == MatchPhase.MATCH_ENDED,
+                    new ArenaCheckInDTO.Team(teamRed, teamRedLogoUrl, lineups.get(Side.RED)),
+                    new ArenaCheckInDTO.Team(teamBlue, teamBlueLogoUrl, lineups.get(Side.BLUE)));
+        } finally {
+            stateLock.unlock();
+        }
+    }
+
+    public ArenaCheckInDTO checkInTeam(UUID matchToken, Side side, UUID lineupVersion,
+                                      List<TeamPlayerDTO> players, UUID strikerId) {
+        stateLock.lock();
+        try {
+            requireCurrentLineup(matchToken, side, lineupVersion);
+            if (!canCheckIn()) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "Lineups close when the match starts.");
+            }
+            String details;
+            if (players.isEmpty() && strikerId == null) {
+                details = "Checked in without registered players.";
+            } else {
+                TeamPlayerDTO striker = findStriker(players, strikerId);
+                details = "Flying players: " + String.join(", ", players.stream().map(TeamPlayerDTO::name).toList())
+                        + ". Striker: " + striker.name();
+            }
+            lineups.put(side, new Lineup(UUID.randomUUID(), List.copyOf(players), strikerId));
+            auditService.logEvent(arenaId, currentMatchId, "TEAM_CHECK_IN", checkInAuditPrefix(side) + details, null);
+            return getCheckIn();
+        } finally {
+            stateLock.unlock();
+        }
+    }
+
+    public ArenaCheckInDTO changeStriker(UUID matchToken, Side side, UUID lineupVersion, UUID strikerId) {
+        stateLock.lock();
+        try {
+            Lineup lineup = requireCurrentLineup(matchToken, side, lineupVersion);
+            if (phase == MatchPhase.MATCH_ENDED || lineup == null) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "A checked-in team in an open match is required.");
+            }
+            if (lineup.players().isEmpty()) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "Check in a flying lineup before changing the striker.");
+            }
+            TeamPlayerDTO striker = findStriker(lineup.players(), strikerId);
+            if (!strikerId.equals(lineup.strikerId())) {
+                lineups.put(side, new Lineup(UUID.randomUUID(), lineup.players(), strikerId));
+                auditService.logEvent(arenaId, currentMatchId, "STRIKER_CHANGE",
+                        checkInAuditPrefix(side) + "New striker: " + striker.name(), null);
+            }
+            return getCheckIn();
+        } finally {
+            stateLock.unlock();
+        }
+    }
+
+    private boolean canCheckIn() {
+        return checkInMatchToken != null && !matchStarted && phase != MatchPhase.MATCH_ENDED;
+    }
+
+    private Lineup requireCurrentLineup(UUID matchToken, Side side, UUID lineupVersion) {
+        if (checkInMatchToken == null || !checkInMatchToken.equals(matchToken)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "The match or its teams changed. Review the current match.");
+        }
+        Lineup lineup = lineups.get(side);
+        if (!Objects.equals(lineupVersion, lineup == null ? null : lineup.version())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "This team's lineup changed. Review it and try again.");
+        }
+        return lineup;
+    }
+
+    private TeamPlayerDTO findStriker(List<TeamPlayerDTO> players, UUID strikerId) {
+        return players.stream().filter(player -> player.id().equals(strikerId)).findFirst()
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "Choose a striker from the flying lineup."));
+    }
+
+    private String checkInAuditPrefix(Side side) {
+        return "Match " + matchNumber + ", " + (side == Side.RED ? teamRed : teamBlue) + " (" + side + "). ";
     }
 
     public ArenaStateDTO toDTO() {

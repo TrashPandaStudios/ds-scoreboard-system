@@ -4,7 +4,7 @@ import { ArenaSummary } from '../../types/scoreboard';
 import { useAuthoritativeTimer } from '../../hooks/useAuthoritativeTimer';
 import { getSpectatorPhaseMeta } from '../public/PublicLiveCard';
 import { TeamBadge } from '../common/TeamBadge';
-import { Play, Pause, Tv, Sliders, Volume2, Layers, Coffee, Trash2 } from 'lucide-react';
+import { Play, Pause, Tv, Sliders, Volume2, Layers, Coffee, Trash2, ClipboardCheck } from 'lucide-react';
 
 interface ArenaTelemetryCardProps {
   arena: ArenaSummary;
@@ -155,7 +155,7 @@ export const ArenaTelemetryCard: React.FC<ArenaTelemetryCardProps> = ({
       </div>
 
       {/* Bottom Shortcuts */}
-      <div className="grid grid-cols-4 gap-1.5 px-4 py-3 bg-[var(--court-subtle)] border-t border-[var(--court-line-soft)]">
+      <div className="grid grid-cols-5 gap-1.5 px-4 py-3 bg-[var(--court-subtle)] border-t border-[var(--court-line-soft)]">
         <Link
           to={`/arena/${arena.arenaId}/display`}
           className="flex flex-col items-center gap-1 py-2 px-1 rounded-lg bg-[var(--court-control-bg)] hover:bg-[var(--court-control-hover)] text-[var(--court-ink-secondary)] hover:text-[var(--court-ink)] transition-colors text-[11px] font-semibold"
@@ -171,6 +171,14 @@ export const ArenaTelemetryCard: React.FC<ArenaTelemetryCardProps> = ({
         >
           <Sliders className="w-4 h-4" style={{ color: 'var(--signal-intermission)' }} />
           <span>Referee</span>
+        </Link>
+
+        <Link
+          to={`/arena/${arena.arenaId}/check-in`}
+          className="flex flex-col items-center gap-1 py-2 px-1 rounded-lg bg-[var(--court-control-bg)] hover:bg-[var(--court-control-hover)] text-[var(--court-ink-secondary)] hover:text-[var(--court-ink)] transition-colors text-[11px] font-semibold"
+        >
+          <ClipboardCheck className="w-4 h-4 text-[var(--court-accent-link)]" />
+          <span>Check-in</span>
         </Link>
 
         <Link
